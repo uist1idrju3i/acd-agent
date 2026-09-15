@@ -260,6 +260,7 @@ def test_product_readme_is_generated_from_graph_values(
     assert [item["path"] for item in provenance["inputs"]] == [
         Path(GRAPH).resolve().as_posix(),
         "visual-projections.json",
+        str(Path(__file__).resolve().parents[1] / "templates" / "ja.json"),
     ]
 
 
@@ -341,7 +342,7 @@ def test_instruction_manual_is_generated_from_graph_and_pin_projection(
     )
     assert provenance["document_kind"] == "instruction_manual"
     assert provenance["pass_evidence"] is False
-    assert len(provenance["inputs"]) == 2
+    assert len(provenance["inputs"]) == 3
 
 
 def test_instruction_manual_is_deterministic(graph: DesignGraph, tmp_path: Path) -> None:
@@ -450,7 +451,10 @@ def test_theme_song_section_is_rendered(
     provenance = json.loads(
         (out_dir / "product-readme.md.provenance.json").read_text(encoding="utf-8")
     )
-    assert provenance["inputs"][-1]["path"] == "theme-song-projection.json"
+    assert any(
+        item["path"] == "theme-song-projection.json"
+        for item in provenance["inputs"]
+    )
 
 
 def test_theme_song_absent_omits_section_and_notes_undeclared(

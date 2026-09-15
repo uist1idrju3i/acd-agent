@@ -76,6 +76,10 @@ from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
 from acd.pipeline.firmware_lane import FirmwareLaneError, run_firmware_lane
 from acd.pipeline.fixture_builder import build_design_fixture
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
+from acd.pipeline.graph_diff_projection import (
+    GraphDiffProjectionError,
+    run_graph_diff_projection,
+)
 from acd.pipeline.lane_plan import (
     DESIGN_LOOP_LANE_IDS,
     RECOVERY_EXPLORATION_STAGE_IDS,
@@ -208,12 +212,15 @@ class DesignLoopConfig:
     max_exploration_rounds: int = 1
     requirement: Path | None = None
     fixture_spec: Path | None = None
+    cpl_evidence_dir: Path | None = None
     quote_records: tuple[Path, ...] = ()
     order_scope: Path | None = None
     design_only: bool = False
     fixture_overwrite: bool = False
     wall_clock_budget_seconds: float | None = None
     token_budget: int | None = None
+    previous_graph_path: Path | None = None
+    document_languages: tuple[str, ...] = ("ja",)
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -419,6 +426,34 @@ def _run_visual_review_manifest(config: DesignLoopConfig) -> dict[str, Any]:
     )
 
 
+def _run_graph_diff_projection(config: DesignLoopConfig) -> dict[str, Any]:
+    if config.previous_graph_path is None:
+        return _success(
+            "graph-diff-projection",
+            status="skipped",
+            reason="previous graph not declared",
+            record_class="L3",
+        )
+    try:
+        output = run_graph_diff_projection(
+            graph_path=config.fixture_dir / "graph.json",
+            previous_graph_path=config.previous_graph_path,
+            out_dir=config.out_root / "graph-diff",
+            project_name=config.graph_id,
+        )
+    except GraphDiffProjectionError as exc:
+        return _failure(
+            "graph-diff-projection",
+            str(exc),
+            record_class="L3",
+        )
+    return _success(
+        "graph-diff-projection",
+        output_path=str(output),
+        record_class="L3",
+    )
+
+
 def _run_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
     board_out = config.lane_plan.stage("board-pipeline").output_path
     enclosure_out = config.lane_plan.stage("enclosure-pipeline").output_path
@@ -439,6 +474,8 @@ def _run_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
             firmware_out=firmware_out,
             output=output,
             enclosure_out=enclosure_out,
+            previous_graph_path=config.previous_graph_path,
+            languages=config.document_languages,
         )
     except ProjectionDocsError as exc:
         fields: dict[str, Any] = {"record_class": "L3"}
@@ -688,14 +725,27 @@ def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
             config.fixture_dir,
             overwrite=config.fixture_overwrite,
             spec_dir=config.fixture_spec.parent,
+            cpl_evidence_dir=config.cpl_evidence_dir,
         )
     except Exception as exc:
         return _failure("fixture-generation", f"{type(exc).__name__}: {exc}")
     # Diagnostic only: the fixture was written, and the loop entry preflight
     # decides whether the lanes may run. Reporting the gaps here lets a design
     # input be completed without waiting for that stop.
-    preflight = run_lane_preflight(graph, _preflight_lanes())
+    preflight = run_lane_preflight(
+        graph,
+        _preflight_lanes(),
+        root=config.repository,
+        evidence_root=(
+            config.fixture_dir
+            if (config.fixture_dir / "evidence").is_dir()
+            else config.repository
+        ),
+    )
     diagnostics: dict[str, Any] = {"lane_preflight_status": preflight.status}
+    diagnostics["producer_gaps"] = [
+        item.model_dump(mode="json") for item in preflight.producer_gaps
+    ]
     diagnostics.update(_firmware_coverage_diagnostics(preflight))
     if preflight.status != "declarations_complete":
         diagnostics["missing_declarations"] = [
@@ -748,7 +798,16 @@ def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
     output_path = config.lane_plan.stage("lane-preflight").output_path
     try:
         graph = _load_graph(config.fixture_dir)
-        report = run_lane_preflight(graph, _preflight_lanes())
+        report = run_lane_preflight(
+            graph,
+            _preflight_lanes(),
+            root=config.repository,
+            evidence_root=(
+                config.fixture_dir
+                if (config.fixture_dir / "evidence").is_dir()
+                else config.repository
+            ),
+        )
         if output_path is not None:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(
@@ -767,6 +826,9 @@ def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
         "revision": graph.revision,
         "preflight_status": report.status,
         "preflight_lanes": list(_preflight_lanes()),
+        "producer_gaps": [
+            item.model_dump(mode="json") for item in report.producer_gaps
+        ],
         "output_path": str(output_path) if output_path is not None else None,
         **_firmware_coverage_diagnostics(report),
     }
@@ -936,6 +998,7 @@ DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
     "board-pipeline": _run_board,
     "enclosure-pipeline": _run_enclosure,
     "firmware-pipeline": _run_firmware,
+    "graph-diff-projection": _run_graph_diff_projection,
     "visual-review-manifest": _run_visual_review_manifest,
     "projection-docs": _run_projection_docs,
     "manufacturing-submission": _run_manufacturing_submission,
@@ -1161,8 +1224,11 @@ def run_design_loop(
     wall_clock_budget_seconds: float | None = None,
     token_budget: int | None = None,
     fixture_spec: Path | None = None,
+    cpl_evidence_dir: Path | None = None,
     quote_records: Sequence[Path] | None = None,
     order_scope: Path | None = None,
+    previous_graph_path: Path | None = None,
+    document_languages: Sequence[str] = ("ja",),
 ) -> dict[str, Any]:
     """Run stages in fixed order with stop-only stage-boundary budgets.
 
@@ -1231,6 +1297,8 @@ def run_design_loop(
         result["requirement"] = str(requirement)
     if fixture_spec is not None:
         result["fixture_spec"] = str(fixture_spec)
+    if cpl_evidence_dir is not None:
+        result["cpl_evidence_dir"] = str(cpl_evidence_dir)
     timing_record: Path | None = None
     timing_record_error: str | None = None
     config: DesignLoopConfig | None = None
@@ -1316,12 +1384,15 @@ def run_design_loop(
             max_exploration_rounds=max_exploration_rounds,
             requirement=requirement,
             fixture_spec=fixture_spec,
+            cpl_evidence_dir=cpl_evidence_dir,
             quote_records=tuple(quote_records or ()),
             order_scope=order_scope,
             design_only=design_only,
             fixture_overwrite=fixture_overwrite,
             wall_clock_budget_seconds=wall_clock_budget_seconds,
             token_budget=token_budget,
+            previous_graph_path=previous_graph_path,
+            document_languages=tuple(document_languages),
         )
         if recovery_enabled:
             recovery_declarations = load_lane_recovery_declarations()
@@ -1495,6 +1566,14 @@ def run_design_loop(
             )
             if failed is not None:
                 return once_results, failed
+
+            graph_diff_projection = run_stage(
+                "graph-diff-projection",
+                timing_prefix=timing_prefix,
+            )
+            once_results.append(graph_diff_projection)
+            if graph_diff_projection.get("fail_closed"):
+                return once_results, graph_diff_projection
 
             # Mandatory visual review handoff: the manifest stage derives the
             # PNGs the agent must inspect; the inspection and its verification

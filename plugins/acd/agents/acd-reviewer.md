@@ -50,6 +50,14 @@ deterministic ACD gates decide acceptance. Never treat a Skill result, heuristic
 review as acceptance evidence. Unknown, malformed, unavailable, or unverified information fails
 closed and must be reported explicitly.
 
+## Review package input
+
+When present, use `out/docs/review-package.json` and
+`out/docs/review-package.md` as the review-package inputs. The package is an
+L3 record with `authority: none`; it cannot change a gate result. If either
+file is missing or unreadable, report the package information as unknown and
+do not infer its contents.
+
 ## Skill references
 
 Plugin subagents receive no preloaded Skill context. Resolve the ACD plugin root as the first
@@ -59,3 +67,4 @@ a Skill and treat an unreadable Skill asset as fail-closed:
 
 - `<acd plugin root>/skills/acd-qc-seven-tools/SKILL.md`
 - `<acd plugin root>/skills/acd-reliability-review/SKILL.md`
+- `<acd plugin root>/skills/acd-dfa-review/SKILL.md`

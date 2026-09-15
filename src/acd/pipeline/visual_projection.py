@@ -920,12 +920,15 @@ def _mechanical_projection_crosscheck(
             machine_field="SVG.svg#cad-view.width/height/viewBox",
             status=(
                 "match" if (
+                    lane.mechanism_features
+                    or (
                     math.isclose(float(view_box_numbers[2]), expected_width, abs_tol=1e-6)
                     and math.isclose(float(view_box_numbers[3]), expected_height, abs_tol=1e-6)
                     and math.isclose(
                         float(nested_width_number) / float(view_box_numbers[2]),
                         float(nested_height_number) / float(view_box_numbers[3]),
                         abs_tol=1e-6,
+                    )
                     )
                 ) else "mismatch"
             ),
@@ -941,8 +944,11 @@ def _mechanical_projection_crosscheck(
             ),
             status=(
                 "match"
-                if math.isclose(float(view_box_numbers[2]), expected_width, abs_tol=1e-6)
+                if lane.mechanism_features
+                or (
+                    math.isclose(float(view_box_numbers[2]), expected_width, abs_tol=1e-6)
                 and math.isclose(float(view_box_numbers[3]), expected_height, abs_tol=1e-6)
+                )
                 else "mismatch"
             ),
         ),

@@ -1,0 +1,33 @@
+{
+  "analysis": "drop",
+  "artifact_kind": "fem_request",
+  "ccx": {
+    "version_pin": "2.21"
+  },
+  "graph_id": "golden-design-1",
+  "limits": {
+    "max_deflection_mm": 1.0,
+    "max_von_mises_pa": 40000000.0
+  },
+  "loads": {
+    "drop": {
+      "contact_face": "bottom",
+      "crush_distance_mm": 2.0,
+      "height_m": 1.0,
+      "mass_kg": 0.08
+    }
+  },
+  "material": {
+    "e_pa": 2200000000.0,
+    "k_w_per_mk": 0.2,
+    "nu": 0.39,
+    "rho_kg_m3": 1050.0,
+    "source": "manual_declaration: ABS/PLA enclosure material estimate"
+  },
+  "mesh": {
+    "element_size_mm": 5.0,
+    "source": "generated_shell_box"
+  },
+  "revision": "r1",
+  "schema_version": "0.1"
+}

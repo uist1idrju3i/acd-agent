@@ -1,0 +1,110 @@
+{
+  "graph_id": "stackup-four-layer",
+  "schema_version": "0.1",
+  "revision": "r1",
+  "nodes": [
+    {
+      "id": "req.stackup",
+      "kind": "requirement",
+      "attrs": {
+        "text": "USB differential routing requires a controlled four-layer stackup."
+      },
+      "depends_on": []
+    },
+    {
+      "id": "req.safety",
+      "kind": "requirement",
+      "attrs": {"text": "Power boundary is declared for the fixture."},
+      "depends_on": []
+    },
+    {
+      "id": "net.usb_dp",
+      "kind": "electrical.net",
+      "attrs": {
+        "name": "USB_DP",
+        "width_basis": "impedance_ipc2141",
+        "voltage_nominal_v": 0.0,
+        "current_max_a": 0.01,
+        "differential_pair": "usb",
+        "differential_polarity": "p",
+        "target_impedance_ohm": 90.0,
+        "impedance_tolerance_pct": 10.0,
+        "impedance_reference_layer": "In1.Cu",
+        "impedance_trace_width_mm": 0.15,
+        "impedance_gap_mm": 0.15,
+        "impedance_routing_layer": "F.Cu"
+      },
+      "depends_on": []
+    },
+    {
+      "id": "net.usb_dn",
+      "kind": "electrical.net",
+      "attrs": {
+        "name": "USB_DN",
+        "width_basis": "impedance_ipc2141",
+        "voltage_nominal_v": 0.0,
+        "current_max_a": 0.01,
+        "differential_pair": "usb",
+        "differential_polarity": "n",
+        "target_impedance_ohm": 90.0,
+        "impedance_tolerance_pct": 10.0,
+        "impedance_reference_layer": "In1.Cu",
+        "impedance_trace_width_mm": 0.15,
+        "impedance_gap_mm": 0.15,
+        "impedance_routing_layer": "F.Cu"
+      },
+      "depends_on": []
+    },
+    {
+      "id": "board.minimal",
+      "kind": "electrical.board",
+      "attrs": {
+        "width_mm": 40.0,
+        "height_mm": 35.0,
+        "layers": 4,
+        "thickness_mm": 1.6,
+        "unit": "mm",
+        "origin": "board_upper_left",
+        "y_axis": "down",
+        "min_track_mm": 0.15,
+        "min_clearance_mm": 0.15,
+        "via_drill_mm": 0.3,
+        "via_diameter_mm": 0.6,
+        "edge_copper_clearance_mm": 0.3,
+        "antenna_keepout": false,
+        "ground_plane_net": null,
+        "ground_plane_layers": []
+      },
+      "depends_on": []
+    },
+    {
+      "id": "stackup.four-layer",
+      "kind": "electrical.stackup",
+      "attrs": {
+        "layers": [
+          {"name": "F.Cu", "kind": "signal", "thickness_mm": 0.035, "copper_um": 35},
+          {"name": "Prepreg1", "kind": "dielectric", "thickness_mm": 0.1, "material": "FR-4", "dielectric_constant": 4.0},
+          {"name": "In1.Cu", "kind": "plane", "thickness_mm": 0.035, "copper_um": 35},
+          {"name": "Core1", "kind": "dielectric", "thickness_mm": 0.7, "material": "FR-4", "dielectric_constant": 4.0},
+          {"name": "In2.Cu", "kind": "plane", "thickness_mm": 0.035, "copper_um": 35},
+          {"name": "Prepreg2", "kind": "dielectric", "thickness_mm": 0.66, "material": "FR-4", "dielectric_constant": 4.0},
+          {"name": "B.Cu", "kind": "signal", "thickness_mm": 0.035, "copper_um": 35}
+        ],
+        "finished_thickness_mm": 1.6
+      },
+      "depends_on": ["board.minimal"]
+    },
+    {
+      "id": "block.signal-integrity",
+      "kind": "design.functional_block",
+      "attrs": {"block_id": "high_speed_signal_integrity"},
+      "depends_on": ["req.stackup"]
+    },
+    {
+      "id": "block.safety-power",
+      "kind": "design.functional_block",
+      "attrs": {"block_id": "safety_power_boundary"},
+      "depends_on": ["req.safety"]
+    }
+  ]
+}

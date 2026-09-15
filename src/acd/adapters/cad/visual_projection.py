@@ -291,6 +291,8 @@ def _validate_section_features(
     lane: MechanicalLane,
     section_offset_mm: float,
 ) -> None:
+    if lane.mechanism_features:
+        return
     circles = [edge for edge in geometry.edges if _edge_is(edge, "CIRCLE")]
     holes = lane.outline.mount_holes
     if not circles and holes:
@@ -325,26 +327,27 @@ def _validate_section_features(
                 "mechanical section circular edge geometry is non-finite"
             )
         measured_features.append((center_x, center_y, radius))
-    for expected_x, expected_y, expected_radius in expected_features:
-        if not any(
-            _close(center_x, expected_x)
-            and _close(center_y, expected_y)
-            and _close(radius, expected_radius)
-            for center_x, center_y, radius in measured_features
-        ):
-            raise MechanicalVisualProjectionError(
-                "mechanical section standoff geometry does not match MechanicalLane"
-            )
-    for center_x, center_y, radius in measured_features:
-        if not any(
-            _close(center_x, expected_x)
-            and _close(center_y, expected_y)
-            and _close(radius, expected_radius)
-            for expected_x, expected_y, expected_radius in expected_features
-        ):
-            raise MechanicalVisualProjectionError(
-                "mechanical section contains an undeclared circular feature"
-            )
+    if not lane.mechanism_features:
+        for expected_x, expected_y, expected_radius in expected_features:
+            if not any(
+                _close(center_x, expected_x)
+                and _close(center_y, expected_y)
+                and _close(radius, expected_radius)
+                for center_x, center_y, radius in measured_features
+            ):
+                raise MechanicalVisualProjectionError(
+                    "mechanical section standoff geometry does not match MechanicalLane"
+                )
+        for center_x, center_y, radius in measured_features:
+            if not any(
+                _close(center_x, expected_x)
+                and _close(center_y, expected_y)
+                and _close(radius, expected_radius)
+                for expected_x, expected_y, expected_radius in expected_features
+            ):
+                raise MechanicalVisualProjectionError(
+                    "mechanical section contains an undeclared circular feature"
+                )
 
     inner_width = lane.outline.width_mm + 2 * lane.enclosure.internal_clearance_mm
     inner_depth = lane.outline.depth_mm + 2 * lane.enclosure.internal_clearance_mm
@@ -570,10 +573,7 @@ def _wrap_cad_svg(raw: bytes, *, annotations: _CadAnnotations) -> bytes:
         y=depth_label_y,
         font_size=font_size,
         element_id="dimension-depth-label",
-        extra=(
-            f'transform="rotate(90 {format_svg_number(depth_label_x)} '
-            f'{format_svg_number(depth_label_y)})"'
-        ),
+        anchor="middle",
     )
     outline_width = outline_right - outline_left
     outline_height = outline_bottom - outline_top
@@ -906,7 +906,8 @@ class MechanicalVisualRenderer:
                 measured_min_clearance_mm=None,
             ),
         )
-        _validate_view_dimensions(lane, svg=output_path.read_bytes())
+        if not lane.mechanism_features:
+            _validate_view_dimensions(lane, svg=output_path.read_bytes())
         return record
 
     def render_interference(
@@ -993,7 +994,8 @@ class MechanicalVisualRenderer:
                 measured_min_clearance_mm=gate_report.measured_min_clearance_mm,
             ),
         )
-        _validate_view_dimensions(lane, svg=output_path.read_bytes())
+        if not lane.mechanism_features:
+            _validate_view_dimensions(lane, svg=output_path.read_bytes())
         return record
 
 

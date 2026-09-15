@@ -28,6 +28,20 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
     parser.add_argument("--out-root", type=Path, default=Path("out"))
+    parser.add_argument(
+        "--previous-graph",
+        type=Path,
+        default=None,
+        help="optional previous graph JSON for review-package graph diff",
+    )
+    parser.add_argument(
+        "--doc-lang",
+        choices=("ja", "en"),
+        action="append",
+        dest="document_languages",
+        default=None,
+        help="document output language; repeat to generate multiple languages",
+    )
     parser.add_argument("--order-total", type=Path, default=None)
     parser.add_argument(
         "--quote-record",
@@ -130,6 +144,12 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="optional design fixture specification to generate before the loop",
     )
+    parser.add_argument(
+        "--cpl-evidence-dir",
+        type=Path,
+        default=None,
+        help="directory of measured CPL records to copy into the generated fixture",
+    )
     return parser
 
 
@@ -166,6 +186,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_exploration_rounds=args.max_exploration_rounds,
             requirement=args.requirement,
             fixture_spec=args.fixture_spec,
+            cpl_evidence_dir=args.cpl_evidence_dir,
+            previous_graph_path=args.previous_graph,
+            document_languages=tuple(args.document_languages or ("ja",)),
         )
     except Exception as exc:
         result = {

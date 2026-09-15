@@ -62,7 +62,10 @@ _BLOCK_OMIT_KINDS = frozenset(
         "design.functional_block",
         # Responsibility-allocation declarations are not system blocks.
         "design.responsibility",
+        "safety.redundant_group",
         "electrical.placement_group",
+        # Stackup declarations are electrical contracts, not system blocks.
+        "electrical.stackup",
         "fab.order_intent",
         "fab.process_allowance",
         # Mechanical geometry and graphics belong to mechanical projections.
@@ -71,6 +74,7 @@ _BLOCK_OMIT_KINDS = frozenset(
         "mechanical.connector_opening",
         "mechanical.board_edge_overhang",
         "mechanical.enclosure",
+        "mechanism_feature",
         "mechanical.silk_text",
         "mechanical.silk_graphic",
         # Firmware pin assignments are not firmware module blocks.

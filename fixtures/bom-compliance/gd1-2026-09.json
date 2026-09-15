@@ -1,0 +1,351 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "compliance_declaration_registry",
+  "registry_id": "gd1-bom-compliance-2026-09",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "as_of": "2026-09-01",
+  "regimes": [
+    "rohs",
+    "reach_svhc",
+    "msl"
+  ],
+  "entries": [
+    {
+      "mpn": "0603WAF1001T5E",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "0603WAF1002T5E",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "0603WAF4701T5E",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "0603WAF5101T5E",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "AMS1117-3.3",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "msl",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          },
+          "msl_level": "3"
+        }
+      ]
+    },
+    {
+      "mpn": "CL10A105KB8NNNC",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "CL10A106MQ8NNNC",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "CL10B104KB8NNNC",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "ESP32-C3-MINI-1-N4",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "msl",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          },
+          "msl_level": "3"
+        }
+      ]
+    },
+    {
+      "mpn": "KT-0603R",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "SHT40-AD1B-R3",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "msl",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          },
+          "msl_level": "3"
+        }
+      ]
+    },
+    {
+      "mpn": "TS-1088-AR02016",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "TYPE-C-31-M-12",
+      "declarations": [
+        {
+          "regime": "rohs",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        },
+        {
+          "regime": "reach_svhc",
+          "declared_status": "declared_compliant",
+          "source": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-bom-compliance-2026-09",
+            "observed_at": "2026-08-15"
+          }
+        }
+      ]
+    }
+  ],
+  "policy": {
+    "required_regimes": [
+      "rohs",
+      "reach_svhc"
+    ],
+    "max_declaration_age_days": 60
+  }
+}

@@ -224,6 +224,7 @@ def test_design_loop_stage_set_and_order_are_fixed() -> None:
         "board-pipeline",
         "enclosure-pipeline",
         "firmware-pipeline",
+        "graph-diff-projection",
         "visual-review-manifest",
         "projection-docs",
         "manufacturing-submission",
@@ -266,6 +267,7 @@ def test_design_loop_runs_visual_review_manifest_after_lanes(
 
     assert result["ok"] is True
     assert seen.index("visual-review-manifest") > seen.index("firmware-pipeline")
+    assert seen.index("graph-diff-projection") < seen.index("visual-review-manifest")
     assert seen.index("visual-review-manifest") < seen.index("projection-docs")
     assert seen.index("projection-docs") < seen.index("manufacturing-submission")
     assert seen.index("manufacturing-submission") < seen.index("order-readiness")
@@ -1873,6 +1875,7 @@ def test_lane_preflight_stops_before_silkscreen_with_concrete_declarations(
     assert preflight["record_class"] == "L3"
     assert preflight["pass_evidence"] is False
     assert preflight["preflight_status"] == "declarations_incomplete"
+    assert isinstance(preflight["producer_gaps"], list)
     (missing,) = preflight["missing_declarations"]
     assert missing["kind"] == "mechanical.silk_text"
     assert missing["spec_path"] == "silk_texts[].attrs"

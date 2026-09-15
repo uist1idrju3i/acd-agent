@@ -15,6 +15,26 @@ agent-serverはACDの対象外であり、採用する場合は新規ADRで受�
 `LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
 host経路はprovisional専用であり、authoritative Evidenceを生成しない。
 
+### host側FreeRouting wrapper（provisionalのみ）
+
+hostにFreeRouting実行ファイルがない場合、探索の動作確認に限り、repository外の
+`~/bin/freerouting` wrapperからdigest固定tools imageの`freerouting`を起動できる。
+wrapperはadapterが渡すDSN／SESの絶対パスをcontainer内でも同じ位置で参照できるよう、
+作業ディレクトリを同一パスへbind mountして`-w`を設定する。
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+image='ghcr.io/uist1idrju3i/acd-tools@sha256:f6183da561f22b8c80197af37c700665ed6e9d273b9d1267658e61a36577dc25'
+workdir="$(pwd)"
+exec docker run --rm -v "$workdir:$workdir" -w "$workdir" "$image" freerouting "$@"
+```
+
+`--version`はtools imageのCLIが入力ファイルを要求するため、必要ならwrapper側で
+`Freerouting v2.4.1`を返す分岐を設ける。このwrapperはrepositoryへ追加せず、hostの
+provisional routing観測だけに使う。container内で得た結果でも、locked server imageの
+authoritative lane実行とrevision一致Evidence検証を置き換えず、合格側Evidenceを生成しない。
+
 `run_design_loop`の`projection-docs`段は、3 laneと視覚レビューmanifestの後に
 `out/docs/product-readme.md`、`out/docs/instruction-manual.md`、各provenance、
 flatな`out/docs/hashes.json`を書き出す。続く`manufacturing-submission`段は
@@ -1073,6 +1093,70 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 ### 依存アップデートの確認
 
+#### CalculiX（ccx）のtools image運用
+
+機械解析のFEM経路で使うCalculiXはGPLツールのため、ACDへimportせず
+`acd.core.process.run_tool`から`ccx` subprocessとしてだけ起動する。tools imageの
+DockerfileにはUbuntu archiveの`calculix-ccx`を追加し、`scripts/measure_image_tools.py`
+が`ccx -v`から版を抽出する。現行のdigest lockにはまだccxの測定値が無いため、
+`docker/image-digests.json`へ版を推測記入せず、依存更新レポートでは
+`未計測（次回publishで記録）`として扱う。imageをpublishして実測した後にだけlockへ
+転記する。
+
+Ubuntu archiveのhost確認では`calculix-ccx`候補が`2.17-3`として観測されたが、
+hostのarchive系列と将来のUbuntu 26.04 publish imageの実測値を同一視しない。
+上流比較はLaunchpadの`calculix-ccx` sourceページを対象にし、lockの値が無い間も
+checkerが例外で停止しないようにする。
+
+FEMのdropは`v=sqrt(2gh)`と`a=v²/(2*crush_distance)`による等価静的近似であり、
+完全な過渡衝撃解析ではない。`fixtures/fem/gd1-drop.dat`はreal ccxが利用できない
+host向けのsynthetic parser fixtureで、CalculiX結果やauthoritative Evidenceではない。
+
+#### clang-tidyのtools image運用
+
+FWのopt-in静的解析で使用する`clang-tidy`はGPL境界を越えてimportせず、
+subprocessとして起動する。tools imageのapt package、`clang-tidy --version`測定、
+LaunchpadのLLVM toolchain apt sourceを`measure_image_tools.py`と
+`check_dependency_updates.py`で管理する。image lockへ実測値が無い場合は、値を推測して
+追加せず`未計測（次回publishで記録）`として扱う。
+
+clang-tidyのchecks listは
+`plugins/acd/skills/acd-firmware-esp32c3/rules/clang_tidy_checks.json`に固定し、
+compile commands、target、GCC toolchainの出所を解析入力に含める。warning、error、
+malformed diagnostics、tool/version不一致はpassへ変換しない。結果はstatic-analysis
+estimateであり、authoritative Evidenceではない。
+
+#### clang-tidyのtools image運用
+
+FWのopt-in静的解析で使用する`clang-tidy`はGPL境界を越えてimportせず、
+subprocessとして起動する。tools imageのapt package、`clang-tidy --version`測定、
+LaunchpadのLLVM toolchain apt sourceを`measure_image_tools.py`と
+`check_dependency_updates.py`で管理する。image lockへ実測値が無い場合は、値を推測して
+追加せず`未計測（次回publishで記録）`として扱う。
+
+clang-tidyのchecks listは
+`plugins/acd/skills/acd-firmware-esp32c3/rules/clang_tidy_checks.json`に固定し、
+compile commands、target、GCC toolchainの出所を解析入力に含める。warning、error、
+malformed diagnostics、tool/version不一致はpassへ変換しない。結果はstatic-analysis
+estimateであり、authoritative Evidenceではない。
+
+#### gcovrのtools image運用
+
+FW coverageのhost-side parserは`gcovr --json`の出力だけをsubprocess境界で
+読み取り、gcovr自体をACDへimportしない。tools imageでは`GCOVR_VERSION`を固定した
+PyPI packageを`uv pip install --system`で導入し、`measure_image_tools.py`が
+`gcovr --version`を測定する。image lockに新しい測定値が無い間は
+`docker/image-digests.json`へ推測値を追記せず、次回publishで記録する。
+依存checkerはDocker ARGをPyPIのgcovr versionと照合する。
+
+ESP-IDF/QEMUの実run dumpは`esp_gcov_dump()`をgenerated virtual-run end markerから
+呼び出す方式を選択した。hostにESP-IDF/QEMUが無い場合はreal runをpassへ変換せず
+unknownとし、synthetic gcovr JSON parser fixtureだけを検証する。
+
+HILのGD1 plan/run/logはsynthetic fixtureであり、実機計測値ではない。ingest結果は
+既存のmeasured PhysicalEvidence消費経路へ渡せるが、authoritative pass Evidenceには
+昇格しない。feedback proposalの既存意味論は変更しない。
+
 `libraries/README.md`のgit pinは、EspressifとCERNを含む全sourceを確認する。
 
 [`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新major、`src/acd/adapters/cad/viewer_assets/three/`のvendored three.jsである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。
@@ -1740,6 +1824,29 @@ enclosure・interference）、筐体の半透明化、断面slider、干渉body�
 `assembly-3d.json`は`level: "L3"`、`pass_authority: false`、各artifactのsha256、
 format_check、node一覧、入力STEPの正規化hashを記録する。これら3ファイルはL3観測で
 あり、Evidence、fab package、gate verdictへ含めない。
+
+### KiCad 3Dモデルの選択同梱（11.4）
+
+GD1またはfixtureの`.kicad_pcb`にある標準`${KICAD*_3DMODEL_DIR}`参照から、
+`scripts/select_kicad_3d_models.py`を実行して`docker/kicad-3d-models.json`を
+再生成する。生成結果はsort・deduplicateされ、`scripts/tests/test_select_kicad_3d_models.py`
+のdrift testでchecked-in allowlistと一致することを固定する。`${KICAD*_3RD_PARTY}`等の
+外部モデルはKiCad packageの選択同梱対象外であり、実部品連携で必要な場合は別途モデルの
+出所、license、hashを宣言し、欠落をunknownとして扱う。
+
+tools imageはbuild stageで`kicad-packages3d`をPPAから導入し、final stageでは
+allowlistに一致する`.step`／`.stp`／`.wrl`だけを`/opt/acd/kicad-3d`へコピーする。
+`KICAD10_3DMODEL_DIR`はそのディレクトリを指す。追加モデル数に応じてimage sizeと
+publish時間が増えるため、allowlist変更後は通常のpublish workflowでtools／serverを
+再publishし、実測したdigestを人手で`docker/image-digests.json`へ再lockする。
+publish前に推測値や`pending publish` placeholderをlockへ書かない。image内の
+`/opt/acd/docker/kicad-3d-models.json`のsha256とコピー件数は
+`measure_image_tools.py`の`kicad-3d-models` entryで記録する。
+
+KiCad CLIの上流追跡は既存のKiCad PPA／`kicad-source-mirror`管理に従う。
+`kicad-packages3d`は同じPPAの同じKiCad release資材であり、別のupstream version
+surfaceを持たないため、`check_dependency_updates.py`では既存KiCad specの対象範囲に
+含め、個別の推測版は追加しない。
 
 ## 生成文書lane
 

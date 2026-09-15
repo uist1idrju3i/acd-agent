@@ -18,7 +18,7 @@ from acd.core.declaration_vocabulary import (
     SAFETY_BOUNDARY_INTENDED_USE,
     SAFETY_BOUNDARY_MODULE_CERTIFIED,
 )
-from acd.core.electrical import ComponentView, ElectricalLane
+from acd.core.electrical import ComponentView, ElectricalLane, NetView
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
@@ -42,7 +42,15 @@ PREDICATE_CATALOG = (
     "power_decoupling",
     "power_boundary",
     "led_series_element",
+    "differential_pair",
+    "impedance_geometry",
+    "single_point_of_failure",
+    "protection_selectivity",
+    "signal_class_segregation",
+    "sneak_path",
+    "trapezoid_current_capacity",
 )
+OPT_IN_PREDICATES = frozenset({"differential_pair", "impedance_geometry"})
 
 PREDICATE_EVALUATION_STAGE: dict[str, str] = {
     name: "pre_router" for name in PREDICATE_CATALOG
@@ -91,6 +99,17 @@ SMALL_CAP_DISTANCE_MM = 3.0
 LARGE_CAP_DISTANCE_MM = 8.0
 # 0.02 uF represents the +/-20% range used to classify 100 nF-class capacitors.
 SMALL_DECOUPLING_TOLERANCE_UF = 0.02
+
+# IPC-2141 closed-form approximations; these are not field-solver results.
+IMPEDANCE_FORMULA_CONSTANTS = {
+    "microstrip": {"z0_factor": 87.0, "denominator_factor": 0.8, "log_factor": 5.98},
+    "stripline": {
+        "z0_factor": 60.0,
+        "denominator_factor": 0.8,
+        "log_factor": 4.0,
+        "pi_factor": 0.67,
+    },
+}
 
 
 class PredicateSubject(BaseModel):
@@ -585,6 +604,193 @@ def evaluate_led_series_element(
     )
 
 
+def evaluate_differential_pair(
+    graph: DesignGraph, lane: ElectricalLane
+) -> PredicateResult:
+    """Check complete, symmetric differential-pair declarations."""
+    del graph
+    pair_nets = [net for net in lane.nets if net.differential_pair is not None]
+    partial = [
+        net.name
+        for net in lane.nets
+        if net.differential_pair is None and net.differential_polarity is not None
+    ]
+    if partial:
+        return _result(
+            "differential_pair",
+            "fail",
+            "differential polarity is declared without differential_pair: "
+            + ", ".join(sorted(partial)),
+        )
+    if not pair_nets:
+        return _result("differential_pair", "pass", "no differential pair declared")
+    required = (
+        "target_impedance_ohm",
+        "impedance_tolerance_pct",
+        "impedance_reference_layer",
+        "impedance_trace_width_mm",
+        "impedance_gap_mm",
+        "impedance_routing_layer",
+    )
+    failures: list[str] = []
+    pair_ids = sorted(
+        {pair_id for net in pair_nets if (pair_id := net.differential_pair) is not None}
+    )
+    for pair_id in pair_ids:
+        members = [net for net in pair_nets if net.differential_pair == pair_id]
+        polarities = {net.differential_polarity for net in members}
+        if len(members) != 2 or polarities != {"p", "n"}:
+            failures.append(f"{pair_id}: requires exactly one p and one n net")
+            continue
+        positive = next(net for net in members if net.differential_polarity == "p")
+        negative = next(net for net in members if net.differential_polarity == "n")
+        for attr in required:
+            left = getattr(positive, attr)
+            right = getattr(negative, attr)
+            if left is None or right is None:
+                failures.append(f"{pair_id}: {attr} must be declared on both nets")
+            elif left != right:
+                failures.append(f"{pair_id}: {attr} differs between p and n nets")
+    if failures:
+        return _result("differential_pair", "fail", "; ".join(failures))
+    return _result(
+        "differential_pair",
+        "pass",
+        f"{len(pair_ids)} differential pair declaration(s) are complete",
+    )
+
+
+def _impedance_geometry(
+    net: NetView,
+    lane: ElectricalLane,
+) -> tuple[float, str] | str:
+    target = net.target_impedance_ohm
+    route_name = net.impedance_routing_layer
+    reference_name = net.impedance_reference_layer
+    width = net.impedance_trace_width_mm
+    gap = net.impedance_gap_mm
+    tolerance = net.impedance_tolerance_pct
+    if target is None:
+        return f"{net.name}: target impedance is missing"
+    if any(value is None for value in (route_name, reference_name, width, tolerance)):
+        return f"{net.name}: impedance declaration is incomplete"
+    assert (
+        target is not None
+        and route_name is not None
+        and reference_name is not None
+        and width is not None
+        and tolerance is not None
+    )
+    if lane.stackup is None:
+        return "stackup not declared"
+    layers = lane.stackup.layers
+    by_name = {layer.name: (index, layer) for index, layer in enumerate(layers)}
+    route_entry = by_name.get(route_name)
+    reference_entry = by_name.get(reference_name)
+    if route_entry is None or reference_entry is None:
+        return f"{net.name}: impedance layer is absent from stackup"
+    route_index, route = route_entry
+    reference_index, reference = reference_entry
+    if route.kind != "signal" or reference.kind != "plane":
+        return f"{net.name}: routing layer must be signal and reference layer plane"
+    if abs(route_index - reference_index) != 2 or layers[
+        min(route_index, reference_index) + 1
+    ].kind != "dielectric":
+        return f"{net.name}: reference layer is not adjacent through one dielectric"
+    dielectric = layers[min(route_index, reference_index) + 1]
+    if dielectric.dielectric_constant is None:
+        return f"{net.name}: dielectric_constant is missing"
+    if route.copper_um is None:
+        return f"{net.name}: copper_um is missing"
+    if width <= 0 or (net.differential_pair is not None and (gap is None or gap <= 0)):
+        return f"{net.name}: impedance width/gap must be positive"
+    h = dielectric.thickness_mm
+    t = route.copper_um / 1000.0
+    er = dielectric.dielectric_constant
+    if route.name in {"F.Cu", "B.Cu"}:
+        mode = "microstrip"
+        constants = IMPEDANCE_FORMULA_CONSTANTS[mode]
+        z0 = constants["z0_factor"] / math.sqrt(er + 1.41) * math.log(
+            constants["log_factor"] * h / (constants["denominator_factor"] * width + t)
+        )
+        z = (
+            z0
+            * 2.0
+            * (1.0 - 0.48 * math.exp(-0.96 * gap / h))
+            if gap is not None
+            else z0
+        )
+    else:
+        mode = "stripline"
+        constants = IMPEDANCE_FORMULA_CONSTANTS[mode]
+        z0 = constants["z0_factor"] / math.sqrt(er) * math.log(
+            constants["log_factor"] * h
+            / (constants["pi_factor"] * math.pi * (constants["denominator_factor"] * width + t))
+        )
+        z = (
+            z0
+            * 2.0
+            * (1.0 - 0.347 * math.exp(-2.9 * gap / h))
+            if gap is not None
+            else z0
+        )
+    detail = (
+        f"{net.name}: computed {z:.3f} ohm ({mode}), target {target:.3f} ohm, "
+        f"er={er:g}, h={h:g} mm, w={width:g} mm, t={t:g} mm"
+    )
+    if gap is not None:
+        detail += f", gap={gap:g} mm"
+    if abs(z - target) / target > tolerance / 100.0:
+        return z, detail + f"; exceeds tolerance {tolerance:g}%"
+    return z, detail
+
+
+def evaluate_impedance_geometry(
+    graph: DesignGraph, lane: ElectricalLane
+) -> PredicateResult:
+    """Check IPC-2141 impedance approximations against declared targets."""
+    del graph
+    targets = [net for net in lane.nets if net.target_impedance_ohm is not None]
+    if not targets:
+        return _result("impedance_geometry", "pass", "no impedance target declared")
+    if lane.stackup is None:
+        return _result("impedance_geometry", "fail", "stackup not declared")
+    failures: list[str] = []
+    measurements: list[PredicateMeasurement] = []
+    details: list[str] = []
+    for net in targets:
+        result = _impedance_geometry(net, lane)
+        if isinstance(result, str):
+            failures.append(result)
+            continue
+        computed, detail = result
+        details.append(detail)
+        measurements.append(
+            PredicateMeasurement(
+                measured=computed,
+                limit=net.target_impedance_ohm,
+                quantity=net.name,
+                comparison="ipc-2141 closed form",
+                unit="ohm",
+            )
+        )
+        if "exceeds tolerance" in detail:
+            failures.append(detail)
+    if failures:
+        return _result(
+            "impedance_geometry",
+            "fail",
+            "; ".join(failures),
+            measurements=tuple(measurements),
+        )
+    return _result(
+        "impedance_geometry",
+        "pass",
+        "; ".join(details),
+        measurements=tuple(measurements),
+    )
+
+
 def _component_net_ids(lane: ElectricalLane, component: ComponentView) -> set[str]:
     return {
         pin.net_id for pin in lane.pins_of_component(component.node_id) if pin.net_id is not None
@@ -898,7 +1104,9 @@ def _certification_result(graph: DesignGraph, lane: ElectricalLane) -> Predicate
                 "unknown",
                 f"{component.refdes} certification provenance is incomplete",
             )
-        if not all(re.fullmatch(r"[^:]+:.+", item) for item in ids):
+        if not all(
+            isinstance(item, str) and re.fullmatch(r"[^:]+:.+", item) for item in ids
+        ):
             return _result(
                 "module_certification",
                 "unknown",
@@ -1083,7 +1291,30 @@ def evaluate_design_predicates(
         "power_decoupling": lambda: evaluate_power_decoupling(graph, lane, fixture_dir),
         "power_boundary": lambda: _evaluate_power_boundary_predicate(graph, lane),
         "led_series_element": lambda: evaluate_led_series_element(graph, lane),
+        "differential_pair": lambda: evaluate_differential_pair(graph, lane),
+        "impedance_geometry": lambda: evaluate_impedance_geometry(graph, lane),
     }
+    from acd.core.structural_safety import (
+        evaluate_protection_selectivity,
+        evaluate_signal_class_segregation,
+        evaluate_single_point_of_failure,
+        evaluate_sneak_path,
+        evaluate_trapezoid_current_capacity,
+    )
+
+    evaluators.update(
+        {
+            "single_point_of_failure": lambda: evaluate_single_point_of_failure(graph, lane),
+            "protection_selectivity": lambda: evaluate_protection_selectivity(graph, lane),
+            "signal_class_segregation": lambda: evaluate_signal_class_segregation(
+                graph, lane
+            ),
+            "sneak_path": lambda: evaluate_sneak_path(graph, lane),
+            "trapezoid_current_capacity": lambda: evaluate_trapezoid_current_capacity(
+                graph, lane
+            ),
+        }
+    )
     declared_text = ", ".join(declared)
     results = tuple(
         evaluators[name]()
@@ -1158,7 +1389,9 @@ __all__ = [
     "RemediationDimensionsSource",
     "SafetyBoundaryResult",
     "evaluate_design_predicates",
+    "evaluate_differential_pair",
     "evaluate_i2c_pullup",
+    "evaluate_impedance_geometry",
     "evaluate_led_series_element",
     "evaluate_pin_firmware_alignment",
     "evaluate_power_boundary",

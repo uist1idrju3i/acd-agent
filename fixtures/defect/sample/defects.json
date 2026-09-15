@@ -1,0 +1,111 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "defect_record",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "records": [
+    {
+      "defect_id": "defect.r4-mpn",
+      "severity": "functional",
+      "symptom": "One resistor in the LED path intermittently fails.",
+      "affected_functions": [
+        "led-indicator"
+      ],
+      "affected_units": {
+        "lots": [
+          "LOT-GD1-001"
+        ],
+        "serials": [],
+        "scope_status": "declared"
+      },
+      "reproduction": {
+        "description": "Run the LED function for ten minutes at room temperature.",
+        "environment": {
+          "temperature_c": 23,
+          "supply_v": 5,
+          "firmware": "r1"
+        },
+        "occurrence_rate": 0.2,
+        "sample_size": 10
+      },
+      "root_cause_candidates": [
+        {
+          "candidate_id": "cause.r4",
+          "status": "identified",
+          "description": "The affected resistor placement is the suspected anchor.",
+          "node_ids": [
+            "comp.r4"
+          ],
+          "rule_ids": [],
+          "confidence": "suspected"
+        }
+      ],
+      "horizontal_scopes": [
+        {
+          "criterion": "same_component_mpn",
+          "search_status": "searched",
+          "matched_node_ids": [
+            "comp.r5"
+          ],
+          "excluded": []
+        },
+        {
+          "criterion": "same_node_kind",
+          "search_status": "searched",
+          "matched_node_ids": [
+            "comp.c1",
+            "comp.c2",
+            "comp.c3",
+            "comp.c4",
+            "comp.c5",
+            "comp.c6",
+            "comp.d1",
+            "comp.h1",
+            "comp.h2",
+            "comp.h3",
+            "comp.h4",
+            "comp.j1",
+            "comp.r1",
+            "comp.r2",
+            "comp.r3",
+            "comp.r6",
+            "comp.r5",
+            "comp.sw1",
+            "comp.sw2",
+            "comp.tp1",
+            "comp.tp2",
+            "comp.tp3",
+            "comp.tp4",
+            "comp.tp5",
+            "comp.tp6",
+            "comp.tp7",
+            "comp.u1",
+            "comp.u2",
+            "comp.u3"
+          ],
+          "excluded": []
+        },
+        {
+          "criterion": "same_rule",
+          "search_status": "searched",
+          "matched_node_ids": [],
+          "excluded": []
+        },
+        {
+          "criterion": "same_fixture",
+          "search_status": "searched",
+          "matched_node_ids": [],
+          "excluded": []
+        },
+        {
+          "criterion": "same_profile",
+          "search_status": "searched",
+          "matched_node_ids": [],
+          "excluded": []
+        }
+      ],
+      "fixture_refs": [],
+      "profile_refs": []
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+ACD golden-design-1 virtual reference
+LED gpio=8 state=0
+LED gpio=8 state=1

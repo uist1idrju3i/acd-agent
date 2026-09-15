@@ -8,7 +8,7 @@ from pathlib import Path
 
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
-from acd.schema.design_graph import DesignGraph
+from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.functional_block import (
     FunctionalBlockContract,
     FunctionalBlockRegistryDocument,
@@ -120,6 +120,36 @@ def declared_functional_blocks(
     return tuple(sorted(block_ids))
 
 
+def block_path(graph: DesignGraph, node_id: str) -> tuple[str, ...]:
+    """Return the functional-block hierarchy from root to ``node_id``."""
+    blocks = {
+        node.id: node
+        for node in graph.nodes
+        if node.kind == "design.functional_block"
+    }
+    if node_id not in blocks:
+        raise FunctionalBlockContractError(f"functional block {node_id!r} is not declared")
+    path: list[str] = []
+    current: GraphNode | None = blocks[node_id]
+    while current is not None:
+        block_id = current.attrs.get("block_id")
+        if not isinstance(block_id, str) or not block_id:
+            raise FunctionalBlockContractError(
+                f"functional block node {current.id!r} has an invalid block_id"
+            )
+        path.append(block_id)
+        parent = current.attrs.get("parent_block_id")
+        if parent is None:
+            current = None
+        elif isinstance(parent, str) and parent in blocks:
+            current = blocks[parent]
+        else:
+            raise FunctionalBlockContractError(
+                f"functional block node {current.id!r} has an invalid parent_block_id"
+            )
+    return tuple(reversed(path))
+
+
 def required_predicate_names(
     declared: tuple[str, ...], registry: FunctionalBlockRegistry | None = None
 ) -> frozenset[str]:
@@ -189,6 +219,7 @@ def unknown_block_message(
 __all__ = [
     "FunctionalBlockContractError",
     "FunctionalBlockRegistry",
+    "block_path",
     "declared_functional_blocks",
     "load_functional_block_registry",
     "remediation_declarations",

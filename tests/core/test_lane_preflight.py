@@ -61,6 +61,55 @@ def test_declared_gd1_graph_has_complete_declarations_for_every_lane() -> None:
     assert tuple(lane.lane for lane in report.lanes) == LANE_IDS
 
 
+def test_missing_cpl_producer_gap_lists_refdes_and_lcsc(tmp_path: Path) -> None:
+    report = run_lane_preflight(
+        _graph(),
+        ("board-pipeline",),
+        root=Path.cwd(),
+        evidence_root=tmp_path,
+    )
+    gaps = [gap for gap in report.producer_gaps if gap.kind == "cpl_orientation"]
+    assert gaps
+    assert gaps[0].refdes == "C1"
+    assert gaps[0].lcsc == "C1691"
+    action = missing_declaration_action(report)
+    assert action is not None
+    assert "fetch_lcsc_footprint_orientation.py" in action
+    assert "--lcsc C1691" in action
+
+
+def test_fab_profile_producer_gap_lists_declared_and_loaded_timestamps(
+    tmp_path: Path,
+) -> None:
+    graph = _graph()
+    nodes = [
+        node.model_copy(
+            update={
+                "attrs": {
+                    **node.attrs,
+                    "profile_fetched_at": "2099-01-01T00:00:00Z",
+                }
+            }
+        )
+        if node.kind == "fab.order_intent"
+        else node
+        for node in graph.nodes
+    ]
+    report = run_lane_preflight(
+        graph.model_copy(update={"nodes": nodes}),
+        ("board-pipeline",),
+        root=Path.cwd(),
+        evidence_root=tmp_path,
+    )
+    gaps = [gap for gap in report.producer_gaps if gap.kind == "fab_profile"]
+    assert gaps
+    assert gaps[0].declared_fetched_at == "2099-01-01T00:00:00Z"
+    assert any(
+        source["fetched_at"] == "2026-08-11T00:00:00Z"
+        for source in gaps[0].loaded_sources
+    )
+
+
 def test_structural_copy_warning_does_not_change_preflight_status(tmp_path: Path) -> None:
     graph = _graph()
     component = next(node for node in graph.nodes if node.kind == "electrical.component")

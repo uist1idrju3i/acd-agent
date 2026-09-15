@@ -1,0 +1,713 @@
+{
+  "schema_version": "0.1",
+  "graph_id": "structural-safety-fixture",
+  "revision": "r1",
+  "records": [
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-1",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.vbus_5v"
+      ],
+      "subject_attrs": [
+        "signal_class",
+        "min_trace_width_mm",
+        "max_temperature_rise_c",
+        "routing_layer"
+      ],
+      "subject_hash": "sha256:51224a23bba9c82d5908df683d2651a81568c97232dcf259deb145593c9c7272",
+      "decision": "Declare structural-safety inputs for net.vbus_5v.",
+      "justification": "Structural-safety fixture input is explicitly declared for deterministic predicate evaluation.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Fixture uses the declared structural-safety contract.",
+      "assumptions": [
+        "The fixture models only the predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-2",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.p3v3"
+      ],
+      "subject_attrs": [
+        "signal_class",
+        "critical",
+        "intended_coupling"
+      ],
+      "subject_hash": "sha256:2f9b65b58cdd079e2519ec7fa2f1249903afea32d3c35a7344f3f62673e33ec2",
+      "decision": "Declare structural-safety inputs for net.p3v3.",
+      "justification": "Structural-safety fixture input is explicitly declared for deterministic predicate evaluation.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Fixture uses the declared structural-safety contract.",
+      "assumptions": [
+        "The fixture models only the predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-3",
+      "decision_kind": "stackup",
+      "subject_nodes": [
+        "board.minimal"
+      ],
+      "subject_attrs": [
+        "copper_um",
+        "etch_factor"
+      ],
+      "subject_hash": "sha256:0bbe6f6d5ce87ce8be66ab8ae509affb3dc8e8d91e77c7de17e8f40cec7120d0",
+      "decision": "Declare structural-safety inputs for board.minimal.",
+      "justification": "Structural-safety fixture input is explicitly declared for deterministic predicate evaluation.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Fixture uses the declared structural-safety contract.",
+      "assumptions": [
+        "The fixture models only the predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-4",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.u1"
+      ],
+      "subject_attrs": [
+        "thermal_path_id"
+      ],
+      "subject_hash": "sha256:3d68b4f1d0d89e1485d5e10fb3580e3349123a5f432d848136865cd183bcf4d8",
+      "decision": "Declare structural-safety inputs for comp.u1.",
+      "justification": "Structural-safety fixture input is explicitly declared for deterministic predicate evaluation.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Fixture uses the declared structural-safety contract.",
+      "assumptions": [
+        "The fixture models only the predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-8",
+      "decision_kind": "safety_scope",
+      "subject_nodes": [
+        "safety.boundary.structural"
+      ],
+      "subject_attrs": [
+        "min_segregation_mm"
+      ],
+      "subject_hash": "sha256:c7b75ab7bd8129b937709231f3d0721aa9686dd5cafa973631901fe10e7d6c42",
+      "decision": "Declare structural-safety inputs for safety.boundary.structural.",
+      "justification": "Structural-safety fixture input is explicitly declared for deterministic predicate evaluation.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Fixture uses the declared structural-safety contract.",
+      "assumptions": [
+        "The fixture models only the predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-9",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "safety.group.primary"
+      ],
+      "subject_attrs": [
+        "members",
+        "resources_shared_forbidden"
+      ],
+      "subject_hash": "sha256:7136319d24223c911a8e8ad4ba5acaefb39dc569106cf2a39f6ac677a4e4b318",
+      "decision": "Declare structural-safety inputs for safety.group.primary.",
+      "justification": "Structural-safety fixture input is explicitly declared for deterministic predicate evaluation.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Fixture uses the declared structural-safety contract.",
+      "assumptions": [
+        "The fixture models only the predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-5",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c1"
+      ],
+      "subject_attrs": [
+        "power_input_net",
+        "power_output_net",
+        "protection_role",
+        "thermal_path_id",
+        "trip_current_a"
+      ],
+      "subject_hash": "sha256:b8698c215b4dfdb1033e0a422853e95ebe468283d2acb12b7ee6421e3a4816fe",
+      "decision": "Declare structural-safety inputs for comp.c1.",
+      "justification": "Structural-safety fixture input is explicitly declared for deterministic predicate evaluation.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Fixture uses the declared structural-safety contract.",
+      "assumptions": [
+        "The fixture models only the predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-board.minimal",
+      "decision_kind": "stackup",
+      "subject_nodes": [
+        "board.minimal"
+      ],
+      "subject_attrs": [
+        "antenna_keepout",
+        "edge_copper_clearance_mm",
+        "ground_plane_layers",
+        "ground_plane_net",
+        "height_mm",
+        "layers",
+        "min_clearance_mm",
+        "min_track_mm",
+        "thickness_mm",
+        "via_diameter_mm",
+        "via_drill_mm",
+        "width_mm"
+      ],
+      "subject_hash": "sha256:71e9a8060c7506d6faa0d6522e6822b616ab8d4bda703c55b124b0dcdd729c06",
+      "decision": "Declare required fixture attributes for board.minimal.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for board.minimal.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-comp.c1",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c1"
+      ],
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:5cead7d1a4a2afd5e777b5e17c5b39360c274844071d4f60ed9655582ef21c29",
+      "decision": "Declare required fixture attributes for comp.c1.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for comp.c1.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-comp.c2",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c2"
+      ],
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:f2c6c1a4e726664b9617590c14041f66e17e223ae073577f0b470c92478f03af",
+      "decision": "Declare required fixture attributes for comp.c2.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for comp.c2.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-comp.c3",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c3"
+      ],
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:cbf062089c071b9630adf19a9e1401c16d95b1d3031a95ddf759448cc398c246",
+      "decision": "Declare required fixture attributes for comp.c3.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for comp.c3.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-comp.c4",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c4"
+      ],
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:0a09b58873f435a775876aabb584757420fbca6295a14ea137e8c06b57e3bb36",
+      "decision": "Declare required fixture attributes for comp.c4.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for comp.c4.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-comp.u1",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.u1"
+      ],
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:f158d43b2ded0dd519ba81920174f31a32b5acc94fd7f59a50e449c35c245d89",
+      "decision": "Declare required fixture attributes for comp.u1.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for comp.u1.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-net.gnd",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.gnd"
+      ],
+      "subject_attrs": [
+        "current_max_a",
+        "max_temperature_rise_c",
+        "min_trace_width_mm",
+        "routing_layer",
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:171f0212a6b4a19c1829f18705c2f398de55261b87737a5307e1ae01b9e30117",
+      "decision": "Declare required fixture attributes for net.gnd.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for net.gnd.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-net.p3v3",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.p3v3"
+      ],
+      "subject_attrs": [
+        "current_max_a",
+        "max_temperature_rise_c",
+        "min_trace_width_mm",
+        "power_rail",
+        "power_source_pin",
+        "routing_layer",
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:849bf1e8e1f24917116744b62ade7f846c10ecbdcc0123e7ed5455eb8a19f9b5",
+      "decision": "Declare required fixture attributes for net.p3v3.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for net.p3v3.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-net.vbus_5v",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.vbus_5v"
+      ],
+      "subject_attrs": [
+        "current_max_a",
+        "power_rail",
+        "power_source_pin",
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:9fcb3a11f9f76f3e180ac17ef5da3371b6eedd1a85a5d03abdac6a5e2f65ee64",
+      "decision": "Declare required fixture attributes for net.vbus_5v.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for net.vbus_5v.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "structural-safety-auto-safety.boundary.structural",
+      "decision_kind": "safety_scope",
+      "subject_nodes": [
+        "safety.boundary.structural"
+      ],
+      "subject_attrs": [
+        "intended_use",
+        "max_current_a",
+        "max_net_voltage_v",
+        "module_certified",
+        "profile"
+      ],
+      "subject_hash": "sha256:fcba215641697fb4bad88d9141a2d9964a0efa511c5886a5b1a278c06bb87038",
+      "decision": "Declare required fixture attributes for safety.boundary.structural.",
+      "justification": "The structural-safety fixture declares deterministic input attributes for safety.boundary.structural.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "fixtures/structural-safety/README.md#structural-safety"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The fixture uses the declared graph input.",
+      "assumptions": [
+        "Fixture values are limited to predicate input scope."
+      ],
+      "risks": [
+        "Fixture values are not certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "tool_name": null,
+        "tool_version": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    }
+  ]
+}

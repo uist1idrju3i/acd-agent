@@ -29,9 +29,11 @@ VisualProjectionType = Literal[
     "placement_view",
     "stackup_view",
     "system_block_view",
+    "graph_diff_view",
     "power_tree_view",
     "firmware_state_view",
     "firmware_sequence_view",
+    "harness_view",
     "rasterized_view",
     "mechanical_section_view",
     "mechanical_interference_view",
@@ -321,6 +323,7 @@ class VisualVisionObservation(AcdModel):
     image_hash: Sha256
     response: NonEmptyStr
     tool_event: VisualVisionToolEvent | None = None
+    readability_hint: list[str] | None = None
 
 
 class VisualReviewRequirement(AcdModel):

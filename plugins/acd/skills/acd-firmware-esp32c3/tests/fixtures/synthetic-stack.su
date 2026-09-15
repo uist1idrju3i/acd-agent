@@ -1,0 +1,3 @@
+main/acd_main.c:12:1:app_main	64	static
+main/acd_main.c:25:1:read_sensor	128	static
+main/acd_main.c:31:1:dynamic_worker	256	dynamic

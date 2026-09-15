@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
+# ]
+# ///
 """Deterministic ESP-IDF firmware project projection.
 
 The design graph is the only source of pin assignments: they are projected
@@ -12,6 +18,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.schema.firmware_inspection import FirmwareInspectionSequence
+from acd.schema.fw_security import FirmwareSecurityDeclaration
 from fw_graph import (
     FirmwareCapabilityPlan,
     FirmwareExtractionError,
@@ -19,6 +27,7 @@ from fw_graph import (
     FirmwareSettings,
     validate_boot_log_message,
 )
+from fw_security import render_partitions_csv, render_sdkconfig_security
 
 _SEPARATOR_PATTERN = re.compile(r"[^a-z0-9]+")
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -77,6 +86,8 @@ def render_pins_header(
     target_revision: str,
     settings: FirmwareSettings,
     plan: FirmwareCapabilityPlan,
+    *,
+    sim_peripherals: bool = False,
 ) -> str:
     lines = [
         "/* Generated from the design graph. Do not edit: the graph is canonical. */",
@@ -95,6 +106,8 @@ def render_pins_header(
         ),
     )
     lines.extend(f"#define {_macro_name(pin.net_id)} {pin.gpio}" for pin in ordered)
+    if sim_peripherals:
+        lines.extend(["", "#define ACD_SIM_SHT40 1"])
     devices = {
         (step.device.driver_id, step.device.i2c_address): step.device
         for step in plan.steps
@@ -112,6 +125,13 @@ def render_pins_header(
         lines.append(f"#define ACD_LED_BLINK_PERIOD_MS {settings.led_blink_period_ms}")
     if "i2c_sensor_read" in capability_ids:
         lines.append(f"#define ACD_LOG_PERIOD_MS {settings.log_period_ms}")
+    if settings.inspection_entry_command is not None:
+        lines.extend(
+            [
+                "",
+                f'#define ACD_INSPECTION_ENTRY_COMMAND "{settings.inspection_entry_command}"',
+            ]
+        )
     lines.append("")
     return "\n".join(lines)
 
@@ -121,6 +141,10 @@ def _render_main_source(
     settings: FirmwareSettings,
     plan: FirmwareCapabilityPlan,
     graph_id: str,
+    inspection_sequence: FirmwareInspectionSequence | None = None,
+    *,
+    sim_peripherals: bool = False,
+    coverage: bool = False,
 ) -> str:
     capability_ids = {step.capability_id for step in plan.steps}
     unsupported = capability_ids - _CAPABILITY_PROVIDERS
@@ -151,23 +175,43 @@ def _render_main_source(
                 f"no fragment provider for device driver {step.device.driver_id!r}"
             )
     includes = {"<stdio.h>", '"acd_pins.h"', '"esp_log.h"'}
+    if inspection_sequence is not None:
+        includes.add('"acd_inspection.h"')
     if capability_ids & {"led_blink", "led2_blink", "button_input"}:
         includes.add('"driver/gpio.h"')
-    if {"i2c_sensor_init", "i2c_sensor_read"} & capability_ids:
+    if {"i2c_sensor_init", "i2c_sensor_read"} & capability_ids and not sim_peripherals:
         includes.add('"driver/i2c_master.h"')
+    if sim_peripherals and "i2c_sensor_read" in capability_ids:
+        includes.add('"acd_sim_sht40.h"')
     if capability_ids & {"led_blink", "i2c_sensor_init", "i2c_sensor_read"}:
         includes.update({'"freertos/FreeRTOS.h"', '"freertos/task.h"'})
+    if coverage:
+        includes.add('"esp_gcov.h"')
     include_order = {
         "<stdio.h>": 0,
         '"acd_pins.h"': 1,
-        '"driver/gpio.h"': 2,
-        '"driver/i2c_master.h"': 3,
-        '"esp_log.h"': 4,
-        '"freertos/FreeRTOS.h"': 5,
-        '"freertos/task.h"': 6,
+        '"acd_inspection.h"': 2,
+        '"acd_sim_sht40.h"': 3,
+        '"driver/gpio.h"': 4,
+        '"driver/i2c_master.h"': 5,
+        '"esp_gcov.h"': 6,
+        '"esp_log.h"': 7,
+        '"freertos/FreeRTOS.h"': 8,
+        '"freertos/task.h"': 9,
     }
     include_lines = [f"#include {item}" for item in sorted(includes, key=include_order.__getitem__)]
     statics = ['static const char *TAG = "__ACD_LOG_TAG__";']
+    if coverage:
+        statics.extend(
+            [
+                "#ifdef ACD_COVERAGE",
+                "static void acd_coverage_dump(void)",
+                "{",
+                "    esp_gcov_dump();",
+                "}",
+                "#endif",
+            ]
+        )
     init_devices = [
         step.device
         for step in plan.steps
@@ -178,7 +222,10 @@ def _render_main_source(
             raise FirmwareProjectionError(
                 "i2c sensor initialization has no resolved device"
             )
-        statics.append(f"static i2c_master_dev_handle_t s_{init_devices[0].driver_id};")
+        if not sim_peripherals:
+            statics.append(f"static i2c_master_dev_handle_t s_{init_devices[0].driver_id};")
+            if inspection_sequence is not None:
+                statics.append("i2c_master_bus_handle_t s_i2c_bus;")
     helpers: list[str] = []
     if "i2c_sensor_read" in capability_ids:
         device = next(
@@ -187,8 +234,26 @@ def _render_main_source(
             if step.capability_id == "i2c_sensor_read" and step.device is not None
         )
         device_handle = f"s_{init_devices[0].driver_id}"
-        helpers.append(
-            f"""static void {device.driver_id}_log_once(void)
+        if sim_peripherals:
+            helpers.append(
+                f"""static void {device.driver_id}_log_once(void)
+{{
+    uint8_t raw[6] = {{0}};
+    esp_err_t err = acd_sim_sht40_read(raw, sizeof(raw));
+    if (err != ESP_OK) {{
+        ESP_LOGW(TAG, "{device.driver_id.upper()} read failed: %s", esp_err_to_name(err));
+        return;
+    }}
+    int t_ticks = (raw[0] << 8) | raw[1];
+    int rh_ticks = (raw[3] << 8) | raw[4];
+    float temp_c = -45.0f + 175.0f * (float)t_ticks / 65535.0f;
+    float rh = -6.0f + 125.0f * (float)rh_ticks / 65535.0f;
+    ESP_LOGI(TAG, "{device.driver_id.upper()} temp_c=%.2f rh=%.2f", (double)temp_c, (double)rh);
+}}"""
+            )
+        else:
+            helpers.append(
+                f"""static void {device.driver_id}_log_once(void)
 {{
     const uint8_t measure_cmd = 0x{device.measurement_command:02X};
     uint8_t raw[6] = {{0}};
@@ -207,7 +272,7 @@ def _render_main_source(
     float rh = -6.0f + 125.0f * (float)rh_ticks / 65535.0f;
     ESP_LOGI(TAG, "{device.driver_id.upper()} temp_c=%.2f rh=%.2f", (double)temp_c, (double)rh);
 }}"""
-        )
+            )
     pins_by_role = {pin.role: pin for pin in lane.pins}
     log_pins = [
         pins_by_role[role]
@@ -255,12 +320,15 @@ def _render_main_source(
                     "    ESP_ERROR_CHECK(gpio_config(&button_cfg));",
                 ]
             )
+        elif step.capability_id == "i2c_sensor_init" and sim_peripherals:
+            continue
         elif step.capability_id == "i2c_sensor_init":
             device = step.device
             if device is None:
                 raise FirmwareProjectionError(
                     "i2c sensor initialization has no resolved device"
                 )
+            bus_handle = "s_i2c_bus" if inspection_sequence is not None else "bus"
             initialization.extend(
                 [
                     "    i2c_master_bus_config_t bus_cfg = {",
@@ -271,15 +339,19 @@ def _render_main_source(
                     "        .glitch_ignore_cnt = 7,",
                     "        .flags = {.enable_internal_pullup = false},",
                     "    };",
-                    "    i2c_master_bus_handle_t bus;",
-                    "    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &bus));",
+                    *(
+                        []
+                        if inspection_sequence is not None
+                        else ["    i2c_master_bus_handle_t bus;"]
+                    ),
+                    f"    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &{bus_handle}));",
                     "    i2c_device_config_t dev_cfg = {",
                     "        .dev_addr_length = I2C_ADDR_BIT_LEN_7,",
                     f"        .device_address = ACD_{device.driver_id.upper()}_I2C_ADDRESS,",
                     "        .scl_speed_hz = 100000,",
                     "    };",
                     "    ESP_ERROR_CHECK(i2c_master_bus_add_device("
-                    f"bus, &dev_cfg, &s_{device.driver_id}));",
+                    f"{bus_handle}, &dev_cfg, &s_{device.driver_id}));",
                 ]
             )
     loop: list[str] = []
@@ -307,6 +379,11 @@ def _render_main_source(
                     else []
                 ),
                 "    for (;;) {",
+                *(
+                    ["        acd_inspection_poll();"]
+                    if inspection_sequence is not None
+                    else []
+                ),
             ]
         )
         if has_button:
@@ -383,6 +460,11 @@ def _render_main_source(
         )
         loop = [
             "    for (;;) {",
+            *(
+                ["        acd_inspection_poll();"]
+                if inspection_sequence is not None
+                else []
+            ),
             f"        {device.driver_id}_log_once();",
             "        vTaskDelay(pdMS_TO_TICKS(ACD_LOG_PERIOD_MS));",
             "    }",
@@ -391,6 +473,23 @@ def _render_main_source(
     app_body.extend(initialization)
     if initialization and loop:
         app_body.append("")
+    if not loop and inspection_sequence is not None:
+        loop = [
+            "    for (;;) {",
+            "        acd_inspection_poll();",
+            "        vTaskDelay(pdMS_TO_TICKS(100));",
+            "    }",
+        ]
+    if coverage:
+        app_body.extend(
+            [
+                "",
+                '    printf("ACD_VIRTUAL_RUN_END\\n");',
+                "    acd_coverage_dump();",
+            ]
+        )
+        if loop:
+            app_body.append("")
     app_body.extend(loop)
     app_body.append("}")
     section_blocks = [
@@ -409,6 +508,131 @@ def _render_main_source(
         .replace("__ACD_LOG_TAG__", log_tag(graph_id))
         + "\n"
     )
+
+
+def _render_inspection_header(*, has_i2c: bool) -> str:
+    lines = [
+        "/* Generated from the firmware inspection sequence. */",
+        "#pragma once",
+        "",
+        "void acd_inspection_poll(void);",
+    ]
+    if has_i2c:
+        lines.extend(
+            [
+                "",
+                '#include "driver/i2c_master.h"',
+                "extern i2c_master_bus_handle_t s_i2c_bus;",
+            ]
+        )
+    return "\n".join(lines) + "\n"
+
+
+def _render_inspection_source(
+    sequence: FirmwareInspectionSequence,
+    lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
+) -> str:
+    has_i2c = any(item.kind == "i2c_probe" for item in sequence.items)
+    includes = [
+        '#include "acd_inspection.h"',
+        '#include "acd_pins.h"',
+        "#include <stdbool.h>",
+        "#include <stdio.h>",
+        "#include <string.h>",
+        '#include "driver/uart.h"',
+        '#include "freertos/FreeRTOS.h"',
+        '#include "freertos/task.h"',
+    ]
+    if has_i2c:
+        includes.append('#include "esp_err.h"')
+    if any(item.kind == "led" for item in sequence.items):
+        includes.append('#include "driver/gpio.h"')
+    lines = [
+        "/* Generated from the firmware inspection sequence. */",
+        *includes,
+        "",
+        "static char s_line[128];",
+        "static size_t s_line_length;",
+        "",
+        "static void acd_inspection_run(void)",
+        "{",
+        f'    printf("{sequence.begin_line}\\n");',
+    ]
+    for item in sequence.items:
+        if item.kind == "led":
+            pin = next(pin for pin in lane.pins if pin.node_id == item.subject_node_ids[0])
+            lines.extend(
+                [
+                    f"    gpio_set_level(ACD_PIN_{pin.role.upper()}, 1);",
+                    "    vTaskDelay(pdMS_TO_TICKS(ACD_LED_BLINK_PERIOD_MS));",
+                    f"    gpio_set_level(ACD_PIN_{pin.role.upper()}, 0);",
+                    f'    printf("{item.expected_line}\\n");',
+                ]
+            )
+        elif item.kind == "i2c_probe":
+            device = next(
+                step.device
+                for step in plan.steps
+                if step.device is not None
+                and f"i2c:{step.device.driver_id}" in (item.expected_line or "")
+            )
+            variable = item.item_id.replace("-", "_") + "_err"
+            lines.extend(
+                [
+                    f"    esp_err_t {variable} = i2c_master_probe("
+                    f"s_i2c_bus, ACD_{device.driver_id.upper()}_I2C_ADDRESS, 100);",
+                    f"    if ({variable} == ESP_OK) {{",
+                    f'        printf("{item.expected_line}\\n");',
+                    "    } else {",
+                    f'        printf("ACD_INSPECT i2c:{device.driver_id} '
+                    f'addr=0x{device.i2c_address:02X} result=fail err=%s\\n", '
+                    f"esp_err_to_name({variable}));",
+                    "    }",
+                ]
+            )
+        elif item.status == "unknown":
+            lines.append(
+                '    printf("ACD_INSPECT power_self_check '
+                'result=unknown reason=no_self_measurement_source\\n");'
+            )
+        else:
+            lines.append(f'    printf("{item.expected_line}\\n");')
+    lines.extend(
+        [
+            f'    printf("{sequence.end_line}\\n");',
+            "}",
+            "",
+            "void acd_inspection_poll(void)",
+            "{",
+            "    static bool installed;",
+            "    if (!installed) {",
+            "        uart_driver_install(UART_NUM_0, 256, 0, 0, NULL, 0);",
+            "        installed = true;",
+            "    }",
+            "    uint8_t byte;",
+            "    while (uart_read_bytes(UART_NUM_0, &byte, 1, 0) == 1) {",
+            "        if (byte == '\\n') {",
+            "            s_line[s_line_length] = '\\0';",
+            "            while (s_line_length > 0 && "
+            "(s_line[s_line_length - 1] == '\\r' || "
+            "s_line[s_line_length - 1] == ' ')) {",
+            "                s_line[--s_line_length] = '\\0';",
+            "            }",
+            "            if (strcmp(s_line, ACD_INSPECTION_ENTRY_COMMAND) == 0) {",
+            "                acd_inspection_run();",
+            "            }",
+            "            s_line_length = 0;",
+            "        } else if (s_line_length + 1 < sizeof(s_line)) {",
+            "            s_line[s_line_length++] = (char)byte;",
+            "        } else {",
+            "            s_line_length = 0;",
+            "        }",
+            "    }",
+            "}",
+        ]
+    )
+    return "\n".join(lines) + "\n"
 
 
 _ROOT_CMAKE = """\
@@ -435,6 +659,12 @@ def write_firmware_project(
     settings: FirmwareSettings | None = None,
     *,
     plan: FirmwareCapabilityPlan,
+    inspection_sequence: FirmwareInspectionSequence | None = None,
+    stack_usage: bool = False,
+    sim_peripherals: bool = False,
+    sim_scenario: list[dict[str, float]] | None = None,
+    security_declaration: FirmwareSecurityDeclaration | None = None,
+    coverage: bool = False,
 ) -> FirmwareProject:
     if settings is None:
         settings = FirmwareSettings(
@@ -452,16 +682,129 @@ def write_firmware_project(
     (root / "CMakeLists.txt").write_text(
         _ROOT_CMAKE.format(name=name), encoding="utf-8"
     )
-    (root / "sdkconfig.defaults").write_text(_SDKCONFIG_DEFAULTS, encoding="utf-8")
-    (main_dir / "CMakeLists.txt").write_text(_MAIN_CMAKE, encoding="utf-8")
+    sdkconfig_defaults = _SDKCONFIG_DEFAULTS
+    if security_declaration is not None:
+        sdkconfig_defaults += render_sdkconfig_security(security_declaration)
+        (root / "partitions.csv").write_text(
+            render_partitions_csv(security_declaration),
+            encoding="utf-8",
+        )
+    (root / "sdkconfig.defaults").write_text(sdkconfig_defaults, encoding="utf-8")
+    sources = ['"acd_main.c"']
+    if inspection_sequence is not None:
+        sources.append('"acd_inspection.c"')
+    if sim_peripherals:
+        if sim_scenario is None or not sim_scenario:
+            raise FirmwareProjectionError("SHT40 simulation requires a non-empty scenario")
+        sources.append('"acd_sim_sht40.c"')
+    cmake = f"idf_component_register(SRCS {' '.join(sources)} INCLUDE_DIRS \".\")\n"
+    if stack_usage:
+        cmake += 'idf_build_set_property(COMPILE_OPTIONS "-fstack-usage" APPEND)\n'
+    if coverage:
+        cmake += (
+            'target_compile_options(${COMPONENT_LIB} PRIVATE "--coverage" '
+            '"-fprofile-arcs" "-ftest-coverage")\n'
+            'target_link_options(${COMPONENT_LIB} PRIVATE "--coverage")\n'
+        )
+        cmake += "target_compile_definitions(${COMPONENT_LIB} PRIVATE ACD_COVERAGE=1)\n"
+    if sim_peripherals:
+        cmake += "target_compile_definitions(${COMPONENT_LIB} PRIVATE ACD_SIM_SHT40=1)\n"
+    (main_dir / "CMakeLists.txt").write_text(cmake, encoding="utf-8")
     pins_header = main_dir / "acd_pins.h"
     pins_header.write_text(
-        render_pins_header(lane, target_revision, settings, plan),
+        render_pins_header(
+            lane,
+            target_revision,
+            settings,
+            plan,
+            sim_peripherals=sim_peripherals,
+        ),
         encoding="utf-8",
     )
     main_source = main_dir / "acd_main.c"
-    source = _render_main_source(lane, settings, plan, graph_id)
+    source = _render_main_source(
+        lane,
+        settings,
+        plan,
+        graph_id,
+        inspection_sequence=inspection_sequence,
+        sim_peripherals=sim_peripherals,
+        coverage=coverage,
+    )
     main_source.write_text(source, encoding="utf-8")
+    if inspection_sequence is not None:
+        has_i2c = any(item.kind == "i2c_probe" for item in inspection_sequence.items)
+        (main_dir / "acd_inspection.h").write_text(
+            _render_inspection_header(has_i2c=has_i2c),
+            encoding="utf-8",
+        )
+        (main_dir / "acd_inspection.c").write_text(
+            _render_inspection_source(inspection_sequence, lane, plan),
+            encoding="utf-8",
+        )
+    if sim_peripherals:
+        (main_dir / "acd_sim_sht40.h").write_text(
+            (
+                '#pragma once\n#include "esp_err.h"\n'
+                "esp_err_t acd_sim_sht40_read(unsigned char *out, "
+                "unsigned int length);\n"
+            ),
+            encoding="utf-8",
+        )
+        rows: list[str] = []
+        for item in sim_scenario or []:
+            temperature = float(item["t_c"])
+            humidity = float(item["rh_pct"])
+            t_raw = max(0, min(65535, round((temperature + 45.0) * 65535.0 / 175.0)))
+            rh_raw = max(0, min(65535, round((humidity + 6.0) * 65535.0 / 125.0)))
+            rows.append(f"    {{{t_raw}, {rh_raw}}},")
+        (main_dir / "acd_sim_sht40.c").write_text(
+            """#include "acd_sim_sht40.h"
+#include <stddef.h>
+
+typedef struct {
+    unsigned short temperature;
+    unsigned short humidity;
+} acd_sht40_sample_t;
+
+static const acd_sht40_sample_t s_samples[] = {
+"""
+            + "\n".join(rows)
+            + """
+};
+static unsigned int s_index;
+
+static unsigned char acd_crc(const unsigned char *data)
+{
+    unsigned char crc = 0xff;
+    for (unsigned int i = 0; i < 2; ++i) {
+        crc ^= data[i];
+        for (unsigned int bit = 0; bit < 8; ++bit) {
+            crc = (crc & 0x80) ? (unsigned char)((crc << 1) ^ 0x31) : (unsigned char)(crc << 1);
+        }
+    }
+    return crc;
+}
+
+esp_err_t acd_sim_sht40_read(unsigned char *out, unsigned int length)
+{
+    if (out == NULL || length < 6) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    const acd_sht40_sample_t sample = s_samples[
+        s_index++ % (sizeof(s_samples) / sizeof(s_samples[0]))
+    ];
+    out[0] = (unsigned char)(sample.temperature >> 8);
+    out[1] = (unsigned char)sample.temperature;
+    out[2] = acd_crc(out);
+    out[3] = (unsigned char)(sample.humidity >> 8);
+    out[4] = (unsigned char)sample.humidity;
+    out[5] = acd_crc(out + 3);
+    return ESP_OK;
+}
+""",
+            encoding="utf-8",
+        )
     return FirmwareProject(
         name=name, root=root, pins_header=pins_header, main_source=main_source
     )

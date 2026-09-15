@@ -12,6 +12,7 @@
 | [`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json) | SDK能力カタログの契約 |
 | [`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md) | SDK能力カタログの説明表 |
 | [`gates.md`](gates.md) | 投影と決定論的ゲート |
+| [`eco-workflow.md`](eco-workflow.md) | ECOワークフローとrevisionライフサイクル |
 | [`operations.md`](operations.md) | 運用・インストール |
 | [`golden-design-1.md`](golden-design-1.md) | GD1到達状況 |
 | [`design-requirement-variation.md`](design-requirement-variation.md) | 要件変更の境界と設計動作の確認 |
@@ -61,5 +62,7 @@
 | [0047](adr/ADR-0047-docker-only-tooling.md) | install doctorのdigest固定server image前提 |
 | [0048](adr/ADR-0048-theme-song-l3-artifact.md) | 製品テーマソングのMIDI投影とLLM作曲提案の検証レンダリング |
 | [0049](adr/ADR-0049-idea-refinement-and-responsibility-allocation.md) | アイデア洗練record・対話履歴・責務割当の契約 |
+| [0050](adr/ADR-0050-wire-harness-contract.md) | ワイヤハーネス契約と結線検査 |
+| [0051](adr/ADR-0051-reliability-test-mapping-contract.md) | 信頼性試験対応表契約と被覆ゲート |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。

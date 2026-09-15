@@ -1,0 +1,79 @@
+{
+  "artifact_kind": "wca_request",
+  "environment_ref": "../use-environment/gd1-indoor-usb.json",
+  "graph_id": "golden-design-1",
+  "power_budget": {
+    "loads": [
+      {
+        "current_a": {
+          "peak": 0.35,
+          "typical": 0.12
+        },
+        "duty": 0.1,
+        "refdes_or_block": "MCU radio TX"
+      },
+      {
+        "current_a": {
+          "peak": 0.01,
+          "typical": 0.005
+        },
+        "duty": 1.0,
+        "refdes_or_block": "U3 sensor"
+      },
+      {
+        "current_a": {
+          "peak": 0.002,
+          "typical": 0.001
+        },
+        "duty": 0.05,
+        "refdes_or_block": "D1 LED"
+      }
+    ],
+    "supply_capacity_a": 0.5
+  },
+  "quantities": [
+    {
+      "inputs": {
+        "resistor_refdes": "R6",
+        "target": "R6"
+      },
+      "kind": "series_current",
+      "max": 0.002,
+      "nominal_source": "spice_result",
+      "quantity_id": "led-series-current"
+    },
+    {
+      "inputs": {
+        "capacitor_refdes": "C1",
+        "resistor_refdes": "R4",
+        "target": "I2C_SDA"
+      },
+      "kind": "i2c_rise_time",
+      "max": 3e-7,
+      "nominal_source": "spice_result",
+      "quantity_id": "i2c-sda-rise-time"
+    },
+    {
+      "inputs": {
+        "ldo_refdes": "U2"
+      },
+      "kind": "ldo_output",
+      "max": 3.465,
+      "min": 3.135,
+      "nominal_source": "declared",
+      "nominal_value": 3.3,
+      "quantity_id": "ldo-3v3-output"
+    },
+    {
+      "inputs": {},
+      "kind": "power_budget_peak",
+      "nominal_source": "declared",
+      "nominal_value": 0.0,
+      "quantity_id": "usb-peak-power-budget"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1",
+  "service_life_years": 10.0,
+  "tolerance_table_ref": "gd1-tolerances.json"
+}

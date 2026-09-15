@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
 # ]
 # ///
 """Project idea refinement and responsibility allocation into L3 documents.
@@ -38,7 +38,9 @@ from acd.schema.responsibility import (
 from doc_inputs import (
     DocumentGenerationError,
     DocumentInput,
+    DocumentTemplate,
     load_graph,
+    load_template,
     sha256_file,
     write_document,
 )
@@ -132,13 +134,13 @@ def _scalar_rows(idea: IdeaRecord) -> list[tuple[str, IdeaField]]:
     ]
 
 
-def _render_idea_record(idea: IdeaRecord) -> str:
+def _render_idea_record(idea: IdeaRecord, template: DocumentTemplate) -> str:
     lines = [
-        f"# アイデアrecord: {idea.title}",
+        template.t("idea.record_title", title=idea.title),
         "",
         f"idea_id: `{idea.idea_id}` / revision: `{idea.revision}`",
         "",
-        "## 項目",
+        template.t("idea.record_fields_heading"),
         "",
         "| path | status | value | sources |",
         "|---|---|---|---|",
@@ -148,7 +150,7 @@ def _render_idea_record(idea: IdeaRecord) -> str:
             f"| {path} | {field.status} | {_field_value(field)} "
             f"| {_field_sources(field)} |"
         )
-    lines += ["", "## 成功基準", ""]
+    lines += ["", template.t("idea.record_success_heading"), ""]
     if idea.success_criteria:
         lines += ["| criterion | status | value | sources |", "|---|---|---|---|"]
         for item in idea.success_criteria:
@@ -159,7 +161,7 @@ def _render_idea_record(idea: IdeaRecord) -> str:
             )
     else:
         lines.append("success_criteria: open")
-    lines += ["", "## 機能", ""]
+    lines += ["", template.t("idea.record_functions_heading"), ""]
     if idea.functions:
         lines += [
             "| function | priority | function_class | status | value |",
@@ -184,9 +186,11 @@ def _render_idea_record(idea: IdeaRecord) -> str:
     return "\n".join(lines)
 
 
-def _render_estimate_markdown(estimate: IdeaRoughEstimate) -> str:
+def _render_estimate_markdown(
+    estimate: IdeaRoughEstimate, template: DocumentTemplate
+) -> str:
     lines = [
-        "# アイデア粗見積",
+        template.t("idea.estimate_title"),
         "",
         "This document is an estimate. Totals exclude functions without a "
         "catalog entry; findings are L3 observations, not approvals.",
@@ -206,13 +210,19 @@ def _render_estimate_markdown(estimate: IdeaRoughEstimate) -> str:
             f"| {line.footprint_mm2} |"
         )
     if estimate.unknown_functions:
-        lines += ["", "## 見積不能な機能", "", "| function | reason |", "|---|---|"]
+        lines += [
+            "",
+            template.t("idea.estimate_unknown_heading"),
+            "",
+            "| function | reason |",
+            "|---|---|",
+        ]
         for item in estimate.unknown_functions:
             lines.append(f"| {item.function_id} | {item.reason} |")
     totals = estimate.totals
     lines += [
         "",
-        "## 合計",
+        template.t("idea.estimate_total_heading"),
         "",
         f"- cost_jpy: {totals.cost_jpy.min}301c{totals.cost_jpy.max}",
         f"- power_mw: {totals.power_mw.min}301c{totals.power_mw.max}",
@@ -233,15 +243,17 @@ def _render_estimate_markdown(estimate: IdeaRoughEstimate) -> str:
 
 
 def _render_allocation_markdown(
-    declaration: ResponsibilityDeclaration, result: ResponsibilityGateResult
+    declaration: ResponsibilityDeclaration,
+    result: ResponsibilityGateResult,
+    template: DocumentTemplate,
 ) -> str:
     lines = [
-        "# 責任割当",
+        template.t("idea.allocation_title"),
         "",
         f"gate status: **{result.status}** (L3 observation; it does not grant "
         "approval)",
         "",
-        "## 割当",
+        template.t("idea.allocation_heading"),
         "",
         "| function | domain | node | criteria |",
         "|---|---|---|---|",
@@ -395,12 +407,17 @@ def main(argv: list[str] | None = None) -> int:
 
     result = check_responsibility(graph, declaration)
     generator = Path(__file__).resolve()
+    template = load_template("ja")
 
     documents = [
-        ("idea_record", _render_idea_record(idea), IDEA_DOCUMENT_NAME),
+        (
+            "idea_record",
+            _render_idea_record(idea, template),
+            IDEA_DOCUMENT_NAME,
+        ),
         (
             "rough_estimate",
-            _render_estimate_markdown(estimate),
+            _render_estimate_markdown(estimate, template),
             ESTIMATE_DOCUMENT_NAME,
         ),
         (
@@ -416,7 +433,7 @@ def main(argv: list[str] | None = None) -> int:
         ),
         (
             "responsibility_allocation",
-            _render_allocation_markdown(declaration, result),
+            _render_allocation_markdown(declaration, result, template),
             ALLOCATION_DOCUMENT_NAME,
         ),
         (
@@ -447,6 +464,7 @@ def main(argv: list[str] | None = None) -> int:
             graph=graph,
             inputs=inputs,
             base_dir=args.base_dir,
+            template=template,
         )
         print(f"generated {document_path}")
         print(f"provenance {provenance_path}")

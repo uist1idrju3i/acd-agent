@@ -26,6 +26,46 @@ class VirtualRunCheckError(RuntimeError):
     """The captured virtual serial log does not show required behaviour."""
 
 
+def sht40_crc(data: bytes) -> int:
+    """Return the SHT40 CRC-8 (polynomial 0x31, initial value 0xff)."""
+    crc = 0xFF
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x31) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+    return crc
+
+
+def encode_sht40_sample(t_c: float, rh_pct: float) -> bytes:
+    """Encode one quantized SHT40 sample using the generated C model."""
+    t_raw = round((t_c + 45.0) * 65535.0 / 175.0)
+    rh_raw = round((rh_pct + 6.0) * 65535.0 / 125.0)
+    t = max(0, min(65535, t_raw)).to_bytes(2, "big")
+    rh = max(0, min(65535, rh_raw)).to_bytes(2, "big")
+    return t + bytes([sht40_crc(t)]) + rh + bytes([sht40_crc(rh)])
+
+
+def assert_sensor_log_matches_scenario(
+    log: str, scenario: list[dict[str, float]], tolerance: float = 0.01
+) -> None:
+    """Require each declared cyclic SHT40 sample to appear in the virtual log."""
+    matches = re.findall(r"SHT40 temp_c=(-?\d+(?:\.\d+)?) rh=(-?\d+(?:\.\d+)?)", log)
+    if len(matches) < len(scenario):
+        raise VirtualRunCheckError(
+            f"SHT40 scenario requires {len(scenario)} samples, got {len(matches)}"
+        )
+    for index, expected in enumerate(scenario):
+        actual_t, actual_rh = (float(value) for value in matches[index])
+        if (
+            abs(actual_t - expected["t_c"]) > tolerance
+            or abs(actual_rh - expected["rh_pct"]) > tolerance
+        ):
+            raise VirtualRunCheckError(
+                f"SHT40 scenario mismatch at index {index}: "
+                f"expected {expected}, got t_c={actual_t}, rh_pct={actual_rh}"
+            )
+
+
 @dataclass(frozen=True)
 class VirtualRunResult:
     record: CommandRecord
@@ -127,7 +167,12 @@ def assert_virtual_log_ok(
     boot_log_message: str,
     lane: FirmwareLane,
     plan: FirmwareCapabilityPlan,
+    inspection_sequence: object | None = None,
 ) -> None:
+    if inspection_sequence is not None and "ACD_INSPECT begin" in log:
+        raise VirtualRunCheckError(
+            "inspection mode must not autorun without a UART entry command"
+        )
     expected_boot_line = boot_log_message.replace("%s", target_revision)
     if expected_boot_line not in log:
         raise VirtualRunCheckError("boot line with matching target revision not found")

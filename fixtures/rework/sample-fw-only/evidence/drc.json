@@ -1,0 +1,10 @@
+{
+  "gate": "drc",
+  "message": "Locked-container DRC passed.",
+  "observation": {
+    "container": "locked"
+  },
+  "schema_version": "0.1",
+  "status": "pass",
+  "target_revision": "r1+WA-002"
+}

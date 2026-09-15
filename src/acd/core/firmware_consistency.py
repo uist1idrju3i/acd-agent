@@ -42,6 +42,24 @@ def _validate_boot_log_message(value: object) -> str:
     return value
 
 
+def _validate_inspection_entry_command(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("inspection_entry_command must be a string")
+    if (
+        not value
+        or len(value) > 32
+        or not value.isascii()
+        or not value.isprintable()
+        or any(character in "\r\n\t\v\f" for character in value)
+        or any(character in value for character in ('"', "\\"))
+    ):
+        raise ValueError(
+            "inspection_entry_command must be non-empty printable ASCII without "
+            "whitespace control, quotes, or backslashes and at most 32 characters"
+        )
+    return value
+
+
 def _expected_settings(graph: DesignGraph) -> dict[str, object]:
     modules = [node for node in graph.nodes if node.kind == "firmware.module"]
     if len(modules) != 1:
@@ -51,6 +69,7 @@ def _expected_settings(graph: DesignGraph) -> dict[str, object]:
         "led_blink_period_ms": 1000,
         "log_period_ms": 2000,
         "boot_log_message": f"ACD {graph.graph_id} fw boot target_revision=%s",
+        "inspection_entry_command": None,
     }
     for key in defaults:
         if key in attrs:
@@ -60,6 +79,8 @@ def _expected_settings(graph: DesignGraph) -> dict[str, object]:
                     raise ValueError(f"malformed firmware setting: {key}")
             elif key == "boot_log_message":
                 value = _validate_boot_log_message(value)
+            elif key == "inspection_entry_command":
+                value = _validate_inspection_entry_command(value)
             defaults[key] = value
     return defaults
 

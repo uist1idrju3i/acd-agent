@@ -1,0 +1,23 @@
+{
+  "artifact_kind": "use_environment",
+  "external_ports": [
+    {
+      "connector_node_id": "comp.j1",
+      "exposure": "user_accessible"
+    }
+  ],
+  "graph_id": "golden-design-1",
+  "humidity_rh_pct": {
+    "max": 80.0,
+    "min": 20.0
+  },
+  "installation": "indoor_residential",
+  "power_system": "usb_host",
+  "revision": "r1",
+  "schema_version": "0.1",
+  "temperature_c": {
+    "max": 40.0,
+    "min": 0.0
+  },
+  "vibration": "stationary"
+}

@@ -6,6 +6,7 @@
     "electrical.component",
     "electrical.net",
     "electrical.pin",
+    "electrical.stackup",
     "fab.order_intent",
     "firmware.module",
     "firmware.pin_assignment",
@@ -19,8 +20,10 @@
     "mechanical.outline",
     "mechanical.silk_graphic",
     "mechanical.silk_text",
+    "mechanism_feature",
     "requirement",
-    "safety.boundary"
+    "safety.boundary",
+    "safety.redundant_group"
   ],
   "node_kinds": [
     "design.functional_block",
@@ -30,6 +33,7 @@
     "electrical.net",
     "electrical.pin",
     "electrical.placement_group",
+    "electrical.stackup",
     "evidence.anchor",
     "fab.order_intent",
     "fab.process_allowance",
@@ -45,11 +49,13 @@
     "mechanical.outline",
     "mechanical.silk_graphic",
     "mechanical.silk_text",
+    "mechanism_feature",
     "requirement",
-    "safety.boundary"
+    "safety.boundary",
+    "safety.redundant_group"
   ],
-  "ref": "82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
-  "schema_tree_sha": "4a935c1528cf1d4a91c50e6af619ce36acecc864",
+  "ref": "dde03eda4f8825705ebbb8888a81ce8af5f485b5",
+  "schema_tree_sha": "cacecea4aefa07435405b7b9693254ca42b77829",
   "scripts": [
     {
       "acd_symbols": [
@@ -57,14 +63,14 @@
         "acd.core.cad_normalize.normalize_step"
       ],
       "path": "plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determinism_probe.py",
-      "sha256": "0fae68b5ccbb60e538b12b92ac9d9bd2a6aae5d1b947a48112db7b581794ec05"
+      "sha256": "a0b172b5a69ec60a75ab43c7b14d967b2c01ede341bf1beaee84fcd090a1e959"
     },
     {
       "acd_symbols": [
         "acd.core.knowledge_qa.answer_question"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/ask.py",
-      "sha256": "85daa96997bd4d8687b63be3c0f08f385cf9c485bd6562489edfa3ea513f3a6e"
+      "sha256": "905a46951fd6bcf3c57e06eaf1e80c7b572863b72666bcdddcf27201162fae44"
     },
     {
       "acd_symbols": [
@@ -74,7 +80,7 @@
         "acd.schema.knowledge_index.INTERNAL_ONLY_KINDS"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/generate_faq.py",
-      "sha256": "25d40e658467a0310f45b9d225c702c1589065230bdac096af25505e747cbb2f"
+      "sha256": "816ebcda0dff9de528158740b8ca6fac1e5cd374946a83d59678f09f26a50327"
     },
     {
       "acd_symbols": [
@@ -92,14 +98,36 @@
         "acd.schema.rationale.RationaleDocument"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/knowledge_inputs.py",
-      "sha256": "738be1dc349da149f28ada7d7578857a6df81438fe9635b774d73c4522d3ce66"
+      "sha256": "8702b9e64ef0b4c88b7ab4d0370b9882ee4c0097ae61967a137c3b7f07c27aa4"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.design_graph.GraphNode",
+        "acd.schema.dfa_review.DfaAspect",
+        "acd.schema.dfa_review.DfaFinding",
+        "acd.schema.dfa_review.DfaReviewReport",
+        "acd.schema.dfa_review.DfaSeverity"
+      ],
+      "path": "plugins/acd/skills/acd-dfa-review/scripts/dfa_review.py",
+      "sha256": "8ff67a84c4779025725b979e9693c67b96e2b5f4925cdf391475b8687928f494"
     },
     {
       "acd_symbols": [
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py",
-      "sha256": "7eacc09ff88d00be58b6ae03947d11b27f99aed23eedde8a5009cf69b965d7b7"
+      "sha256": "4f8334db612d7590c4407beb15bcf9c11e6a6f6be6f5aa2fafbec3d1e976561f"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.fw_coverage.CoverageFile",
+        "acd.schema.fw_coverage.CoverageFloor",
+        "acd.schema.fw_coverage.CoverageReport",
+        "acd.schema.fw_coverage.CoverageResult"
+      ],
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_coverage.py",
+      "sha256": "bdc6cdfc76d89d254efd99b336da41e4dfa666fb40cab3a3431dbaf58af236d4"
     },
     {
       "acd_symbols": [
@@ -108,7 +136,41 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
-      "sha256": "aca0ad7298b66633703e437f7a0b23b6508e8ea27da7527af2553cdd6397e6e1"
+      "sha256": "a92553e4cd7552e468e118965fff6f19936b6d1242daa3b2975df637ce1c56e0"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.firmware_inspection.FirmwareInspectionItem",
+        "acd.schema.firmware_inspection.FirmwareInspectionSequence",
+        "acd.schema.shipping_inspection.CriterionSource"
+      ],
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_inspection.py",
+      "sha256": "f88892381bcb1b2ae9525115623de705c22f0d6f5ba16a5a5bfa5a18be87e1b9"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.firmware_inspection.FirmwareInspectionSequence",
+        "acd.schema.fw_security.FirmwareSecurityDeclaration"
+      ],
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py",
+      "sha256": "039e7f48d5acacd578e1045636919a85fe432cf8fea124c3d0248a2e5fa81672"
+    },
+    {
+      "acd_symbols": [
+        "acd.core.fw_security_gate.check_build_config_consistency",
+        "acd.schema.fw_security.FirmwareSecurityDeclaration"
+      ],
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_security.py",
+      "sha256": "279619bb04f9ba1b97cf67fe3a5b51af7d6f7253c394418be28ed804b4b7114f"
+    },
+    {
+      "acd_symbols": [
+        "acd.core.process.ExternalToolError",
+        "acd.core.process.run_tool"
+      ],
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_static_analysis.py",
+      "sha256": "bbfc1fc0132e5a7ce30e4d08bd8e530354d3a79cf341f6e6170b92335213f81e"
     },
     {
       "acd_symbols": [
@@ -116,7 +178,14 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
-      "sha256": "c6f0b74d5d58b04c02a1ea4e07cdfb2c577e2a6c5b5246515e386163a3259f7e"
+      "sha256": "86aaf0b349ddf906d18cdceedf17b4f4276afa20fd83fefe462e2199e6938ca2"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.design_graph.DesignGraph"
+      ],
+      "path": "plugins/acd/skills/acd-library-governance/scripts/check_library_governance.py",
+      "sha256": "e9042b5d861d3ad989ef163e4b775205d78bda20a55f7e1961f75add863dff30"
     },
     {
       "acd_symbols": [
@@ -129,7 +198,7 @@
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/placement_score.py",
-      "sha256": "8e54de9679bec8572f9d350afa2a233abf56fd74957a60e78c86d0922edaff71"
+      "sha256": "a622b1572c8e8df93fb9cf797756333201c61092820a8638bc88b0448aff40e6"
     },
     {
       "acd_symbols": [
@@ -155,7 +224,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
-      "sha256": "4cdf563cf2e3b4e6e612fdbe67b69cbd2378baaea1800fc5893d60d97b0b5b94"
+      "sha256": "b670994ddb2ec377898ad92d42382ad0bc84af56aead618aedf302463f580a92"
     },
     {
       "acd_symbols": [
@@ -174,7 +243,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py",
-      "sha256": "065760862bf980e930cad14ca212a60e4f67fa33885eb3406ec7281e159f13dc"
+      "sha256": "e33143ee4a761f64360cb55fd32748af6b8d107a880659821bca0bac00cf8f00"
     },
     {
       "acd_symbols": [
@@ -186,18 +255,40 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/vision_route_proposal.py",
-      "sha256": "5c3d8069cd4bb03d79bd2aec6042ad0e143616a60582cf0561f960a107a20a07"
+      "sha256": "5290d17db9fcf868a9db447473fb7b03a6325d92671d4f17f67ee346e8a6827f"
     },
     {
       "acd_symbols": [
+        "acd.core.firmware_lane.extract_firmware_lane",
         "acd.schema.design_graph.DesignGraph",
         "acd.schema.design_graph.GraphNode",
+        "acd.schema.fem.FemResult",
+        "acd.schema.firmware_analysis.FirmwareAnalysisResult",
+        "acd.schema.firmware_inspection.FirmwareInspectionSequence",
+        "acd.schema.pdn.PdnResult",
+        "acd.schema.spice.SpiceResult",
         "acd.schema.theme_song.ThemeSongProjection",
+        "acd.schema.thermal.ThermalResult",
         "acd.schema.visual_projection.VisualProjectionRecord",
-        "acd.schema.visual_projection.VisualProjectionSet"
+        "acd.schema.visual_projection.VisualProjectionSet",
+        "acd.schema.wca.WcaResult"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/doc_inputs.py",
-      "sha256": "97cff3551820445d67f94b0e8ccb36377b90304b99b737276ec11b59d74fd5ec"
+      "sha256": "8d790ef6a73370873513d475d25192c3da09fb9b20a693fea82d80c18cea5cbf"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.bringup_plan.BringUpItem",
+        "acd.schema.bringup_plan.BringUpTestPlan",
+        "acd.schema.bringup_plan.MeasurementTemplate",
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.design_graph.GraphNode",
+        "acd.schema.feedback.FeedbackPolicy",
+        "acd.schema.shipping_inspection.CriterionSource",
+        "acd.schema.shipping_inspection.InspectionItem"
+      ],
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_bringup_plan.py",
+      "sha256": "082648603ddadd9ddec01f7601f6a9704973ab8cb391c81c1a38f4d157da4698"
     },
     {
       "acd_symbols": [
@@ -216,7 +307,7 @@
         "acd.schema.responsibility.ResponsibilityGateResult"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_idea_allocation_docs.py",
-      "sha256": "98dcb8e9e00a0ca749e19998ef9dd2463fc105ef65aaac0d891bffcf7aa95fb3"
+      "sha256": "4023c2b28709d1a2be5ccd40f239f0cf19ba1dd55cf1aa316e84025c3c2a7b67"
     },
     {
       "acd_symbols": [
@@ -226,15 +317,14 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_instruction_manual.py",
-      "sha256": "ae27d6c13f87510cafee608849081ad9e67c2540c2cb5e215c186700b5f89406"
+      "sha256": "8b696b7dcc9c1d3619d711b4522c02cd5c82e585c8a8825c4489e1ab00414d0f"
     },
     {
       "acd_symbols": [
-        "acd.core.firmware_lane.extract_firmware_lane",
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_interface_spec.py",
-      "sha256": "385ec073da73d305e315c2a38daa2340d5bcca4c34f9ab58ac1613facec9fa9b"
+      "sha256": "e6a0b381b64887e345e8c5514784eb2a2ff8734d773d7d3db1ddfef9d2024ea7"
     },
     {
       "acd_symbols": [
@@ -245,7 +335,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_product_readme.py",
-      "sha256": "0093adb0f3a0cdac057e7ff5e59bd973c576aede3a3f611506f57f9139bc6b73"
+      "sha256": "b9d055f3b6f71096184432c668274ea108ca65dd63ed58036f594a44293468b7"
     },
     {
       "acd_symbols": [
@@ -256,7 +346,61 @@
         "acd.schema.rationale.RationaleRecord"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py",
-      "sha256": "9771c0c646d3fc1942d22d91908ad8519f95113da5f36a793abfc60fdc1bb37a"
+      "sha256": "e1e58a50bfaa82d49a05e1c1c7632fe2c75edc83127fb55946feda58c48e2217"
+    },
+    {
+      "acd_symbols": [
+        "acd.core.graph_diff.GraphDiffError",
+        "acd.core.graph_diff.build_graph_diff",
+        "acd.core.graph_diff.unknown_graph_diff",
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.graph_diff.GraphDiff"
+      ],
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py",
+      "sha256": "37527fb7490d5d7ebb370ffb697c3492323fa22db8e96cd28a347912f746bb03"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.design_graph.GraphNode",
+        "acd.schema.firmware_inspection.FirmwareInspectionSequence",
+        "acd.schema.shipping_inspection.CriterionSource",
+        "acd.schema.shipping_inspection.InspectionCategory",
+        "acd.schema.shipping_inspection.InspectionCriterion",
+        "acd.schema.shipping_inspection.InspectionItem",
+        "acd.schema.shipping_inspection.ShippingInspectionDocument"
+      ],
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_shipping_inspection.py",
+      "sha256": "3dd84868238303474aff34391f90e3c8805ce3dfecd1adbf6b04eb0253a039ca"
+    },
+    {
+      "acd_symbols": [
+        "acd.core.rework_diff.load_rework_diff",
+        "acd.pipeline.graph_diff_projection.GraphDiffProjectionError",
+        "acd.pipeline.graph_diff_projection.run_graph_diff_projection",
+        "acd.schema.common.canonical_json_sha256",
+        "acd.schema.defect_record.DefectDocument",
+        "acd.schema.defect_record.DefectRecord",
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.design_graph.GraphNode",
+        "acd.schema.rework_diff.FirmwareChange",
+        "acd.schema.rework_diff.ReworkAdd",
+        "acd.schema.rework_diff.ReworkCut",
+        "acd.schema.rework_diff.ReworkOperation",
+        "acd.schema.rework_diff.ReworkRemove",
+        "acd.schema.rework_diff.ReworkReplace",
+        "acd.schema.salvage.ReworkDfaDeclaration",
+        "acd.schema.salvage.SalvageGateResult",
+        "acd.schema.shipping_inspection.InspectionItem",
+        "acd.schema.work_instruction.PostWorkInspection",
+        "acd.schema.work_instruction.RequiredPart",
+        "acd.schema.work_instruction.RequiredTool",
+        "acd.schema.work_instruction.TargetUnits",
+        "acd.schema.work_instruction.WorkInstructionDocument",
+        "acd.schema.work_instruction.WorkStep"
+      ],
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_work_instruction.py",
+      "sha256": "78f81296e64485d99f0a81153d68bb59b59df7154dd0ff640977dae5fe8bd155"
     },
     {
       "acd_symbols": [
@@ -274,14 +418,45 @@
         "acd.core.silkscreen.SilkscreenLane"
       ],
       "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
-      "sha256": "2834f85f9363b8e9ed95514dc4003b8d1628ed0f71447cc5db2571d18a6f009a"
+      "sha256": "dd764e9c7dbd97f6f9091e8449185c1cbb886167fb445b50d9c02b82ad510f8a"
+    },
+    {
+      "acd_symbols": [
+        "acd.core.defect_records.DefectRecordError",
+        "acd.core.defect_records.LoadedDefectDocument",
+        "acd.core.defect_records.check_defect_records",
+        "acd.core.defect_records.load_defect_document",
+        "acd.core.rework_diff.load_rework_diff",
+        "acd.core.rework_diff.safety_related_node_ids",
+        "acd.core.rework_diff.write_derived_graph",
+        "acd.core.salvage_gate.SalvageGateError",
+        "acd.core.salvage_gate.evaluate_salvage",
+        "acd.schema.defect_record.DefectDocument",
+        "acd.schema.defect_record.DefectRecord",
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.design_graph.GraphNode",
+        "acd.schema.rework_diff.FirmwareChange",
+        "acd.schema.rework_diff.ReworkCut",
+        "acd.schema.rework_diff.ReworkDiff",
+        "acd.schema.rework_diff.ReworkOperation",
+        "acd.schema.rework_diff.ReworkReplace",
+        "acd.schema.salvage.ReworkDfaDeclaration",
+        "acd.schema.salvage.SafetyApproval",
+        "acd.schema.workaround.SkillProvenance",
+        "acd.schema.workaround.WorkaroundCandidate",
+        "acd.schema.workaround.WorkaroundEvaluation",
+        "acd.schema.workaround.WorkaroundProposalSet",
+        "acd.schema.workaround.WorkaroundStrategy"
+      ],
+      "path": "plugins/acd/skills/acd-workaround/scripts/workaround.py",
+      "sha256": "2d4dec780234a71369a844f7407e5b555b546b314d636d6135f9165c4d6b0e15"
     },
     {
       "acd_symbols": [
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "scripts/probe_pinned_acd_graph.py",
-      "sha256": "934cbfbcd3eee906c17fa9961dcfd1eb087d636c89b089fc92f5d806600132ba"
+      "sha256": "8679f7a616448627115b027002fdbc6adc66a1bd5326c20921606f8d5fd79c2e"
     }
   ]
 }

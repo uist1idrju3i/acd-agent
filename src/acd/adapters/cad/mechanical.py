@@ -7,9 +7,10 @@ import math
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from acd.adapters.cad.constants import CAD_LINEAR_DEFLECTION_MM
+from acd.adapters.cad.mechanical_dfm import MechanicalDfmFinding, check_mechanical_dfm
 from acd.core.cad_normalize import parse_stl
 from acd.core.mechanical import (
     BoardEdgeOverhangView,
@@ -17,7 +18,11 @@ from acd.core.mechanical import (
     EnclosureView,
     MechanicalLane,
 )
+from acd.core.mechanism_rules import MechanismFinding, check_mechanism_features
 from acd.core.parallel import PipelineStageRunner
+
+if TYPE_CHECKING:
+    from acd.adapters.cad.motion_sweep import MotionSweepFinding
 
 
 class MechanicalGateError(ValueError):
@@ -34,6 +39,14 @@ class MechanicalGateReport:
     measured_min_wall_mm: float
     measured_min_clearance_mm: float
     measured_max_interference_volume_mm3: float
+    mechanism_rules: str = "not_applicable"
+    mechanism_findings: tuple[MechanismFinding, ...] = ()
+    motion_sweep: str = "not_applicable"
+    motion_findings: tuple[MotionSweepFinding, ...] = ()
+    mechanical_dfm: str = "not_applicable"
+    mechanical_dfm_findings: tuple[MechanicalDfmFinding, ...] = ()
+    assembly_interference_3d: str = "not_applicable"
+    assembly_interference_3d_findings: tuple[object, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -359,13 +372,24 @@ def build_board_edge_overhang_shape(
     )
 
 
-def _measured_wall_thickness(shape: Any, tolerance_mm: float) -> float:
+def _measured_wall_thickness(
+    shape: Any,
+    tolerance_mm: float,
+    *,
+    exclude_small_feature_faces: bool = False,
+) -> float:
     """Measure the closest opposing planar faces of the reloaded shell."""
-    faces = [
+    planar_faces = [
         face
         for face in shape.faces()
         if str(face.geom_type).endswith("PLANE")
     ]
+    if not planar_faces:
+        raise MechanicalGateError("reloaded STEP has no measurable opposing wall faces")
+    faces = planar_faces
+    if exclude_small_feature_faces:
+        primary_area = max(face.area for face in planar_faces) * 0.05
+        faces = [face for face in planar_faces if face.area >= primary_area]
     distances: list[float] = []
     for index, face in enumerate(faces):
         normal = face.normal_at(face.center())
@@ -466,11 +490,58 @@ def run_mechanical_gates(
         check_interference(overhang_shape)
 
     measured_wall = min(
-        _measured_wall_thickness(solid, enclosure.tolerance_mm) for solid in solids
+        _measured_wall_thickness(
+            solid,
+            enclosure.tolerance_mm,
+            exclude_small_feature_faces=bool(lane.mechanism_features),
+        )
+        for solid in solids
     )
     if measured_min_clearance == float("inf"):
         raise MechanicalGateError("no solid component body has measurable clearance")
     wall_thickness = measured_wall + enclosure.tolerance_mm >= enclosure.min_wall_thickness_mm
+    mechanism_findings = check_mechanism_features(lane)
+    mechanism_status = (
+        "not_applicable"
+        if not mechanism_findings
+        else (
+            "fail"
+            if any(item.status == "fail" for item in mechanism_findings)
+            else "unknown"
+            if any(item.status == "unknown" for item in mechanism_findings)
+            else "pass"
+        )
+    )
+    from acd.adapters.cad.motion_sweep import check_motion_sweep
+
+    motion_findings = check_motion_sweep(
+        lane,
+        shell,
+        min(solids, key=lambda solid: solid.volume),
+    )
+    motion_status = (
+        "not_applicable"
+        if not motion_findings
+        else (
+            "fail"
+            if any(item.status == "fail" for item in motion_findings)
+            else "unknown"
+            if any(item.status == "unknown" for item in motion_findings)
+            else "pass"
+        )
+    )
+    dfm_findings = check_mechanical_dfm(lane, tuple(solids))
+    dfm_status = (
+        "not_applicable"
+        if not dfm_findings
+        else (
+            "fail"
+            if any(item.status == "fail" for item in dfm_findings)
+            else "unknown"
+            if any(item.status == "unknown" for item in dfm_findings)
+            else "pass"
+        )
+    )
     report = MechanicalGateReport(
         kernel_valid=True,
         interference=interference,
@@ -480,6 +551,12 @@ def run_mechanical_gates(
         measured_min_wall_mm=measured_wall,
         measured_min_clearance_mm=measured_min_clearance,
         measured_max_interference_volume_mm3=measured_max_interference_volume,
+        mechanism_rules=mechanism_status,
+        mechanism_findings=mechanism_findings,
+        motion_sweep=motion_status,
+        motion_findings=motion_findings,
+        mechanical_dfm=dfm_status,
+        mechanical_dfm_findings=dfm_findings,
     )
     failures = [
         name
@@ -487,6 +564,9 @@ def run_mechanical_gates(
             ("interference", interference),
             ("clearance", clearance),
             ("wall_thickness", wall_thickness),
+            ("mechanism_rules", mechanism_status in {"pass", "not_applicable"}),
+            ("motion_sweep", motion_status in {"pass", "not_applicable"}),
+            ("mechanical_dfm", dfm_status in {"pass", "not_applicable"}),
         )
         if not passed
     ]

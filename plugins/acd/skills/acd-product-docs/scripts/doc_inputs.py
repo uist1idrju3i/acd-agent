@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
 # ]
 # ///
 """Shared fail-closed inputs and provenance for generated product documents.
@@ -16,20 +16,156 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from types import MappingProxyType
+from typing import Any, cast
 
+from pydantic import BaseModel
+
+from acd.core.firmware_lane import extract_firmware_lane
 from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.fem import FemResult
+from acd.schema.firmware_analysis import FirmwareAnalysisResult
+from acd.schema.firmware_inspection import FirmwareInspectionSequence
+from acd.schema.pdn import PdnResult
+from acd.schema.spice import SpiceResult
 from acd.schema.theme_song import ThemeSongProjection
+from acd.schema.thermal import ThermalResult
 from acd.schema.visual_projection import VisualProjectionRecord, VisualProjectionSet
+from acd.schema.wca import WcaResult
 
 DOCUMENT_SCHEMA_VERSION = "0.1"
+SUPPORTED_LANGUAGES = ("ja", "en")
 
 
 class DocumentGenerationError(ValueError):
     """Raised when a document cannot be generated from its inputs."""
+
+
+@dataclass(frozen=True)
+class DocumentTemplate:
+    """One language-specific template catalog."""
+
+    lang: str
+    path: Path
+    content_hash: str
+    strings: Mapping[str, str]
+
+    def t(self, key: str, **values: object) -> str:
+        try:
+            text = self.strings[key]
+        except KeyError as exc:
+            raise DocumentGenerationError(
+                f"template key {key!r} is missing for language {self.lang!r}"
+            ) from exc
+        try:
+            return text.format(**values)
+        except (IndexError, KeyError, TypeError, ValueError) as exc:
+            raise DocumentGenerationError(
+                f"template key {key!r} has missing or invalid placeholders"
+            ) from exc
+
+
+def load_template(lang: str) -> DocumentTemplate:
+    """Load and validate a language-specific product-document template."""
+    if lang not in SUPPORTED_LANGUAGES:
+        raise DocumentGenerationError(
+            f"unsupported document language {lang!r}; "
+            f"expected one of {SUPPORTED_LANGUAGES!r}"
+        )
+    path = Path(__file__).resolve().parents[1] / "templates" / f"{lang}.json"
+    try:
+        payload: object = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise DocumentGenerationError(
+            f"document template {path} is not valid: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise DocumentGenerationError(
+            f"document template {path} must be an object of text values"
+        )
+    strings: dict[str, str] = {}
+    entries = cast(dict[object, object], payload)
+    for key, value in entries.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise DocumentGenerationError(
+                f"document template {path} must be an object of text values"
+            )
+        strings[key] = value
+    return DocumentTemplate(
+        lang=lang,
+        path=path,
+        content_hash=sha256_file(path),
+        strings=MappingProxyType(strings),
+    )
+
+
+@dataclass(frozen=True)
+class PredicateObservation:
+    """One design-predicate observation row."""
+
+    name: str
+    evaluation_stage: str
+    status: str
+    detail: str
+
+
+@dataclass(frozen=True)
+class DesignPredicates:
+    """Parsed design-predicates gate observation."""
+
+    target_revision: str
+    status: str
+    predicates: tuple[PredicateObservation, ...]
+
+
+@dataclass(frozen=True)
+class DfmFinding:
+    """One DFM finding row."""
+
+    rule_id: str
+    message: str
+
+
+@dataclass(frozen=True)
+class DfmReport:
+    """Parsed DFM report."""
+
+    target_revision: str
+    status: str
+    profile_id: str
+    findings: tuple[DfmFinding, ...]
+    unknowns: dict[str, str]
+    checks_not_implemented: tuple[DfmFinding, ...]
+
+
+def require_object(value: object, *, field: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise DocumentGenerationError(f"field {field!r} is not an object")
+    return cast(dict[str, object], value)
+
+
+def require_str(value: object, *, field: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise DocumentGenerationError(f"field {field!r} is missing or not text")
+    return value
+
+
+def require_list(value: object, *, field: str) -> list[object]:
+    if not isinstance(value, list):
+        raise DocumentGenerationError(f"field {field!r} is not a list")
+    return cast(list[object], value)
+
+
+def load_json_object(path: Path, *, label: str) -> dict[str, object]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise DocumentGenerationError(f"{label} {path} is not valid: {exc}") from exc
+    return require_object(payload, field=label)
 
 
 def sha256_file(path: Path) -> str:
@@ -53,6 +189,143 @@ class DocumentInput:
         return {"path": relative_path(self.path, base_dir), "content_hash": self.content_hash}
 
 
+@dataclass(frozen=True)
+class AnalysisArtifact:
+    """One validated analysis result or an explicit not-run placeholder."""
+
+    kind: str
+    artifact_kind: str
+    path: Path | None
+    content_hash: str
+    result: object | None
+    status: str
+
+    def input(self) -> DocumentInput | None:
+        if self.path is None:
+            return None
+        return DocumentInput(path=self.path, content_hash=self.content_hash)
+
+
+@dataclass(frozen=True)
+class AnalysisBundle:
+    """All six supported analysis kinds, including missing placeholders."""
+
+    artifacts: tuple[AnalysisArtifact, ...]
+
+    def by_kind(self, kind: str) -> AnalysisArtifact:
+        for artifact in self.artifacts:
+            if artifact.kind == kind:
+                return artifact
+        raise KeyError(kind)
+
+    def inputs(self) -> tuple[DocumentInput, ...]:
+        return tuple(
+            item
+            for artifact in self.artifacts
+            if (item := artifact.input()) is not None
+        )
+
+
+_ANALYSIS_SPECS: tuple[tuple[str, str, type[BaseModel]], ...] = (
+    ("spice", "spice_result", SpiceResult),
+    ("pdn", "pdn_result", PdnResult),
+    ("wca", "wca_result", WcaResult),
+    ("thermal", "thermal_result", ThermalResult),
+    ("fem", "fem_result", FemResult),
+    ("firmware", "firmware_analysis_result", FirmwareAnalysisResult),
+)
+ANALYSIS_STATUS_TEMPLATE_KEYS = MappingProxyType(
+    {
+        "pass": "quality.analysis_status_pass",
+        "findings": "quality.analysis_status_findings",
+        "not_run": "quality.analysis_status_not_run",
+    }
+)
+ANALYSIS_KIND_TEMPLATE_KEYS = MappingProxyType(
+    {
+        "spice": "quality.analysis_kind_spice",
+        "pdn": "quality.analysis_kind_pdn",
+        "wca": "quality.analysis_kind_wca",
+        "thermal": "quality.analysis_kind_thermal",
+        "fem": "quality.analysis_kind_fem",
+        "firmware": "quality.analysis_kind_firmware",
+    }
+)
+
+
+def load_analysis_results(
+    dir_or_paths: Path | Sequence[Path],
+    *,
+    graph_id: str | None = None,
+    revision: str | None = None,
+) -> AnalysisBundle:
+    """Load and validate supported analysis results without importing Skills."""
+    paths = [dir_or_paths] if isinstance(dir_or_paths, Path) else list(dir_or_paths)
+    candidates: list[Path] = []
+    for path in paths:
+        if path.is_dir():
+            candidates.extend(sorted(path.glob("*.json")))
+        elif path.is_file():
+            candidates.append(path)
+    by_artifact: dict[str, AnalysisArtifact] = {}
+    kind_by_artifact = {artifact_kind: kind for kind, artifact_kind, _ in _ANALYSIS_SPECS}
+    model_by_artifact = {
+        artifact_kind: model for _, artifact_kind, model in _ANALYSIS_SPECS
+    }
+    for path in sorted(set(candidates)):
+        payload = load_json_object(path, label="analysis result")
+        artifact_kind = payload.get("artifact_kind")
+        if not isinstance(artifact_kind, str) or artifact_kind not in kind_by_artifact:
+            continue
+        model_type = model_by_artifact[artifact_kind]
+        try:
+            result = model_type.model_validate(payload)
+        except (TypeError, ValueError) as exc:
+            raise DocumentGenerationError(
+                f"analysis result {path} is not valid: {exc}"
+            ) from exc
+        result_graph_id = getattr(result, "graph_id", None)
+        result_revision = getattr(result, "revision", None)
+        if (
+            graph_id is not None
+            and revision is not None
+            and (result_graph_id != graph_id or result_revision != revision)
+        ):
+            raise DocumentGenerationError(
+                f"analysis result {path} targets graph/revision "
+                f"{result_graph_id!r}/{result_revision!r}, not "
+                f"{graph_id!r}/{revision!r}"
+            )
+        kind = kind_by_artifact[artifact_kind]
+        if artifact_kind in by_artifact:
+            raise DocumentGenerationError(
+                f"duplicate {kind} analysis result: {path}"
+            )
+        by_artifact[artifact_kind] = AnalysisArtifact(
+            kind=kind,
+            artifact_kind=artifact_kind,
+            path=path,
+            content_hash=sha256_file(path),
+            result=result,
+            status=str(payload.get("status", "unknown")),
+        )
+    artifacts = tuple(
+        by_artifact.get(
+            artifact_kind,
+            AnalysisArtifact(
+                kind=kind,
+                artifact_kind=artifact_kind,
+                path=None,
+                content_hash="unknown",
+                result=None,
+                status="not_run",
+            ),
+        )
+        for kind, artifact_kind, _ in _ANALYSIS_SPECS
+    )
+    return AnalysisBundle(artifacts=artifacts)
+
+
 def relative_path(path: Path, base_dir: Path) -> str:
     try:
         return path.resolve().relative_to(base_dir.resolve()).as_posix()
@@ -71,12 +344,236 @@ def load_graph(path: Path) -> tuple[DesignGraph, DocumentInput]:
 
 
 @dataclass(frozen=True)
+class ReportPin:
+    """One pin entry of the firmware config report."""
+
+    node_id: str
+    gpio: int
+    net: str
+
+
+@dataclass(frozen=True)
+class ReportDevice:
+    """One device entry of the firmware config report provenance."""
+
+    mpn: str
+    driver_id: str
+    i2c_address: int
+
+
+@dataclass(frozen=True)
+class FirmwareConfigReport:
+    """Parsed firmware config report written by the FW pipeline."""
+
+    graph_id: str
+    target_revision: str
+    pins: tuple[ReportPin, ...]
+    capabilities: tuple[str, ...]
+    devices: tuple[ReportDevice, ...]
+    led_blink_period_ms: int
+    log_period_ms: int
+    boot_log_message: str
+    inspection_entry_command: str | None
+
+
+def _require_int(value: object, *, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise DocumentGenerationError(f"report field {field!r} is missing or not an int")
+    return value
+
+
+def load_firmware_config_report(path: Path) -> FirmwareConfigReport:
+    """Load the firmware config report, failing closed on any defect."""
+    data = load_json_object(path, label="firmware config report")
+    report = data
+    pins = tuple(
+        ReportPin(
+            node_id=require_str(item.get("node_id"), field="pins[].node_id"),
+            gpio=_require_int(item.get("gpio"), field="pins[].gpio"),
+            net=require_str(item.get("net"), field="pins[].net"),
+        )
+        for item in (
+            require_object(item, field="pins[]")
+            for item in require_list(report.get("pins"), field="pins")
+        )
+    )
+    settings = require_object(report.get("settings"), field="settings")
+    provenance = require_object(report.get("provenance"), field="provenance")
+    capabilities = tuple(
+        sorted(
+            require_str(item.get("capability_id"), field="capabilities[].capability_id")
+            for item in (
+                require_object(entry, field="capabilities[]")
+                for entry in require_list(
+                    provenance.get("capabilities"), field="capabilities"
+                )
+            )
+        )
+    )
+    devices = tuple(
+        sorted(
+            (
+                ReportDevice(
+                    mpn=require_str(item.get("mpn"), field="devices[].mpn"),
+                    driver_id=require_str(
+                        item.get("driver_id"), field="devices[].driver_id"
+                    ),
+                    i2c_address=_require_int(
+                        item.get("i2c_address"), field="devices[].i2c_address"
+                    ),
+                )
+                for item in (
+                    require_object(entry, field="devices[]")
+                    for entry in require_list(
+                        provenance.get("devices"), field="devices"
+                    )
+                )
+            ),
+            key=lambda device: device.driver_id,
+        )
+    )
+    return FirmwareConfigReport(
+        graph_id=require_str(report.get("graph_id"), field="graph_id"),
+        target_revision=require_str(
+            report.get("target_revision"), field="target_revision"
+        ),
+        pins=pins,
+        capabilities=capabilities,
+        devices=devices,
+        led_blink_period_ms=_require_int(
+            settings.get("led_blink_period_ms"), field="settings.led_blink_period_ms"
+        ),
+        log_period_ms=_require_int(
+            settings.get("log_period_ms"), field="settings.log_period_ms"
+        ),
+        boot_log_message=require_str(
+            settings.get("boot_log_message"), field="settings.boot_log_message"
+        ),
+        inspection_entry_command=(
+            None
+            if settings.get("inspection_entry_command") is None
+            else require_str(
+                settings.get("inspection_entry_command"),
+                field="settings.inspection_entry_command",
+            )
+        ),
+    )
+
+
+def load_firmware_inspection_sequence(path: Path) -> FirmwareInspectionSequence:
+    """Load an optional firmware inspection sequence as a governed contract."""
+    data = load_json_object(path, label="firmware inspection sequence")
+    try:
+        return FirmwareInspectionSequence.model_validate(data)
+    except ValueError as exc:
+        raise DocumentGenerationError(
+            f"firmware inspection sequence {path} is not valid: {exc}"
+        ) from exc
+
+
+def _guard_report(graph: DesignGraph, report: FirmwareConfigReport) -> None:
+    if report.graph_id != graph.graph_id:
+        raise DocumentGenerationError(
+            f"firmware config report targets graph {report.graph_id!r}, "
+            f"not {graph.graph_id!r}"
+        )
+    if report.target_revision != graph.revision:
+        raise DocumentGenerationError(
+            f"firmware config report targets revision {report.target_revision!r}, "
+            f"not {graph.revision!r}"
+        )
+
+
+def _guard_revision(graph: DesignGraph, macros: dict[str, str]) -> None:
+    revision = macros["ACD_TARGET_REVISION"].strip('"')
+    if revision != graph.revision:
+        raise DocumentGenerationError(
+            f"pin projection targets revision {revision!r}, not {graph.revision!r}"
+        )
+
+
+def _macro_int(macros: dict[str, str], name: str, *, because: str) -> int:
+    raw = macros.get(name)
+    if raw is None:
+        raise DocumentGenerationError(
+            f"pin projection lacks {name} although the report declares {because}"
+        )
+    try:
+        return int(raw, 0)
+    except ValueError as exc:
+        raise DocumentGenerationError(
+            f"pin projection macro {name} is not an integer: {raw!r}"
+        ) from exc
+
+
+def _guard_pins(
+    graph: DesignGraph,
+    report: FirmwareConfigReport,
+    macros: dict[str, str],
+) -> tuple[ReportPin, ...]:
+    graph_pins = {
+        assignment.net: assignment.gpio
+        for assignment in extract_firmware_lane(graph).pin_assignments
+    }
+    report_pins = {pin.net: pin.gpio for pin in report.pins}
+    if report_pins != graph_pins:
+        raise DocumentGenerationError(
+            "firmware config report pins do not match graph "
+            f"firmware.pin_assignment nodes: report={sorted(report_pins.items())}, "
+            f"graph={sorted(graph_pins.items())}"
+        )
+    for pin in report.pins:
+        macro = "ACD_PIN_" + pin.net.removeprefix("net.").upper()
+        header_gpio = _macro_int(macros, macro, because=f"pin {pin.net}")
+        if header_gpio != pin.gpio:
+            raise DocumentGenerationError(
+                f"pin projection macro {macro}={header_gpio} does not match "
+                f"report gpio {pin.gpio} for net {pin.net!r}"
+            )
+    return tuple(sorted(report.pins, key=lambda pin: pin.net))
+
+
+def _guard_devices(
+    report: FirmwareConfigReport, macros: dict[str, str]
+) -> tuple[ReportDevice, ...]:
+    seen_addresses: dict[int, str] = {}
+    for device in report.devices:
+        macro = f"ACD_{device.driver_id.upper()}_I2C_ADDRESS"
+        header_address = _macro_int(
+            macros, macro, because=f"device {device.driver_id}"
+        )
+        if header_address != device.i2c_address:
+            raise DocumentGenerationError(
+                f"pin projection macro {macro}=0x{header_address:02x} does not "
+                f"match report i2c_address 0x{device.i2c_address:02x} for "
+                f"driver {device.driver_id!r}"
+            )
+        owner = seen_addresses.get(device.i2c_address)
+        if owner is not None:
+            raise DocumentGenerationError(
+                f"drivers {owner!r} and {device.driver_id!r} share I2C address "
+                f"0x{device.i2c_address:02x}"
+            )
+        seen_addresses[device.i2c_address] = device.driver_id
+    return report.devices
+
+
+guard_devices = _guard_devices
+guard_pins = _guard_pins
+guard_report = _guard_report
+guard_revision = _guard_revision
+
+
+@dataclass(frozen=True)
 class ProjectionFigure:
     projection_id: str
     projection_type: str
     domain: str
     image_path: Path
     image_hash: str
+    renderer_type: str
+    renderer_tool_version: str
+    media_type: str
 
 
 def load_projection_figures(
@@ -127,6 +624,87 @@ def _figure(projection: VisualProjectionRecord, base_dir: Path) -> ProjectionFig
         domain=projection.domain,
         image_path=image_path,
         image_hash=projection.image_hash,
+        renderer_type=projection.renderer.renderer_type,
+        renderer_tool_version=projection.renderer.tool_version,
+        media_type=projection.media_type,
+    )
+
+
+def load_design_predicates(path: Path, graph: DesignGraph) -> DesignPredicates:
+    """Parse the design-predicates gate observation file."""
+    data = load_json_object(path, label="design predicates")
+    observation = require_object(data.get("observation"), field="observation")
+    predicates = tuple(
+        PredicateObservation(
+            name=require_str(item.get("name"), field="predicates[].name"),
+            evaluation_stage=require_str(
+                item.get("evaluation_stage"), field="predicates[].evaluation_stage"
+            ),
+            status=require_str(item.get("status"), field="predicates[].status"),
+            detail=require_str(item.get("detail"), field="predicates[].detail"),
+        )
+        for item in (
+            require_object(entry, field="predicates[]")
+            for entry in require_list(
+                observation.get("predicates"), field="observation.predicates"
+            )
+        )
+    )
+    return DesignPredicates(
+        target_revision=require_str(
+            data.get("target_revision"), field="target_revision"
+        ),
+        status=require_str(data.get("status"), field="status"),
+        predicates=predicates,
+    )
+
+
+def load_dfm_report(path: Path, graph: DesignGraph) -> DfmReport:
+    """Parse the DFM report file."""
+    data = load_json_object(path, label="DFM report")
+    findings = tuple(
+        DfmFinding(
+            rule_id=require_str(item.get("rule_id"), field="findings[].rule_id"),
+            message=require_str(item.get("message"), field="findings[].message"),
+        )
+        for item in (
+            require_object(entry, field="findings[]")
+            for entry in require_list(data.get("findings"), field="findings")
+        )
+    )
+    unknowns_raw = require_object(data.get("unknowns"), field="unknowns")
+    unknowns = {
+        key: require_str(
+            require_object(value, field=f"unknowns.{key}").get("reason"),
+            field=f"unknowns.{key}.reason",
+        )
+        for key, value in unknowns_raw.items()
+    }
+    checks_not_implemented = tuple(
+        DfmFinding(
+            rule_id=require_str(
+                item.get("rule_id"), field="checks_not_implemented[].rule_id"
+            ),
+            message=require_str(
+                item.get("reason"), field="checks_not_implemented[].reason"
+            ),
+        )
+        for item in (
+            require_object(entry, field="checks_not_implemented[]")
+            for entry in require_list(
+                data.get("checks_not_implemented"), field="checks_not_implemented"
+            )
+        )
+    )
+    return DfmReport(
+        target_revision=require_str(
+            data.get("target_revision"), field="target_revision"
+        ),
+        status=require_str(data.get("status"), field="status"),
+        profile_id=require_str(data.get("profile_id"), field="profile_id"),
+        findings=findings,
+        unknowns=unknowns,
+        checks_not_implemented=checks_not_implemented,
     )
 
 
@@ -274,6 +852,130 @@ def format_number(value: float) -> str:
     return text or "0"
 
 
+def analysis_summary(artifact: AnalysisArtifact) -> dict[str, object]:
+    """Return deterministic display fields for one analysis artifact."""
+    if artifact.result is None:
+        return {
+            "kind": artifact.kind,
+            "artifact_kind": artifact.artifact_kind,
+            "status": "not_run",
+            "authority": "unknown",
+            "measured": "unknown",
+            "tool_versions": "unknown",
+            "input_hashes": "unknown",
+            "findings": "unknown",
+        }
+    result = cast(BaseModel, artifact.result)
+    data = result.model_dump(mode="json")
+    measured: list[str] = []
+    tool_versions: list[str] = []
+    input_hashes: list[str] = []
+    findings: list[str] = []
+    kind = artifact.kind
+    if kind == "spice":
+        for item in data.get("checks", []):
+            measured_value = item.get("measured")
+            if measured_value is not None:
+                measured.append(
+                    f"{item.get('target')}={format_number(float(measured_value))}"
+                )
+        version = data.get("ngspice_version")
+        if version is not None:
+            tool_versions.append(f"ngspice={version}")
+    elif kind == "pdn":
+        paths = data.get("paths", [])
+        ir_values = [
+            float(item["ir_drop_mv"])
+            for item in paths
+            if item.get("ir_drop_mv") is not None
+        ]
+        density_values = [
+            float(item["worst_current_density"])
+            for item in paths
+            if item.get("worst_current_density") is not None
+        ]
+        if ir_values:
+            measured.append(f"worst_ir_drop_mv={format_number(max(ir_values))}")
+        if density_values:
+            measured.append(
+                f"worst_current_density={format_number(max(density_values))}"
+            )
+        tool_versions.extend(
+            f"{key}={value}"
+            for key, value in sorted(data.get("tool_versions", {}).items())
+        )
+    elif kind == "wca":
+        for item in data.get("quantities", []):
+            measured.append(
+                f"{item.get('quantity_id')}="
+                f"[{item.get('worst_low')},{item.get('worst_high')}]"
+            )
+    elif kind == "thermal":
+        for item in data.get("sources", []):
+            if item.get("tj_c") is not None:
+                measured.append(f"{item.get('refdes')}.tj_c={item.get('tj_c')}")
+    elif kind == "fem":
+        for field in ("max_von_mises_pa", "max_deflection_mm", "max_temp_c"):
+            if data.get(field) is not None:
+                measured.append(f"{field}={data[field]}")
+        tool_versions.extend(
+            f"{key}={value}"
+            for key, value in sorted(data.get("tool_versions", {}).items())
+        )
+    elif kind == "firmware":
+        static = data.get("static_analysis")
+        static_data: dict[str, Any] = {}
+        if isinstance(static, dict):
+            static_data = cast(dict[str, Any], static)
+            counts = cast(dict[str, Any], static_data.get("counts", {}))
+            measured.append(
+                f"static_findings={int(counts.get('warning', 0)) + int(counts.get('error', 0))}"
+            )
+        stack = data.get("stack_usage")
+        if isinstance(stack, dict):
+            stack_data = cast(dict[str, Any], stack)
+            tasks = cast(list[dict[str, Any]], stack_data.get("tasks", []))
+            margins = [
+                float(task.get("budget_bytes", 0))
+                - float(task.get("worst_static_bytes", 0))
+                for task in tasks
+            ]
+            if margins:
+                measured.append(f"stack_margin_bytes={format_number(min(margins))}")
+        peripheral = data.get("peripheral_sim")
+        if isinstance(peripheral, dict):
+            peripheral_data = cast(dict[str, Any], peripheral)
+            measured.append(f"sim={peripheral_data.get('status', 'unknown')}")
+        if isinstance(static, dict) and static_data.get("tool_version") is not None:
+            tool_versions.append(f"clang-tidy={static_data['tool_version']}")
+        tool_versions.extend(
+            f"{key}={value}"
+            for key, value in sorted(data.get("tool_versions", {}).items())
+        )
+    raw_findings = cast(list[Any], data.get("findings", []))
+    findings.extend(str(item) for item in raw_findings)
+    if not measured:
+        measured.append("unknown")
+    raw_tools = cast(dict[str, Any] | None, data.get("tool_versions"))
+    if not tool_versions and isinstance(raw_tools, dict):
+        tool_versions.extend(f"{key}={value}" for key, value in sorted(raw_tools.items()))
+    raw_hashes = cast(dict[str, Any] | None, data.get("input_hashes"))
+    if isinstance(raw_hashes, dict):
+        input_hashes.extend(
+            f"{key}={value}" for key, value in sorted(raw_hashes.items())
+        )
+    return {
+        "kind": artifact.kind,
+        "artifact_kind": artifact.artifact_kind,
+        "status": data.get("status", "unknown"),
+        "authority": data.get("authority", "unknown"),
+        "measured": "; ".join(measured),
+        "tool_versions": "; ".join(tool_versions) or "unknown",
+        "input_hashes": "; ".join(input_hashes) or "unknown",
+        "findings": "; ".join(findings) or "none",
+    }
+
+
 def write_document(
     *,
     document_kind: str,
@@ -285,11 +987,17 @@ def write_document(
     graph: DesignGraph,
     inputs: Sequence[DocumentInput],
     base_dir: Path,
+    template: DocumentTemplate,
+    analysis_provenance: Sequence[dict[str, str]] = (),
 ) -> tuple[Path, Path]:
     """Write a generated document plus its provenance record."""
     out_dir.mkdir(parents=True, exist_ok=True)
     document_path = out_dir / document_name
     document_path.write_text(body, encoding="utf-8")
+    all_inputs = [
+        *inputs,
+        DocumentInput(path=template.path, content_hash=template.content_hash),
+    ]
     provenance = {
         "schema_version": DOCUMENT_SCHEMA_VERSION,
         "artifact_kind": "generated_document",
@@ -300,11 +1008,15 @@ def write_document(
         "graph_id": graph.graph_id,
         "target_revision": graph.revision,
         "template_id": template_id,
+        "template_path": relative_path(template.path, base_dir),
+        "template_hash": template.content_hash,
+        "language": template.lang,
         "generator": {
             "name": generator.name,
             "content_hash": sha256_file(generator),
         },
-        "inputs": [item.as_record(base_dir) for item in inputs],
+        "inputs": [item.as_record(base_dir) for item in all_inputs],
+        "analysis_results": list(analysis_provenance),
         "generated_at": datetime.now(UTC).isoformat(),
     }
     provenance_path = out_dir / f"{document_name}.provenance.json"

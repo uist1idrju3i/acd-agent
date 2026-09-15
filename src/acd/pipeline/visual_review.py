@@ -21,6 +21,7 @@ from pydantic import Field
 from acd.adapters.raster import CairoSvgRasterizer
 from acd.core.process import sha256_bytes
 from acd.core.vision_tool_events import response_sha256
+from acd.core.visual_quality import analyze_svg_readability
 from acd.openhands.session.visual_projection import write_visual_vision_observation
 from acd.pipeline.visual_projection import derive_png_visual_projections
 from acd.schema.common import AcdModel, NonEmptyStr
@@ -31,9 +32,17 @@ from acd.schema.visual_projection import (
     VisualVisionObservation,
     VisualVisionToolEvent,
 )
+from acd.schema.visual_quality import (
+    ReadabilityFinding,
+    ReadabilityPolicy,
+    ReadabilityReport,
+    VisualReadabilityDocument,
+    VisualReadabilityObservation,
+)
 
 VISUAL_REVIEW_MANIFEST_NAME = "visual-review-manifest.json"
 OBSERVATION_DIR = "visual/vision-observations"
+READABILITY_DOCUMENT_NAME = "visual-readability.json"
 GENERATED_BY = "acd.pipeline.visual_review"
 
 
@@ -61,6 +70,7 @@ class VisualReviewVerdict(AcdModel):
     )
     problems: list[str] = Field(default_factory=list[str])
     unverified: list[str] = Field(default_factory=list[str])
+    readability_status: Literal["pass", "fail", "unknown"] | None = None
 
 
 def collect_visual_projection_sets(out_root: Path) -> list[Path]:
@@ -114,6 +124,7 @@ def derive_visual_review(
     *,
     jobs: int = min(os.cpu_count() or 1, 4),
     rasterizer: CairoSvgRasterizer | None = None,
+    readability_policy: ReadabilityPolicy | None = None,
 ) -> VisualReviewManifest:
     """Derive PNG projections for every projection set and write the manifest."""
     if jobs < 1:
@@ -164,6 +175,7 @@ def derive_visual_review(
             derived_sets = [future.result() for future in futures]
 
     requirements: list[VisualReviewRequirement] = []
+    readability_observations: list[VisualReadabilityObservation] = []
     resolved_root = out_root.resolve()
     for source_set, (set_path, derived_set) in zip(
         projection_sets, derived_sets, strict=True
@@ -177,6 +189,33 @@ def derive_visual_review(
             if record.media_type != "image/svg+xml":
                 raise VisualReviewError(
                     f"projection {record.projection_id} is not an SVG source"
+                )
+            if readability_policy is not None:
+                source_path = set_path.parent / record.image_path
+                try:
+                    readability = analyze_svg_readability(
+                        source_path.read_bytes(),
+                        policy=readability_policy,
+                    )
+                except OSError as exc:
+                    readability = ReadabilityReport(
+                        status="unknown",
+                        findings=[
+                            ReadabilityFinding(
+                                code="malformed_svg",
+                                detail=f"SVG source is unavailable: {exc}",
+                            )
+                        ],
+                        text_count=0,
+                        policy_hash=readability_policy.policy_hash(),
+                    )
+                readability_observations.append(
+                    VisualReadabilityObservation(
+                        projection_id=record.projection_id,
+                        source_revision=record.source_revision,
+                        image_hash=record.image_hash,
+                        readability=readability,
+                    )
                 )
             png_record = png_records.get(f"{record.projection_id}-png")
             if png_record is None:
@@ -224,6 +263,28 @@ def derive_visual_review(
         manifest.model_dump_json(indent=2) + "\n",
         encoding="utf-8",
     )
+    if readability_policy is not None:
+        readability_observations.sort(key=lambda item: item.projection_id)
+        readability_status: Literal["pass", "fail", "unknown"] = (
+            "fail"
+            if any(item.readability.status == "fail" for item in readability_observations)
+            else "unknown"
+            if any(
+                item.readability.status == "unknown"
+                for item in readability_observations
+            )
+            else "pass"
+        )
+        document = VisualReadabilityDocument(
+            source_revision=source_revision,
+            policy=readability_policy,
+            observations=readability_observations,
+            status=readability_status,
+        )
+        (out_root / READABILITY_DOCUMENT_NAME).write_text(
+            document.model_dump_json(indent=2) + "\n",
+            encoding="utf-8",
+        )
     return manifest
 
 
@@ -340,8 +401,32 @@ def record_observation(
         response=response,
         path=path,
         tool_event=tool_event,
+        readability_hint=_readability_hint(out_root, projection_id),
     )
     return path
+
+
+def _readability_hint(out_root: Path, projection_id: str) -> list[str] | None:
+    path = out_root / READABILITY_DOCUMENT_NAME
+    if not path.is_file():
+        return None
+    try:
+        document = VisualReadabilityDocument.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    observation = next(
+        (
+            item
+            for item in document.observations
+            if item.projection_id == projection_id
+        ),
+        None,
+    )
+    if observation is None:
+        return None
+    return sorted({finding.code for finding in observation.readability.findings})
 
 
 def _observation_for(path: Path) -> VisualVisionObservation | None:
@@ -381,6 +466,16 @@ def verify_visual_review(
     ``incomplete``.
     """
     problems: list[str] = []
+    readability_status: Literal["pass", "fail", "unknown"] | None = None
+    readability_path = out_root / READABILITY_DOCUMENT_NAME
+    if readability_path.is_file():
+        try:
+            readability_status = VisualReadabilityDocument.model_validate_json(
+                readability_path.read_text(encoding="utf-8")
+            ).status
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            readability_status = "unknown"
+            problems.append(f"readability observations are invalid: {exc}")
     items: list[VisualReviewItemVerdict] = []
     observed = 0
     try:
@@ -392,6 +487,7 @@ def verify_visual_review(
             observed=0,
             items=[],
             problems=[str(exc)],
+            readability_status=readability_status,
         )
     if tool_events_path is None:
         tool_events_path = Path.cwd() / ".openhands/acd/vision-tool-events.jsonl"
@@ -524,12 +620,14 @@ def verify_visual_review(
         items=items,
         problems=problems,
         unverified=unverified,
+        readability_status=readability_status,
     )
 
 
 __all__ = [
     "GENERATED_BY",
     "OBSERVATION_DIR",
+    "READABILITY_DOCUMENT_NAME",
     "VISUAL_REVIEW_MANIFEST_NAME",
     "VisualReviewError",
     "VisualReviewItemVerdict",

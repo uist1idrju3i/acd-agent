@@ -11,9 +11,11 @@ require ``PhysicalEvidence`` with ``measurement_class="measured"``.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from acd.core.naming import evidence_id, subject_node_id
 from acd.core.process import (
@@ -156,6 +158,52 @@ def build_firmware_evidence(
             verified=True,
         ),
     ]
+    gates_value = summary.get("gates")
+    if gates_value is not None:
+        if not isinstance(gates_value, list):
+            raise FirmwareEvidenceError("firmware security gates must be a list")
+        gates = cast(list[object], gates_value)
+        if len(gates) != 1:
+            raise FirmwareEvidenceError("firmware security gates must contain one result")
+        if not isinstance(gates[0], dict):
+            raise FirmwareEvidenceError("firmware security gate result is malformed")
+        gate = cast(dict[str, object], gates[0])
+        if gate.get("artifact_kind") != (
+            "firmware_security_gate_result"
+        ):
+            raise FirmwareEvidenceError("firmware security gate result is malformed")
+        gate_status = gate.get("status")
+        if not isinstance(gate_status, str) or gate_status not in {
+            "pass",
+            "fail",
+            "unknown",
+        }:
+            raise FirmwareEvidenceError("firmware security gate status is invalid")
+        security_status = cast(Literal["pass", "fail", "unknown"], gate_status)
+        claims.extend(
+            [
+                EvidenceClaim(
+                    subject_node=subject_node,
+                    property="firmware_security_gate_status",
+                    value=security_status,
+                    verified=security_status == "pass",
+                ),
+                EvidenceClaim(
+                    subject_node=subject_node,
+                    property="firmware_security_gate_sha256",
+                    value="sha256:"
+                    + hashlib.sha256(
+                        json.dumps(
+                            gate,
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ).encode("utf-8")
+                    ).hexdigest(),
+                    verified=True,
+                ),
+            ]
+        )
     return Evidence(
         evidence_id=evidence_id(graph.graph_id, FIRMWARE_EVIDENCE_LANE),
         target_revision=graph.revision,

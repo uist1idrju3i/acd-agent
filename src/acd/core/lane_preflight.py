@@ -32,7 +32,10 @@ from acd.core.declaration_vocabulary import (
     SAFETY_BOUNDARY_MODULE_CERTIFIED,
 )
 from acd.core.electrical import GraphExtractionError
-from acd.core.evidence_declarations import collect_evidence_declaration_findings
+from acd.core.evidence_declarations import (
+    collect_evidence_declaration_findings,
+    collect_producer_gaps,
+)
 from acd.core.firmware_capability import load_firmware_capability_registry
 from acd.core.firmware_coverage import check_firmware_coverage
 from acd.core.mechanical_preflight import collect_mechanical_findings
@@ -343,6 +346,7 @@ def _lane_report(
     lane: str,
     requirements: tuple[LaneNodeRequirement, ...],
     root: Path | None = None,
+    evidence_root: Path | None = None,
 ) -> LanePreflightLaneReport:
     missing_nodes: list[LanePreflightMissingNode] = []
     missing_attrs: list[LanePreflightMissingAttr] = []
@@ -454,7 +458,9 @@ def _lane_report(
     if lane == "enclosure-pipeline":
         _apply_mechanical_findings(graph, missing_nodes, missing_attrs, unsupported_values)
     if lane == "board-pipeline":
-        _apply_evidence_declaration_findings(graph, unsupported_values, warnings, root)
+        _apply_evidence_declaration_findings(
+            graph, unsupported_values, warnings, root, evidence_root
+        )
         _apply_contract_hash_findings(graph, unsupported_values, root)
     status = (
         "declarations_complete"
@@ -536,6 +542,7 @@ def _apply_evidence_declaration_findings(
     unsupported_values: list[LanePreflightUnsupportedValue],
     warnings: list[LanePreflightUnsupportedValue],
     root: Path | None,
+    evidence_root: Path | None,
 ) -> None:
     """Fold declared-but-unresolved evidence attributes into the lane report.
 
@@ -543,7 +550,9 @@ def _apply_evidence_declaration_findings(
     surfaces as ``declared_unverified``; the L3 report never grants it
     confirmed status.
     """
-    for finding in collect_evidence_declaration_findings(graph, root=root):
+    for finding in collect_evidence_declaration_findings(
+        graph, root=root, evidence_root=evidence_root
+    ):
         target = warnings if finding.severity == "warn" else unsupported_values
         target.append(
             LanePreflightUnsupportedValue(
@@ -662,6 +671,7 @@ def run_lane_preflight(
     lanes: tuple[str, ...] | None = None,
     *,
     root: Path | None = None,
+    evidence_root: Path | None = None,
 ) -> LanePreflightReport:
     """Report the declaration gaps of every requested lane in one result."""
     selected = LANE_IDS if lanes is None else tuple(sorted(set(lanes)))
@@ -669,7 +679,7 @@ def run_lane_preflight(
     if unknown:
         raise ValueError("unknown preflight lanes: " + ", ".join(sorted(unknown)))
     reports = [
-        _lane_report(graph, lane, LANE_REQUIREMENTS[lane], root)
+        _lane_report(graph, lane, LANE_REQUIREMENTS[lane], root, evidence_root)
         for lane in selected
     ]
     status = (
@@ -684,6 +694,9 @@ def run_lane_preflight(
         checked_predicates=list(PREFLIGHT_CHECKED_PREDICATES),
         unchecked_predicates=list(PREFLIGHT_UNCHECKED_PREDICATES),
         lanes=reports,
+        producer_gaps=collect_producer_gaps(
+            graph, root=root, evidence_root=evidence_root
+        ),
     )
 
 
@@ -770,6 +783,11 @@ def missing_declaration_action(report: LanePreflightReport) -> str | None:
     if unsupported_parts:
         action += (
             " Unsupported declared values: " + "; ".join(unsupported_parts)
+        )
+    if report.producer_gaps:
+        action += " Producer gaps: " + "; ".join(
+            gap.producer + " (" + gap.detail + ")"
+            for gap in report.producer_gaps
         )
     return action
 

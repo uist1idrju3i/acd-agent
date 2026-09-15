@@ -13,6 +13,8 @@ _IMAGE = "ghcr.io/example/acd-tools@sha256:" + "a" * 64
 def _outputs() -> dict[tuple[str, ...], str]:
     return {
         ("ccache", "--version"): "ccache version 4.12.3\n",
+        ("ccx", "-v"): "CalculiX Version 2.21\n",
+        ("clang-tidy", "--version"): "LLVM version 20.1.8\n",
         ("cmake", "--version"): "cmake version 4.2.3\n",
         (
             "bash",
@@ -20,6 +22,7 @@ def _outputs() -> dict[tuple[str, ...], str]:
             '. "${IDF_PATH}/export.sh" >/dev/null 2>&1 && idf.py --version',
         ): "ESP-IDF v6.1\n",
         ("freerouting", "--version"): "INFO Freerouting v2.4.1 (build-date: 2026-09-03)\n",
+        ("gcovr", "--version"): "gcovr 8.4\n",
         ("git", "--version"): "git version 2.53.0\n",
         (
             "java",
@@ -31,6 +34,13 @@ def _outputs() -> dict[tuple[str, ...], str]:
             "(build 26.0.2.1+1-openj9-0.61.0, JRE 26 Linux amd64-64-Bit)\n"
         ),
         ("kicad-cli", "--version"): "10.0.6\n",
+        (
+            "bash",
+            "-lc",
+            "sha256sum /opt/acd/docker/kicad-3d-models.json | cut -d' ' -f1 && "
+            "find /opt/acd/kicad-3d -type f \\( "
+            "-name '*.step' -o -name '*.stp' -o -name '*.wrl' \\) | wc -l",
+        ): "a" * 64 + "\n7\n",
         ("dpkg-query", "-W", "-f=${Version}", "libcairo2"): "1.18.4-3\n",
         ("ngspice", "--version"): "ngspice-45.2 : circuit simulator\n",
         ("ninja", "--version"): "1.13.2\n",
@@ -53,15 +63,19 @@ def test_measurement_extracts_expected_versions(tmp_path: Path) -> None:
     assert main(["--image-ref", _IMAGE, "--out", str(out)], run=fake_run) == 0
     assert json.loads(out.read_text(encoding="utf-8")) == {
         "ccache": "ccache version 4.12.3",
+        "ccx": "2.21",
+        "clang-tidy": "20.1.8",
         "cmake": "cmake version 4.2.3",
         "esp-idf": "ESP-IDF v6.1",
         "freerouting": "2.4.1",
+        "gcovr": "8.4",
         "git": "git version 2.53.0",
         "java": (
             "openjdk 26.0.2.1 2026-08-18 "
             "(IBM Semeru Runtime Open Edition 26.0.2.10, Eclipse OpenJ9 0.61.0)"
         ),
         "kicad-cli": "10.0.6",
+        "kicad-3d-models": f"allowlist_sha256=sha256:{'a' * 64};file_count=7",
         "libcairo2": "1.18.4-3",
         "ngspice": "45.2",
         "ninja": "1.13.2",

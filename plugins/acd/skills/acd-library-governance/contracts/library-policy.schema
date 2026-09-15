@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LibraryPolicy",
+  "description": "Pydantic contract implemented by check_library_governance.py",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "policy_id",
+    "footprint_rules",
+    "lib_table_rules",
+    "hash_pinning"
+  ],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "policy_id": {"type": "string", "minLength": 1},
+    "graph_id": {"type": ["string", "null"]},
+    "revision": {"type": ["string", "null"]},
+    "footprint_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["package_pattern", "courtyard_required", "origin_tolerance_mm"],
+        "properties": {
+          "package_pattern": {"type": "string", "minLength": 1},
+          "pad_size_mm": {"type": ["object", "null"]},
+          "courtyard_required": {"type": "boolean"},
+          "courtyard_margin_mm": {"type": ["object", "null"]},
+          "origin": {"enum": ["centroid", "pin1"]},
+          "origin_tolerance_mm": {"type": "number", "minimum": 0},
+          "allowed_layers": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "lib_table_rules": {
+      "type": "object",
+      "required": ["require_all_referenced_libraries", "allowed_sources"],
+      "properties": {
+        "require_all_referenced_libraries": {"type": "boolean"},
+        "allowed_sources": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "hash_pinning": {
+      "type": "object",
+      "required": ["require_footprint_sha256", "require_symbol_sha256"],
+      "properties": {
+        "require_footprint_sha256": {"type": "boolean"},
+        "require_symbol_sha256": {"type": "boolean"}
+      }
+    }
+  }
+}

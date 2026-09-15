@@ -35,6 +35,7 @@ from acd.schema import (
     VisualRendererProvenance,
     VisualResolution,
 )
+from acd.schema.visual_quality import ReadabilityPolicy
 
 _SVG = (
     b'<svg width="10mm" height="5mm" viewBox="0 0 100 50">'
@@ -218,6 +219,25 @@ def test_derive_visual_review_writes_manifest_and_pngs(tmp_path: Path) -> None:
         "board-a-png",
         "board-b",
         "board-b-png",
+    ]
+
+
+def test_readability_policy_writes_separate_observations_and_hints(
+    tmp_path: Path,
+) -> None:
+    out_root = _out_root(tmp_path)
+    derive_visual_review(
+        out_root,
+        jobs=1,
+        readability_policy=ReadabilityPolicy(),
+    )
+    document = json.loads(
+        (out_root / "visual-readability.json").read_text(encoding="utf-8")
+    )
+    assert document["status"] == "pass"
+    assert [item["projection_id"] for item in document["observations"]] == [
+        "board-a",
+        "board-b",
     ]
 
 

@@ -1,0 +1,28 @@
+{
+  "artifact_kind": "pdn_result",
+  "authority": "estimate",
+  "graph_id": "golden-design-1",
+  "input_hashes": {
+    "graph": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "paths": [
+    {
+      "findings": [],
+      "ir_drop_mv": 4.5,
+      "net": "+3V3",
+      "path_id": "usb_3v3",
+      "segments": [],
+      "status": "pass",
+      "total_resistance_mohm": 12.5,
+      "vias": [],
+      "worst_current_density": 1.2,
+      "zone_on_path": false
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1",
+  "status": "pass",
+  "tool_versions": {
+    "pdn": "acd-pdn-1"
+  }
+}

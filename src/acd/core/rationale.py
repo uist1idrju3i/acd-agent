@@ -82,6 +82,14 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "led_indicator",
             "led_drive_net",
             "led_series_net",
+            "esd_protection",
+            "protection_role",
+            "trip_current_a",
+            "power_input_net",
+            "power_output_net",
+            "protects_component_id",
+            "thermal_path_id",
+            "indicator_state_label",
         }
     ),
     "electrical.placement_group": frozenset(),
@@ -93,7 +101,29 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "manufacturing_margin_mm",
             "power_rail",
             "power_source_pin",
+            "differential_pair",
+            "differential_polarity",
+            "target_impedance_ohm",
+            "impedance_tolerance_pct",
+            "impedance_reference_layer",
+            "impedance_trace_width_mm",
+            "impedance_gap_mm",
+            "impedance_routing_layer",
+            "signal_class",
+            "critical",
+            "intended_coupling",
+            "min_trace_width_mm",
+            "trace_width_mm",
+            "max_temperature_rise_c",
+            "routing_layer",
+            "requires_protection",
+            "off_board",
+            "max_voltage_drop_v",
         }
+    ),
+    "electrical.stackup": frozenset({"layers", "finished_thickness_mm"}),
+    "safety.redundant_group": frozenset(
+        {"members", "resources_shared_forbidden"}
     ),
     "fab.order_intent": frozenset(
         {
@@ -108,7 +138,14 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
     ),
     "fab.process_allowance": frozenset({"rule_id", "impact_accepted"}),
     "firmware.module": frozenset(
-        {"mcu_component", "entry_state", "led_blink_period_ms", "log_period_ms", "boot_log_message"}
+        {
+            "mcu_component",
+            "entry_state",
+            "led_blink_period_ms",
+            "log_period_ms",
+            "boot_log_message",
+            "inspection_entry_command",
+        }
     ),
     "firmware.state": frozenset({"initial"}),
     "firmware.state_transition": frozenset({"from_state", "to_state", "trigger"}),
@@ -135,6 +172,8 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "lid_screw_hole_diameter_mm",
             "tolerance_mm",
             "interference_tolerance_mm3",
+            "manufacturing_process",
+            "dfm_profile",
         }
     ),
     "mechanical.outline": frozenset(
@@ -156,6 +195,37 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "mount_hole_4_x_mm",
             "mount_hole_4_y_mm",
             "mount_hole_4_diameter_mm",
+        }
+    ),
+    "mechanism_feature": frozenset(
+        {
+            "hook_length_mm",
+            "hook_thickness_mm",
+            "undercut_mm",
+            "insertion_angle_deg",
+            "retention_angle_deg",
+            "deflection_mm",
+            "pin_diameter_mm",
+            "knuckle_width_mm",
+            "knuckle_count",
+            "clearance_mm",
+            "swing_deg",
+            "cap_diameter_mm",
+            "stroke_mm",
+            "travel_clearance_mm",
+            "web_thickness_mm",
+            "diameter_mm",
+            "length_mm",
+            "outer_diameter_mm",
+            "hole_diameter_mm",
+            "height_mm",
+            "fillet_mm",
+            "thickness_mm",
+            "draft_deg",
+            "motion_check",
+            "step_deg",
+            "step_mm",
+            "sweep_margin_mm",
         }
     ),
     "mechanical.silk_graphic": frozenset(
@@ -238,7 +308,10 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
             "This declaration is a requirement-derived selection of the applicable "
             "predicate contract rather than a physical design parameter; rationale "
             "records are held by the nets and components forming the topology."
-        )
+        ),
+        "parent_block_id": (
+            "This attribute provides structural grouping and is not a physical design decision."
+        ),
     },
     "electrical.board": {
         "copper_thickness_source": (
@@ -288,6 +361,10 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
         "width_basis_source": (
             "Trace-width basis metadata identifies the source of the width calculation."
+        ),
+        "copper_um": "Board copper thickness is a manufacturing stackup input.",
+        "etch_factor": (
+            "Etch factor is a fabrication-profile input to the conductor capacity calculation."
         ),
     },
     "electrical.component": {
@@ -383,16 +460,29 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
         "refdes": "Reference designator is an identifier, not an engineering choice.",
         "stock_checked_at": "Stock check timestamp is supplier provenance metadata.",
+        "test_point": (
+            "Test point marker is derived from the footprint family and does not "
+            "constitute an independent component selection decision."
+        ),
         "symbol": "Symbol name is library metadata.",
         "symbol_file": "Symbol file metadata identifies the library artifact.",
         "symbol_sha256": "Symbol hash is provenance metadata for the library artifact.",
         "symbol_source": "Symbol source identifies the library provenance.",
         "symbol_source_ref": "Symbol source reference identifies the library provenance.",
+        "power_input_net": (
+            "Power input net identifies the declared power-tree connectivity."
+        ),
+        "power_output_net": (
+            "Power output net identifies the declared power-tree connectivity."
+        ),
     },
     "electrical.net": {
         "name": "Net name is an identifier used by the connectivity model.",
         "width_basis_source": (
             "Trace-width basis metadata identifies the source of the width calculation."
+        ),
+        "routing_layer": (
+            "Routing layer identifies the declared conductor geometry source."
         ),
     },
     "fab.order_intent": {
@@ -458,6 +548,22 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "unit": "Unit is the graph coordinate convention.",
         "y_axis": "The y-axis direction is the graph coordinate convention.",
     },
+    "mechanism_feature": {
+        "feature_type": "Feature type selects a declared mechanism library primitive.",
+        "face": "Placement face is a coordinate-system placement declaration.",
+        "x_mm": "Placement x coordinate is a coordinate-system placement declaration.",
+        "y_mm": "Placement y coordinate is a coordinate-system placement declaration.",
+        "rotation_deg": "Placement rotation is a coordinate-system placement declaration.",
+        "led_refdes": "LED reference is an electrical identity used to bind the light pipe.",
+            "refdes": "Switch or LED reference is an electrical identity used to bind the button.",
+        "switch_refdes": "Switch reference is an electrical identity used to bind the button.",
+        "allowed_contact_ids": (
+            "Allowed contact identities declare the mounting contact excluded from collision."
+        ),
+        "motion_check": (
+            "Motion-check settings declare the deterministic sweep sampling contract."
+        ),
+    },
     "mechanical.silk_graphic": {
         "board_edge_margin_source": (
             "Graphic edge-margin source identifies the manufacturing evidence."
@@ -489,6 +595,9 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
             "Placement source reference identifies the silkscreen procedure version."
         ),
         "role": "Text role is an identifier for the declared label.",
+        "label": (
+            "Silkscreen label is a human-readable connector identification declaration."
+        ),
     },
     "requirement": {
         "text": "Requirement text is the primary requirement fact used as rationale evidence.",
@@ -503,7 +612,12 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "motor_actuator_laser": (
             "Actuator exclusion is a dependent safety flag justified by the safety-scope decision."
         ),
+        "min_segregation_mm": (
+            "The segregation threshold is a declared safety-boundary input for "
+            "the structural signal-class predicate."
+        ),
     },
+    "safety.redundant_group": {},
 }
 
 

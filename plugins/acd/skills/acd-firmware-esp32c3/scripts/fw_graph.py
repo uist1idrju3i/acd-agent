@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
 # ]
 # ///
 """Typed extraction of the firmware lane from a design graph.
@@ -89,6 +89,7 @@ class FirmwareSettings:
     boot_log_message: str
     led_blink_period_ms: int = 1000
     log_period_ms: int = 2000
+    inspection_entry_command: str | None = None
 
 
 def validate_boot_log_message(value: object) -> str:
@@ -110,6 +111,24 @@ def validate_boot_log_message(value: object) -> str:
         raise FirmwareExtractionError(
             "boot_log_message must be a C string literal template with exactly "
             "one %s and no quotes, backslashes, newlines, or other percent directives"
+        )
+    return value
+
+
+def validate_inspection_entry_command(value: object) -> str:
+    if not isinstance(value, str):
+        raise FirmwareExtractionError("inspection_entry_command must be a string")
+    if (
+        not value
+        or len(value) > 32
+        or not value.isascii()
+        or not value.isprintable()
+        or any(character in "\r\n\t\v\f" for character in value)
+        or any(character in value for character in ('"', "\\"))
+    ):
+        raise FirmwareExtractionError(
+            "inspection_entry_command must be non-empty printable ASCII without "
+            "whitespace control, quotes, or backslashes and at most 32 characters"
         )
     return value
 
@@ -138,10 +157,14 @@ def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
                     f"node {modules[0].id!r}: attr {name!r} must be positive"
                 )
         values[name] = value
+    inspection_command = attrs.get("inspection_entry_command")
+    if inspection_command is not None:
+        inspection_command = validate_inspection_entry_command(inspection_command)
     return FirmwareSettings(
         led_blink_period_ms=cast(int, values["led_blink_period_ms"]),
         log_period_ms=cast(int, values["log_period_ms"]),
         boot_log_message=cast(str, values["boot_log_message"]),
+        inspection_entry_command=inspection_command,
     )
 
 

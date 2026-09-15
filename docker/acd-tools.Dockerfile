@@ -1,4 +1,4 @@
-FROM ubuntu:26.04
+FROM ubuntu:26.04 AS tools-build
 
 ARG FREEROUTING_VERSION=2.4.1
 ARG FREEROUTING_SHA256=251101c3eeac22d7e7dfcf6796603279e5d1000283eb82d8f093780f7afc6aa9
@@ -6,6 +6,7 @@ ARG SEMERU_JRE_VERSION=26.0.2.10
 ARG SEMERU_JRE_SHA256=0de86d8ed8d1a764cfa5839bef0283c562f30fd902a01ec406f01143e5bec1aa
 ARG UV_VERSION=0.12.13
 ARG UV_SHA256=745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd
+ARG GCOVR_VERSION=8.4
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
 ARG QEMU_ESP_ARCHIVE=qemu-riscv32-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz
 ARG QEMU_ESP_SHA256=547f03e04701a92cbb699f7f7d015adc1f5b5ef93cbb94c0dd9b7107e2d84e77
@@ -16,6 +17,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
 ENV ACD_HOME=/opt/acd
+ENV KICAD10_3DMODEL_DIR=/opt/acd/kicad-3d
 ENV IDF_PATH=/opt/esp-idf
 ENV IDF_TOOLS_PATH=/opt/esp-idf-tools
 ENV IDF_PYTHON_ENV_PATH=/opt/esp-idf-tools/python_env/acd_idf_env
@@ -42,12 +44,15 @@ RUN apt-get update \
         git \
         software-properties-common \
         ngspice \
+        calculix-ccx \
+        clang-tidy \
         python3.14 \
         python3.14-venv \
     && add-apt-repository ppa:kicad/kicad-10.0-releases \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
         kicad \
+        kicad-packages3d \
         kicad-footprints \
         kicad-libraries \
         kicad-symbols \
@@ -86,6 +91,8 @@ RUN apt-get update \
     && echo "${FREEROUTING_SHA256}  /opt/freerouting.jar" | sha256sum --check \
     && chmod 0755 /usr/local/bin/freerouting \
     && ngspice --version \
+    && (ccx -v 2>&1 || true) \
+    && clang-tidy --version \
     && git --version \
     && python3.14 --version | grep -E '^Python 3\.14\.' \
     && curl --fail --location --silent --show-error \
@@ -95,7 +102,17 @@ RUN apt-get update \
     && tar -xzf /tmp/uv.tar.gz -C /tmp \
     && install -m 0755 "/tmp/uv-x86_64-unknown-linux-gnu/uv" /usr/local/bin/uv \
     && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
+    && uv pip install --system "gcovr==${GCOVR_VERSION}" \
+    && gcovr --version \
     && rm -rf /var/lib/apt/lists/*
+
+FROM tools-build AS final
+
+COPY docker/kicad-3d-models.json /tmp/kicad-3d-models.json
+
+RUN mkdir -p "${KICAD10_3DMODEL_DIR}" \
+    && python3.14 -c 'import json, pathlib, shutil; spec=json.loads(pathlib.Path("/tmp/kicad-3d-models.json").read_text(encoding="utf-8")); root=pathlib.Path("/usr/share/kicad/3dmodels"); dest=pathlib.Path("/opt/acd/kicad-3d"); [((dest / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"]).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(root / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"], dest / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"])) for e in spec["entries"]]'
+    && rm -rf /usr/share/kicad/3dmodels
 
 # Espressif QEMU for the firmware lane virtual run (pinned release archive).
 RUN curl --fail --location --silent --show-error \
@@ -135,6 +152,7 @@ COPY assets ${ACD_HOME}/assets
 COPY evidence ${ACD_HOME}/evidence
 COPY plugins ${ACD_HOME}/plugins
 COPY docker/image-digests.json ${ACD_HOME}/docker/image-digests.json
+COPY docker/kicad-3d-models.json ${ACD_HOME}/docker/kicad-3d-models.json
 COPY vendor/software-agent-sdk ${ACD_HOME}/vendor/software-agent-sdk
 
 COPY examples/sensor-node-20260820/board/gd1.dsn /tmp/scc-warm.dsn

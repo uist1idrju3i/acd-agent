@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+import fw_project
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.firmware_capability import (
     FirmwareCapabilityContractError,
@@ -39,6 +40,7 @@ from fw_graph import (
     extract_firmware_settings,
     resolve_firmware_capability_plan,
 )
+from fw_inspection import derive_inspection_sequence
 from fw_project import (
     FirmwareProjectionError,
     firmware_project_name,
@@ -46,8 +48,12 @@ from fw_project import (
     write_firmware_project,
 )
 from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
+from fw_security import load_declaration
 
 FIXTURE = Path(__file__).resolve().parents[5] / "fixtures" / "golden-design-1" / "graph.json"
+DISABLED_SOURCE_GOLDEN = (
+    Path(__file__).resolve().parent / "fixtures" / "golden-disabled-acd_main.c"
+)
 
 
 @pytest.fixture(scope="module")
@@ -74,10 +80,69 @@ def test_lane_extraction_matches_golden_design(fw_lane: FirmwareLane) -> None:
     assert fw_lane.gpio_for_net("net.led") == 7
     assert fw_lane.gpio_for_net("net.i2c_sda") == 4
     assert fw_lane.gpio_for_net("net.i2c_scl") == 5
+
+
+def test_security_declaration_is_opt_in_and_writes_partition_files(
+    tmp_path: Path,
+    graph: DesignGraph,
+    fw_lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
+) -> None:
+    project = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path / "secure",
+        graph.graph_id,
+        plan=plan,
+        security_declaration=load_declaration(
+            FIXTURE.parent / "fw-security.json"
+        ),
+    )
+    assert (project.root / "partitions.csv").is_file()
+    assert "CONFIG_SECURE_BOOT=y" in (
+        project.root / "sdkconfig.defaults"
+    ).read_text(encoding="utf-8")
+
+    default = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path / "default",
+        graph.graph_id,
+        plan=plan,
+    )
+    assert not (default.root / "partitions.csv").exists()
+    assert (default.root / "sdkconfig.defaults").read_text(
+        encoding="utf-8"
+    ) == fw_project.__dict__["_SDKCONFIG_DEFAULTS"]
     assert fw_lane.gpio_for_net("net.boot") == 9
     assert fw_lane.gpio_for_net("net.usb_dn") == 18
     assert fw_lane.gpio_for_net("net.usb_dp") == 19
     assert fw_lane.gpio_for_net("net.uart_rx") == 20
+
+
+def test_coverage_projection_is_opt_in_for_app_only(
+    tmp_path: Path,
+    graph: DesignGraph,
+    fw_lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
+) -> None:
+    project = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path / "coverage",
+        graph.graph_id,
+        plan=plan,
+        coverage=True,
+    )
+    cmake = (project.root / "main/CMakeLists.txt").read_text(encoding="utf-8")
+    source = project.main_source.read_text(encoding="utf-8")
+    assert "--coverage" in cmake
+    assert "-fprofile-arcs" in cmake
+    assert "-ftest-coverage" in cmake
+    assert "ACD_COVERAGE=1" in cmake
+    assert '#include "esp_gcov.h"' in source
+    assert "esp_gcov_dump();" in source
+    assert "ACD_VIRTUAL_RUN_END" in source
     assert fw_lane.gpio_for_net("net.uart_tx") == 21
 
 
@@ -128,6 +193,23 @@ def test_pins_header_is_deterministic(
     assert "static i2c_master_dev_handle_t s_sht40;" in source
 
 
+def test_disabled_inspection_source_matches_golden_main_output(
+    fw_lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
+    graph: DesignGraph,
+    tmp_path: Path,
+) -> None:
+    project = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path,
+        graph.graph_id,
+        extract_firmware_settings(graph),
+        plan=plan,
+    )
+    assert project.main_source.read_bytes() == DISABLED_SOURCE_GOLDEN.read_bytes()
+
+
 def test_registry_provenance_path_is_repository_relative(
     plan: FirmwareCapabilityPlan,
 ) -> None:
@@ -167,6 +249,91 @@ def test_firmware_settings_default_and_declared_values(graph: DesignGraph) -> No
     assert settings.led_blink_period_ms == 250
     assert settings.log_period_ms == 750
     assert settings.boot_log_message == "boot %s"
+
+
+def test_inspection_sequence_is_opt_in_and_deterministic(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    enabled = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={
+                        "attrs": {
+                            **node.attrs,
+                            "inspection_entry_command": "ACD INSPECT",
+                        }
+                    }
+                )
+                if node.id == module.id
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    lane = extract_firmware_lane(enabled)
+    settings = extract_firmware_settings(enabled)
+    plan = resolve_firmware_capability_plan(enabled, lane)
+    sequence = derive_inspection_sequence(enabled, lane, plan, settings)
+    assert sequence is not None
+    assert [item.kind for item in sequence.items] == [
+        "led",
+        "i2c_probe",
+        "power_self_check",
+        "serial_echo",
+    ]
+    assert sequence.items[2].status == "unknown"
+    assert sequence.items[2].unknown_reason
+    first = write_firmware_project(
+        lane,
+        enabled.revision,
+        tmp_path / "first",
+        enabled.graph_id,
+        settings,
+        plan=plan,
+        inspection_sequence=sequence,
+    )
+    second = write_firmware_project(
+        lane,
+        enabled.revision,
+        tmp_path / "second",
+        enabled.graph_id,
+        settings,
+        plan=plan,
+        inspection_sequence=sequence,
+    )
+    assert (first.main_source.read_bytes()) == (second.main_source.read_bytes())
+    assert "acd_inspection_poll" in first.main_source.read_text(encoding="utf-8")
+    assert "acd_inspection.c" in (
+        first.root / "main" / "CMakeLists.txt"
+    ).read_text(encoding="utf-8")
+    assert not (tmp_path / "first" / "firmware-inspection-sequence.json").exists()
+    assert derive_inspection_sequence(
+        graph,
+        extract_firmware_lane(graph),
+        resolve_firmware_capability_plan(graph, extract_firmware_lane(graph)),
+        extract_firmware_settings(graph),
+    ) is None
+
+
+def test_inspection_entry_command_rejects_malformed_values(graph: DesignGraph) -> None:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    for value in ('', 'bad"cmd', "x" * 33, "bad\ncmd"):
+        broken = graph.model_copy(
+            update={
+                "nodes": [
+                    node.model_copy(
+                        update={"attrs": {**node.attrs, "inspection_entry_command": value}}
+                    )
+                    if node.id == module.id
+                    else node
+                    for node in graph.nodes
+                ]
+            }
+        )
+        with pytest.raises(FirmwareExtractionError):
+            extract_firmware_settings(broken)
 
 
 def test_firmware_settings_default_is_graph_derived(
@@ -838,4 +1005,17 @@ def test_dual_led_virtual_log_checks(graph: DesignGraph) -> None:
             boot_log_message="ACD GD1 fw boot target_revision=%s",
             lane=lane,
             plan=plan,
+        )
+
+
+def test_enabled_inspection_must_not_autorun(graph: DesignGraph) -> None:
+    _, lane, plan = _dual_led_plan(graph)
+    with pytest.raises(VirtualRunCheckError, match="autorun"):
+        assert_virtual_log_ok(
+            "ACD GD1 fw boot target_revision=r1\nACD_INSPECT begin target_revision=r1\n",
+            target_revision="r1",
+            boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=lane,
+            plan=plan,
+            inspection_sequence=object(),
         )

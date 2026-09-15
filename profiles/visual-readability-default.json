@@ -1,0 +1,7 @@
+{
+  "default_px_per_unit": 4.0,
+  "max_overlap_ratio": 0.0,
+  "max_text_ratio": 0.15,
+  "min_contrast_ratio": 3.0,
+  "min_text_px": 6.0
+}

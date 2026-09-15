@@ -18,6 +18,7 @@ from acd.adapters.cad.assembly_3d import (
     write_glb,
 )
 from acd.adapters.cad.assembly_viewer import render_assembly_viewer_html
+from acd.adapters.cad.component_3d import import_component_step
 from acd.adapters.cad.mechanical import run_mechanical_gates
 from acd.adapters.cad.project import project_enclosure
 from acd.core.electrical import extract_electrical_lane
@@ -216,6 +217,46 @@ def test_assembly_3d_projection_on_golden_fixture(tmp_path: Path) -> None:
     embedded_b64 = html.split('id="assembly-glb"', 1)[1].split(">", 1)[1].split("<", 1)[0]
     assert base64.b64decode(embedded_b64) == (tmp_path / "out/3d/assembly.glb").read_bytes()
     assert record.glb_sha256 == manifest["artifacts"]["3d/assembly.glb"]["sha256"]
+
+
+def test_assembly_3d_projection_uses_real_component_solids(tmp_path: Path) -> None:
+    graph, graph_path = _fixture()
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane,
+        graph_path=graph_path,
+        out_dir=tmp_path / "out",
+        target_revision=graph.revision,
+    )
+    gates = run_mechanical_gates(
+        step_path=projection.assembly_step_path,
+        lane=lane,
+        kernel_probe=probe_cad_kernel(),
+    )
+    refdes = {
+        component.node_id: component.refdes
+        for component in extract_electrical_lane(graph).components
+    }
+    imported = import_component_step(
+        Path("fixtures/component-3d/gd1-components.step"),
+        lane,
+        refdes_by_component_id=refdes,
+    )
+    record = generate_assembly_3d_projection(
+        projection=projection,
+        lane=lane,
+        gate_report=gates,
+        target_revision=graph.revision,
+        graph_id=graph.graph_id,
+        refdes_by_component_id=refdes,
+        out_dir=tmp_path / "out",
+        component_solids=imported.component_solids,
+    )
+    manifest = json.loads((tmp_path / "out/3d/assembly-3d.json").read_text(encoding="utf-8"))
+    sources = {node["name"]: node["source"] for node in manifest["nodes"]}
+    assert sources["U1"] == "kicad_step"
+    assert sources["J1"] == "kicad_step"
+    assert record.glb_sha256.startswith("sha256:")
 
 
 def test_assembly_3d_projection_is_deterministic(tmp_path: Path) -> None:

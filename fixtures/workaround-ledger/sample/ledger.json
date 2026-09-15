@@ -1,0 +1,30 @@
+{
+  "applications": [
+    {
+      "applied_at": "2026-01-02T00:00:00Z",
+      "base_revision": "r1",
+      "derived_revision": "r1+WA-001",
+      "evidence_ref": "inspection-sheet://WA-001/LOT-GD1-001",
+      "graph_id": "golden-design-1",
+      "operator": "operator-001",
+      "post_work_inspection": "pass",
+      "unit": {
+        "lot": "LOT-GD1-001"
+      },
+      "work_instruction_sha256": "sha256:a1e6fe5b14932e100ddbfff2cb8326adc654c7c9fd65856ec63831369006b60c",
+      "workaround_id": "WA-001"
+    }
+  ],
+  "artifact_kind": "workaround_ledger",
+  "graph_id": "golden-design-1",
+  "pass_evidence": false,
+  "retirements": [
+    {
+      "eco_check_sha256": "sha256:cd4d2a6c9e50a76912803daacf77e075562e89138a4d49966b815dc7ea6b7d15",
+      "eco_id": "ECO-001",
+      "resolved_revision": "r2",
+      "workaround_id": "WA-001"
+    }
+  ],
+  "schema_version": "0.1"
+}

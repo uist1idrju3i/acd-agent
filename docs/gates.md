@@ -9,6 +9,9 @@
 
 ## 目的と不変条件
 
+ECOのrevision遷移、再検証evidence、水平展開処置、close条件は
+[`eco-workflow.md`](eco-workflow.md)に定義する。
+
 レビュー用投影は、入力ファイルから再生成される観察用の派生成果物である。ブロック図、
 回路図、3Dビュー、表などを正へ逆流させず、投影同士を意味的にマージしない。
 分岐、調停、修正は入力ファイルへ反映し、そこから投影を再生成する。
@@ -73,6 +76,61 @@ renderer不在や生成不能はfail-closedとし、投影欠落を「問題な�
 決定論的ゲートと独立測定だけが判定する。画像内の文字列はデータとして扱い、
 設計変更や合否命令として実行しない。
 
+### 視覚投影の可読性検査（20.4）
+
+`analyze_svg_readability()`はSVG bytesを変更せずに解析し、結果を
+`authority="steering"`のL2所見として記録する。所見は作業を停止・操舵できるが、
+pass Evidenceを生成せず、SVGやDesign Graphへ逆流しない。検査は`derive_visual_review`
+へ任意の`ReadabilityPolicy`を渡した場合だけ有効になり、結果はcrosscheckと分離した
+`visual-readability.json`へ記録する。vision observationにはfinding codeだけを
+`readability_hint`として渡し、LLM呼出しや判定権限は追加しない。
+
+テキストの推定glyph boxは幅を`len(text) * font_size * 0.6`、高さを
+`font_size`とする。`0.6`はmonospace-ishな上限近似であり、フォントの実測ではない。
+`font-size`は自身の属性、style、祖先の継承順に解決し、明示値が無ければSVG既定値
+16 user unitsで計算しつつ`font_size_missing`をfail所見にする。viewBoxに対する比率
+`font_size / min(width, height)`が`max_text_ratio`（既定0.15）を超える場合、
+また推定boxの交差率が`max_overlap_ratio`（既定0.0）を超える場合に停止する。
+boxは`(y, x, id)`でソートして比較する。viewBox外、極小表示
+（`font_size * raster_px_per_unit < min_text_px`、既定6px）、および未解決値も
+fail-closedで扱う。
+
+`raster_px_per_unit`はSVGのpx幅とviewBoxから計算できる場合に優先し、そうでなければ
+policyの`default_px_per_unit`（既定4.0）を使う。両方が無い場合は
+`unknown_resolution`でunknownとする。色は`#rrggbb`／`#rgb`、基本named color、
+`rgb()`を決定論的に解釈し、WCAG相対輝度のコントラスト比が
+`min_contrast_ratio`（既定3.0）未満なら`low_contrast`、解釈不能色は
+`unknown_color`としてunknownにする。XML、viewBox、font、解像度、色の欠落・
+破損は「問題なし」とせずunknownまたはfailへ集約する。座標変換は
+`translate(...)`、`scale(...)`、およびshearを含まない対角`matrix(a,0,0,d,e,f)`
+のチェーンを解決し、実効font-sizeとglyph boxへscaleを適用する。rotate、skew、
+shearを含むmatrix、その他の変換は`unresolved_transform`としてunknownにする。
+
+### FW coverage observation and HIL measurement
+
+Firmware coverage is an opt-in L3 observation. `gcovr` JSON is parsed in
+deterministic path order and compared with the declared line/branch floor.
+`authority` is always `observation`; a passing coverage result does not create
+Evidence, and a floor failure produces only a stop-side finding. Missing
+reports, malformed JSON, or unavailable gcovr remain unknown/fail-closed.
+The real ESP-IDF/QEMU dump path is `esp_gcov_dump()` at the generated virtual
+run end marker; host-side gcovr parsing is the synthetic verification path when
+the toolchain is unavailable.
+
+HIL ingestion validates the plan, run envelope, revision, declared channels,
+units, and virtual UART reference before building measured `PhysicalEvidence`.
+The resulting Evidence is never authoritative and is consumed only by the
+existing measured-feedback path. The GD1 HIL files are synthetic fixtures,
+not real device measurements.
+
+16.1では、宣言された`electrical.stackup`に対して銅層順序、誘電体交互配置、
+基板層数、平面層、厚さ合計をfail-closedに検査する。`differential_pair`は
+差動ペアのp/n完全性と両ネットの契約一致を、`impedance_geometry`はIPC-2141
+近似による配線形状と目標インピーダンスを`pre_router`で検査する。stackupや
+関連宣言がないGD1では、新述語は`not_applicable`となり、既存の判定結果と
+Evidenceを変更しない。近似式はfield solverではなく、実測Evidenceをauthoritative
+な入力として扱う。
+
 8.5の電気lane照合はGD1基板pipelineで8.3のSVG生成直後、hash manifest生成前に実行する。
 回路図ビューは1件、層別レイアウトビューは`BoardView.layers`からKiCad対応表で導出した
 銅層集合と完全一致しなければならない。SVGのwidth／heightは
@@ -97,6 +155,87 @@ interference層を検査し、識別不能または不一致はfail-closedとす
 `observation_required`としてunknownのまま記録する。FW laneでも可読性、注記、
 重なり・非表示による意味欠落、設計意図一致、実機functional run対応はunknownのままとし、
 合格へ倒さない。
+
+### 機構要素ルール（`mechanism_rules`）
+
+`mechanism_feature` nodeが存在する場合だけ、機械laneの事前決定論的ルール
+`mechanism_rules`を実行する。featureが無い既存GD1では`not_applicable`となり、
+既存の機械ゲート列、筐体出力、正規化hashを変更しない。各featureは1つの
+`mechanical.enclosure`へ依存し、寸法属性はrationale recordで根拠を被覆する。
+placementとrefdes identityは座標系または電気部品識別の宣言であり、英語の免除理由を
+契約へ記録する。
+
+snap-fitの一次近似は片持ち梁として
+`epsilon = 1.5 * deflection_mm * hook_thickness_mm / hook_length_mm^2`を使い、
+enclosure materialのPLA（0.012）、ABS（0.03）、PETG（0.02）、PA（0.05）の
+allowable strain表と比較する。未知materialや不足入力は`unknown`であり、合格へ倒さない。
+ribは厚さ`<= 0.6 * wall`かつdraft`>= 0.5°`、bossは環状壁
+`(outer_diameter - hole_diameter) / 2 >= 0.75 * wall`、hingeはclearance
+`>= 0.1 mm`かつswing`<= 180°`、buttonはstroke`<= travel_clearance`、
+light-pipeはLED body寸法`+ 0.4 mm`以上の直径を要求する。結果は
+`fail > unknown > pass`で集約し、`fail`と`unknown`は停止側へ記録する。
+buttonのweb厚は機構nodeで正の宣言値として検査するが、現行の筐体投影では意図した
+button opening周辺の局所壁厚を一意に測定できないため、局所肉厚の合否を捏造しない。
+その測定限界は停止側の補助情報として扱い、web厚の宣言欠落・不正値は抽出時に
+fail-closedで拒否する。
+機構部品のCAD投影はbuild123dによるL3投影であり、機構ruleの推定値や視覚観測を
+authoritative Evidenceへ昇格させない。
+
+### 可動干渉スイープ（`motion_sweep`）
+
+hingeまたはbuttonの`mechanism_feature`がある場合、`motion_check`宣言を必須とし、
+hingeは`step_deg`、buttonは`step_mm`、共通で`sweep_margin_mm`と
+`allowed_contact_ids`を指定する。hingeは0度から`swing_deg`まで、buttonは0から
+`stroke_mm`までを端点を含む固定stepでサンプリングし、各poseのmoving solidを
+shell、非可動lid、board outline、component body、他の機構featureと交差させる。
+交差体積が`enclosure.interference_tolerance_mm3`を超えたposeはfailとし、feature、
+pose、交差体積、colliding body idを記録する。boolean失敗、invalid solid、欠落入力は
+unknownとして停止側へ集約する。
+
+離散poseのunionは連続する真のスイープを下近似する。そのため各moving solidへ
+宣言済み`sweep_margin_mm`をoffsetとして適用し、step間の未観測領域を保守的に補う。
+mounting geometryとの接触だけは`allowed_contact_ids`で明示的に除外し、未宣言の接触は
+干渉として扱う。結果の集約順は`fail > unknown > pass`であり、可動featureがない
+既存GD1は`not_applicable`のまま既定の筐体出力とhashを変更しない。
+
+### 製造性チェック（`mechanical_dfm`）
+
+`mechanical.enclosure`が`manufacturing_process`と`dfm_profile`を宣言した場合だけ、
+STEP再読込後のshell／lid実形状へ`mechanical_dfm`を適用する。processが無い既存GD1は
+`not_applicable`であり、筐体出力、Evidence、正規化hashを変更しない。processがある
+のにprofileが無い場合、または測定、boolean、face走査、solid検証に失敗した場合は
+`unknown`として停止側へ倒す。
+
+FDMは実測最小肉厚とprofileの`min_wall_mm`を比較し、rib厚、snap-fit hook厚、
+button web厚も同じ下限で検査する。面の法線と部品ごとの既定印刷方向（shellは`+Z`、
+lidはflat side down）からdown-facing overhang角を算出し、`min_feature_mm^2`未満の
+面を除外する。SLAは同じ肉厚／overhang検査に加え、`drain_hole_required`が真なら
+shell床の直径3 mm以上のthrough-holeを要求する。
+
+射出成形は`min_wall_mm`、`max_wall_mm`、`max_thickness_ratio = max_wall / min_wall`
+を検査する。`parting_plane`（`xy_top`または`xy_bottom`）のpull方向に対して、面積が
+`min_feature_mm^2`以上のplanar faceのdraft角を決定論的に走査し、`min_draft_deg`
+未満をfailとする。pull方向に平行なcylindrical faceはdraft 0°として扱う。
+faceは丸めたcenter、areaの順でソートし、報告する角度、面積、centerは小数3桁へ丸める。
+結果は`fail > unknown > pass`で集約し、DFM findingsは機械Evidenceとsummaryへ記録する。
+
+### 部品込み3D統合（`assembly_interference_3d`）
+
+`--component-step`または`--with-kicad-3d`を明示した場合だけ、KiCad STEPを
+build123dで再読込し、基板solidと部品solidをgraphの`component_bodies`へ決定論的に
+割り当てる。未割当solid、`body_type != none`なのにモデルが無い部品、破損STEP、
+boolean失敗はunknownとして停止側へ保持する。部品solidはshell、lid、機構feature、
+motion sweep envelopeと交差させ、交差体積が
+`enclosure.interference_tolerance_mm3`を超えた場合はrefdesとbody ID付きでfailとする。
+`internal_clearance_mm`未満の距離もfailとする。実測bboxが宣言envelopeを許容差以上に
+超えた場合のruleは`declared_envelope_exceeded`である。モデル観測はL1の合格を昇格せず、
+未実行・unknownは合格側へ倒さない。
+
+実solidを使う組立投影ではnodeの`source`を`kicad_step`とし、モデル正規化hashを
+extrasへ記録する。実solidを渡さない既定経路は従来の`approximated` boxとバイト列を
+維持する。KiCad標準3Dモデルは`docker/kicad-3d-models.json`のallowlistだけを
+imageへ同梱し、allowlist hashとコピー件数を`kicad-3d-models` tool measurementへ
+記録する。
 
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|
@@ -166,6 +305,295 @@ via幾何（drill、diameter）はビジョン応答から読まず、graphの�
 宣言された接続がnetの全padを結合しない場合、pad対が未知・非一意・重複する場合、
 via幾何が宣言最小値を下回る場合はいずれもfail-closedである。ACD側は`RoutedVia`へ変換する前に
 両層の配線がその点で会うことを検査する。
+
+### 16.4 テスト容易化設計（DFT）opt-in gate
+
+DFT gateは`DftPolicy`を明示的に宣言した場合だけ実行する独立したL1 gateである。
+要求ネットクラス（電源、GND、I2C、UART、firmware GPIO、USB data、全signal）または
+明示ネットIDに対し、テストポイントのネットカバレッジを検査する。加えて、テストポイント
+間の最小プローブ間隔、パッド径、プローブ面、非テストポイント部品本体とのkeepoutを
+決定論的に検査する。
+
+配置、接続、径、面、部品本体の幾何が欠落または不明な場合は`unknown`として合格に倒さず、
+policyとgraphの`graph_id`／`revision`不一致や入力不正は入力エラーとして扱う。DFT gateは
+GD1の既定`PREDICATE_CATALOG`、既存Evidence、既定認証判定を変更しない。テストポイント
+カバレッジの判定は製造・検査工程の設計入力であり、認証適合を主張するものではない。
+
+### 16.5 構造安全性述語
+
+構造安全性は`functional-block-registry.json`で適用範囲を宣言する
+`pre_router`設計述語である。registryの契約は次の5つである。
+
+| functional block | predicate | 検査対象 |
+|---|---|---|
+| `redundant_path_independence` | `single_point_of_failure` | 冗長member間のコネクタ、電源bus、IC、熱経路、保護素子の共有 |
+| `protection_selectivity` | `protection_selectivity` | 電源treeの上流／下流保護素子のtrip値と保護要求 |
+| `signal_class_segregation` | `signal_class_segregation` | 信号クラス、同一connectorの非互換pin、SELVとの配置距離 |
+| `critical_sneak_path` | `sneak_path` | critical netの受動素子bridge、indicator state、connector silk |
+| `conductor_current_capacity` | `trapezoid_current_capacity` | IPC-2221台形断面の導体許容電流 |
+
+宣言のない範囲は`unknown`として停止側へ集約し、認証適合や規制認証の判定は行わない。
+`safety.redundant_group`の`members`と`resources_shared_forbidden`は
+`net_class` decision kindとしてrationaleを要求する。保護選択性の電源treeは、
+SVG adapterの`_power_connections()`へ依存せず、coreの構造安全性評価で
+`power_input_net`／`power_output_net`宣言を決定論的に辿る。IPC-2221の式は
+外部層／内部層の経験式による近似であり、field solver、実測、認証適合の代替ではない。
+
+### 16.6 ワイヤハーネス契約（opt-in gate）
+
+ハーネスgateは、`HarnessContract`を明示的に指定した場合だけ実行する独立したL1 gateである。
+contractはgraph nodeではなく、graphのコネクタcomponentとnetを参照する。graphの
+`graph_id`／`revision`が一致しない入力はexit code 2で停止し、出力を作成しない。
+
+`netlist_consistency`はcavityとgraph pinの対応、wireのnet帰属、`off_board: true` netの
+全件収載を検査する。`ampacity`は宣言されたdatasheet ampacity、周囲温度ディレーティング、
+束線係数を掛け合わせ、`voltage_drop`はwire長・余長・return wireの抵抗を使って検査する。
+`insulation_rating`は耐圧・耐熱、`bend_radius`は宣言routeの最小曲げ半径を検査する。
+必要値が未宣言または対応が不明な場合はunknownとして停止側へ集約する。
+
+`scripts/project_harness.py`は決定論的な`harness.svg`、`cut-length-table.csv`、
+`cut-length-table.md`、provenance sidecarをL3 projectionとして生成する。図と表は判定権限を
+持たない。第2段として、wire typeのshield、wireのtwisted-pair、moving sectionのflex-cycle、
+connectorのmating-cycle／retention／keying、16.5のsignal-class segregationと
+redundant-group harness独立性を任意宣言から検査する。`dfa_findings`は既存DFA contract形状の
+L2所見であり、keying未宣言と余長5%未満をassembly-order観点で記録する。L2所見はL1判定を
+変更しない。第2段の入力が不足する場合は、該当するcheckをunknownまたはnot-applicableとして
+理由付きで返し、pass-by-omissionにはしない。
+
+### 17.1 部品ライブラリ統治SKILL
+
+`acd-library-governance`はDesign Graphの`library_ref`を入力とする独立したL2 Skillである。
+`LibraryPolicy`に定めたfootprint名のglobごとにpad寸法、courtyardの有無と余白、原点、
+layerを決定論的に検査し、必要な場合はfootprint／symbolのsha256 pinningも検査する。
+`--project-dir`を指定した場合は`fp-lib-table`のnicknameと出所を検査し、Graphが参照する
+nicknameの宣言漏れを、GD1で観測された`lib_footprint_issues`と同じ欠落類型として列挙する。
+
+このSkillの所見は`authority="l2_review"`であり、L1 gateのpass authorityやauthoritative
+Evidenceを持たない。資材の欠落・読込不能・parse不能・未知は`unknown`または`fail`として
+停止側へ保持し、合格へ変換しない。ACD coreはSkill moduleをimportせず、KiCad project
+projection自体はGraphのlibrary referenceから決定論的な`fp-lib-table`／`sym-lib-table`を生成する。
+対象はライブラリのgeometry、source、hash統治であり、規制認証の判定ではない。
+
+### 17.2 部品ライフサイクル・セカンドソース契約（opt-in gate）
+
+部品ライフサイクルgateは、`PartLifecycleRegistry`を明示した場合だけ実行する独立した
+L1 gateである。registryはDesign Graphへ混在させず、graphの`graph_id`／`revision`と
+一致する宣言contractとして管理する。`build_bom()`が返すnon-empty MPNごとにライフサイクル
+状態、status sourceの識別子・観測日・有効期限、代替候補を対応付ける。MPNが空の機械部品や
+test pointは`no_mpn`として別集計し、ライフサイクルentryの欠落をpassへ変換しない。
+
+`coverage`はBOM MPNのregistry収載を、`status_freshness`はregistryの`as_of`と
+`max_status_age_days`／`valid_until`を使った鮮度を検査する。日付はwall clockを使わず、
+CLIの`--as-of`でregistryの基準日を決定論的に上書きできる。未収載、stale、期限切れ、
+明示`unknown`はunknownとして停止側へ集約する。`eol`／`obsolete`はfail、
+`nrnd`／`last_time_buy`はwarningを記録しつつgate statusをpassに保てる。
+
+policyがsecond sourceを要求する場合、代替の`drop_in`または
+`footprint_compatible_value_check`がBOM footprintと一致することを必要とする。
+`requires_redesign`だけでは要件を満たさず、drop-inの矛盾したfootprint宣言はfailである。
+status sourceやalternateのreferenceはURLまたは文書識別子であり、外部メーカー／代理店APIの
+自動照会は行わない。未取得・未宣言の情報はregistryへ手動で宣言されるまでunknownとして
+扱う。
+
+結果は`checks`、部品ごとのrefdes・MPN・状態・代替数・status、入力hashを含む。これは
+既存GD1のdefault gateへ接続しないopt-in経路であり、registryを指定しないGD1出力は変更
+しない。規制適合、供給保証、認証verdictは行わず、外部API照会は別途判断とする。
+
+### 10.1 電気シミュレーション（SPICE、opt-in estimate）
+
+`SpiceAnalysisRequest`を明示した場合だけ、GraphからLDO、デカップリング、
+LEDと直列抵抗、I2C pull-upおよびバス容量を決定論的に抽出し、ngspiceの
+`.op`／`.tran`解析を実行する。LDOは宣言値によるbehavioral approximationであり、
+vendor macro modelやauthoritative Evidenceではない。ネットリストはrefdes順、
+固定数値表記、固定node名で生成し、`.control`は使わない。
+
+LEDのbranch currentを検査する場合は、requestに`drive`を明示し、
+`state="on"`のGPIO-high相当源（`vdd_3v3`または明示電圧）を宣言する必要がある。
+driveがないLED current checkはunknownであり、無刺激のbranch currentをpassへ変換しない。
+I2C pull-upには決定論的なopen-drain switchとPULSE刺激を追加し、lowからreleaseした
+10--90% edgeを`.tran`波形から測定する。transientの刻みは1 ns以下とし、release後の
+RC応答を十分に含む解析時間を要求する。
+
+ngspiceはGPL境界を越えてimportせず、`acd.core.process.run_tool`のsubprocess
+経由だけで実行する。最初に`ngspice -v`を実行してrequestのversion pinと照合し、
+tool missing、version mismatch、malformed output、non-convergence、利用不能な
+解析結果はunknownへ停止側集約する。値域超過はfail、集約順はfail > unknown >
+passである。ホストにngspiceがない場合もpassへ変換せず、locked tools imageでの
+実行結果だけを再現可能なfixtureとして記録する。
+
+branch currentが0、rise-timeが0、またはrise-time波形が10%／90%閾値を横切らない場合は
+`degenerate_measurement`としてunknownにする。したがって、刺激のない平坦な波形や
+無電流の測定が宣言値域内に見えてもpassにはならない。
+
+結果には`authority="estimate"`、ngspice version文字列、ネットリストSHA-256、
+raw output SHA-256、Graph/request hashを含める。SPICEはL2 stop-side findingであり、
+既定GD1 gateやauthoritative Evidenceへ接続しない。`--netlist-only`はツールなしで
+決定論的ネットリストだけを出力する。
+
+### 10.2 PDN/IR drop推定（opt-in estimate）
+
+`PdnAnalysisRequest`を明示した場合だけ、保存済みKiCad PCBまたはGerber銅箔形状から
+指定した電源経路の断面積、抵抗、電流密度、IR dropを決定論的に推定する。KiCad PCBでは
+ネット属性付きsegment、via、pad、zoneを解析し、segment抵抗
+`R = ρL/(w t)`、viaのdrill・platingモデル、Dijkstraによる最小抵抗pad間経路を使う。
+銅厚はrequestの明示値または16.1で宣言したGraph/stackup値から取得し、温度係数で抵抗率を
+補正する。GerberはX2 net attributionが得られる場合だけ対象にし、帰属不能な銅箔を推測
+しない。
+
+電源経路のIR dropまたは電流密度が閾値を超えた場合はfailの停止側所見とする。segmentが
+切断されているなど接続が証明できない場合もfail、銅厚・ネット帰属・形状が不明な場合は
+unknownである。zone/pour/regionを経路として扱う場合、幅・抵抗を捏造せず、
+`zone_on_path=true`と`copper pour on path; deterministic width estimate not available`を
+記録してunknownへ倒す。集約順序はfail > unknown > passで、出力は`authority="estimate"`の
+L2 stop-side findingであり、authoritative Evidenceや既定GD1 gateへ接続しない。これは独立した
+opt-in経路であり、PDN requestを指定しない既存GD1 default outputは変更しない。
+
+### 10.3 機械解析（熱抵抗・CalculiX FEM、opt-in estimate）
+
+`ThermalRequest`を明示した場合だけ、16.3 `UseEnvironment`または明示ambient、
+既存MechanicalLaneの筐体寸法、宣言された電力・パッケージ熱抵抗・銅箔面積から、
+決定論的な集中定数熱抵抗を推定する。銅箔拡散は固定係数
+`theta_cb = 1 / (h_eff * A)`、筐体側は自然対流`h=5 W/m²K`と壁内伝導を使う
+簡易モデルであり、熱設計の実測または詳細解析の代替ではない。`theta_jc`経路と
+宣言された`theta_ja`経路がともにある場合は保守的に大きい経路を採用する。
+電力、熱抵抗、銅箔面積、材料物性、環境が欠落した場合はunknown、`Tj > tj_max`
+はfailとする。
+
+`FemRequest`を明示した場合だけ、固定節点番号のgenerated shell-box `.inp`を生成し、
+drop、static stress、thermalのCalculiX経路を利用できる。落下は
+`v=sqrt(2gh)`と`a=v²/(2*crush_distance)`による等価静的減速度であり、過渡衝撃の
+完全モデルではない。CalculiX（GPL）はACDへimportせず、`acd.core.process.run_tool`
+経由のsubprocessだけで起動する。`ccx -v`のversion pin不一致、ツール不在、非収束、
+malformed `.dat`、parse失敗、必要結果欠落はunknown、制限超過はfailである。
+`.dat`のvon Misesは6応力成分から決定論的に計算する。
+
+熱・FEMの結果は`authority="estimate"`固定のL2 stop-side findingであり、
+authoritative EvidenceやGD1 default gateへ接続しない。解析はopt-inで、未指定の
+既存出力を変更しない。ホストにCalculiXがない環境ではreal-run testをskipし、
+parser回帰にはsynthetic fixtureを使うが、synthetic結果を証拠へ昇格させない。
+
+### 10.4 FW解析（opt-in estimate／observation）
+
+FW解析は既存のESP-IDF build、QEMU、`evidence-firmware.json`を変更せず、明示的な
+optionを指定した場合だけ実行する。clang-tidyは生成buildの
+`compile_commands.json`と固定checks listを使い、`warning`／`error`はestimateの
+fail、ツール不在、版不一致、malformed診断、compile commands欠落はunknownとする。
+ESP-IDF toolchain、clang-tidy、QEMUはすべてsubprocess境界で実行し、GPLコードを
+importしない。
+
+`--stack-usage`は生成CMakeへ`-fstack-usage`だけを追加し、GCC `.su`の最大static
+frameをtranslation unit単位で比較する。call graphを持たない近似であり、unbounded
+`dynamic`、`.su`／size JSON欠落、予算不明はunknown、stack／flash／DRAM予算超過は
+failとする。既定生成物のbytesはgoldenで固定し、optionなしのFW pipelineには影響しない。
+
+`--sim-peripherals`はSHT40の`0xFD`測定、CRC-8（poly `0x31`、初期値`0xff`）、
+温湿度変換を生成C stubへ投影し、宣言scenarioをcyclingして既存ログ形式へ出力する。
+仮想ログがscenarioの全sampleと±0.01で一致しない場合、または行が不足する場合は
+fail-closedとなる。stub由来の結果は`authority="observation"`であり、実機測定や
+authoritative Evidenceではない。
+
+集約CLI `scripts/analyze_firmware.py`のaggregateは`fail > unknown > pass`で、
+aggregate authorityは`estimate`、nested peripheral resultは`observation`として境界を
+保持する。synthetic／recorded fixtureはparser回帰専用であり、解析結果をEvidenceへ
+昇格させない。
+
+### 10.5 解析結果の文書統合（L2/L3）
+
+品質文書とレビュー資料は、`--analysis`で指定した結果ファイルまたはディレクトリを
+`artifact_kind`で識別し、SPICE、PDN、WCA、熱、FEM、FW解析の6種類を固定順で表示する。
+各JSONは対応するcore strict schemaで検証し、Design Graphの`graph_id`と`revision`に
+一致しない入力は生成を停止する。入力が無い種類も省略せず`未実施`として表示し、passを
+暗示しない。
+
+解析結果のauthorityは`estimate`（FWのstub観測はnested `observation`）であり、
+文書はL3投影、L1 verdictおよびauthoritative Evidenceを変更しない。failまたはunknownは
+品質文書の`停止側所見`へ列挙し、全体状態を`所見あり`とする。レビュー資料には各種類の
+チェックリスト項目、`analysis/`配下のraw JSON、`analysis-summary.md`、hash manifest、
+provenanceを収録する。欠落も6項目のuncheckedとして残す。
+
+### 10.6 ワーストケース解析（WCA、opt-in estimate）
+
+`WcaRequest`を明示した場合だけ、10.1の`SpiceResult`公称値または宣言公称値へ、
+部品公差・中心ずれ・温度・経時の影響を適用する。温度は16.3の`UseEnvironment`の
+温度範囲から算出し、公差表と環境条件のいずれかが欠落している場合はunknownへ集約する。
+部品refdesの公差は同じ部品クラスより優先して解決する。
+
+中心ずれ、温度、経時の系統的なbiasは符号付きで代数和にし、独立な初期公差はRSS
+（root-sum-square）で合成する。結果は`composition_method="bias_sum_plus_rss"`とし、
+各quantityの変動源分類、符号、入力hash、公差表hash、環境hashおよび任意のSPICE hashを
+記録する。公称値の欠落、退化したSPICE測定、未宣言の公差はunknownであり、下限・上限の
+超過はfail、集約順はfail > unknown > passである。
+
+`power_budget_peak`はtypical値、平均値、duty-weighted値を使わず、宣言された各loadの
+`peak`電流の合計を供給容量と比較する。これは16.2のbattery power budget実装ではなく、
+WCAへ渡された任意の電源バジェット入力に対するピーク需要の解析だけを提供する。
+
+結果の`authority`は`estimate`固定で、WCAはL2 stop-side findingであり、authoritative
+Evidenceや既定GD1 gateの合格側へ作用しない。公差表、環境、requestを指定しない既存
+GD1 default outputは変更しない。CLIはJSONと、quantityごとのbias/random componentを
+示す決定論的Markdownを出力する。
+
+### 17.3 BOMコンプライアンス申告状況（opt-in aggregation）
+
+`ComplianceDeclarationRegistry`を明示した場合だけ、BOMのnon-empty MPNについて
+RoHS、REACH SVHC、halogen-free、conflict minerals、MSL、PFASの申告状況を集計する。
+registryの`regimes`に含まれない制度はout of scopeとしてunknownに列挙し、
+`required_regimes`に指定された制度の欠落、未申告、明示unknown、stale宣言、期限切れは
+unknownへ集約する。`declared_non_compliant`は申告上の停止側所見としてfailにするが、
+`declared_compliant`を含め、ACDは規制適合性を判定しない。
+
+`exempt`は`exemption_reference`がある場合だけ申告として記録し、参照のない免除はunknown
+である。MSL levelは分布集計だけを行い、独立した合否判定には使わない。`--as-of`で
+基準日を固定でき、wall clockや外部API照会には依存しない。結果は
+`authority="declaration_summary"`、`compliance_verdict=null`であり、L1の規制適合証明・認証
+verdictではない。空MPNの機械部品・test pointは17.2と同じく`no_mpn`として別報告する。
+この集計は独立したopt-in経路であり、registryを指定しないGD1 default outputは変更しない。
+
+### 17.4 BOMコスト見積・代替部品候補（opt-in estimate）
+
+`PartPriceBook`を明示した場合だけ、`build_bom()`のnon-empty MPNについて保存済み価格
+入力から決定論的なコスト見積を行う。価格は整数minor unitと通貨、価格break、supplier、
+取得時点・有効期限、`primary`／`inference`のbasisを持ち、wall clockや外部API照会には
+依存しない。`as_of`時点で期限切れ、価格break不適用、`inference` basis（policyが一次
+basisを要求する場合）、価格entry欠落はunknownとし、部分合計は`partial_total_minor`へ
+分離する。完全なcoverageがない場合、`total_minor`はnullであり、部分合計を全体見積へ
+昇格しない。
+
+完全coverageの見積が`target_total_minor`を超えた場合だけfailとする。
+`max_unit_share_pct`超過は`warnings`へ記録する非gating所見である。単価はextended
+quantity以下で最大のprice breakを選び、build quantityを含む部品別数量・合計・cost
+driversを出力する。
+
+17.2の`PartLifecycleRegistry.alternates`を指定した場合、`drop_in`または
+`footprint_compatible_value_check`の候補を価格入力と照合して列挙する。価格が無い候補も
+null価格で記録する。ACDは候補を提案・表示するだけであり、Design Graphを自動変更せず、
+発注権限も持たない。結果の`authority`は`estimate`固定で、MarkdownはL3 projectionとして
+「見積（estimate）・発注権限なし」を明記する。空MPNの機械部品・test pointは
+`no_mpn`として別報告し、費用coverageの分母から除外する。registryやprice bookを指定しない
+既存GD1 default outputは変更しない。
+
+### 信頼性試験対応表（opt-in gate）
+
+信頼性試験gateは`ReliabilityTestPlan`を明示した場合だけ実行する独立したL1 gateである。
+Design Graphへ試験項目を混在させず、UseEnvironmentとgraphの`graph_id`／`revision`に一致する
+対応表contractとして管理する。各試験項目は識別子・版・種別（`standard`、
+`incident_report`、`internal_analysis`、`datasheet`）の`source_reference`と、出所から導いた
+背景を持つ。規格本文は保存・再配布しない。
+
+`environment_consistency`は環境由来の温度、湿度、振動、設置、電源系統、外部port条件を
+UseEnvironmentと比較する。`stress_coverage`は全stressが`covers`／`over`の試験項目または
+明示されたaccepted gapを持つことを検査し、未被覆と`under`をunknownへ倒す。`over`は
+記録するだけで、他の失敗を緩和しない。背景・出所の欠落、未知の設計述語targetはfailである。
+
+対応表から既存のEMC/ESD、構造安全性、DFT、ハーネスの述語・checkへリンクできる。
+predicate resultが未提供なら理由`predicate results not provided`のunknownとし、結果の省略を
+passへ変換しない。寿命加速モデルは`authority: "estimate"`の推定値として記録し、
+認証・合否Evidenceには昇格しない。測定結果は条件・設備・日時・供試体revisionが揃い、
+plan revisionと一致する場合だけ観測として受け付ける。
+
+このgateは規格適合・認証verdictを行わず、結果の`certification_claim`は常に`false`である。
+malformed入力、revision不一致、測定metadata不足は入力エラーまたはfailとして停止側に集約し、
+未宣言のReliabilityTestPlanを持たない既存GD1出力は変更しない。
 
 ## 最小チェックリスト
 
@@ -261,6 +689,19 @@ Evidenceを再検証する。`--evidence`を指定したcheck-only経路では�
 
 ## 関連文書
 
+### EMC/ESD設計述語（16.3、opt-in）
+
+`scripts/check_emc_esd.py`は、`UseEnvironment` contractとgraph revisionが一致する場合だけ、
+外部user-accessible portのESD保護、電源ループ面積proxy、外部信号のreturn path連続性、
+将来のWCA／derating向け実使用環境入力を評価する。環境contractがない経路やgraph／revision
+不一致は入力エラーとして停止し、未宣言・未知・幾何不足は`unknown`へ倒す。
+このgateは`PREDICATE_CATALOG`やGD1既定gateへ追加しない独立opt-inである。
+UseEnvironmentはroadmap 10.6のWCA／deratingが将来消費する入力であり、reliability-review
+Skillへのwireは16.3の対象外である。
+
+**認証適合の判定はしない。** このgateのproxy計算と設計宣言は、EMC/ESD certificationや
+実測Evidenceの代替ではない。
+
 - [`architecture.md`](architecture.md)：工程と境界の参照
 - [`architecture.md`](architecture.md)：Pydanticデータモデル、投影、レイヤ境界
 - [`ADR-0023`](adr/ADR-0023-deterministic-gate-authority.md)：判定・操舵・観測の三層分離
@@ -272,3 +713,23 @@ Evidenceを再検証する。`--evidence`を指定したcheck-only経路では�
 agent-serverのrouter一覧とは別の責務であり、外部CLIの未検出・版不明・出力不整合は
 `unknown`としてpipelineを停止させる。プローブ結果はツールの存在を示すだけで、
 設計の合否やEvidenceの代替にはしない。
+
+## FWセキュリティ設計整合ゲート（19.1、opt-in）
+
+`fixtures/golden-design-1/fw-security.json`は、secure boot v2、release
+flash encryption、2つのOTA app slot、`external_hsm`という鍵管理境界を宣言する。
+宣言には鍵識別子と境界だけを記録し、PEM、鍵バイト列、長いhex鍵素材は受け付けない。
+署名、eFuse burning、鍵provisioningはACDの外部境界である。
+
+宣言のpartition tableは4 KiB境界（appは64 KiB境界）、重複なし、flash size以内でなければ
+ならない。OTAには`otadata`と同一サイズの2つ以上のOTA app partitionを要求し、release
+flash encryptionにはsecure boot v2と`nvs_keys`を要求する。`fw_project.py`の
+`--security-declaration`経路だけが決定論的な`sdkconfig.defaults` fragmentと
+`partitions.csv`を追加する。宣言なしの既存FW投影は変更しない。
+
+`scripts/check_fw_security.py`はbuilt `sdkconfig`と有効な`partitions.csv`を宣言と比較する
+L1 gateで、結果のauthorityは`gate`である。security設定の不足、未宣言のflash encryption、
+partition不一致、flash size超過、サイズreportでのapp容量不足は`fail`、入力不足・parse失敗は
+`unknown`としてfirmware laneを停止させる。これはdeviceのsecure boot状態、flash encryption
+状態、署名済みまたはprovision済みであることをclaimしない。revision不一致やschema不正は
+CLI入力エラー（exit 2）である。

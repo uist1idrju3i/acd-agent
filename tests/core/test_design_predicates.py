@@ -79,6 +79,13 @@ def test_gd1_predicates_pass_on_fixture() -> None:
         "power_decoupling",
         "power_boundary",
         "led_series_element",
+        "differential_pair",
+        "impedance_geometry",
+        "single_point_of_failure",
+        "protection_selectivity",
+        "signal_class_segregation",
+        "sneak_path",
+        "trapezoid_current_capacity",
     ]
     assert [result.status for result in results] == [
         "pass",
@@ -87,6 +94,12 @@ def test_gd1_predicates_pass_on_fixture() -> None:
         "pass",
         "pass",
         "pass",
+        "not_applicable",
+        "not_applicable",
+        "not_applicable",
+        "not_applicable",
+        "not_applicable",
+        "not_applicable",
         "not_applicable",
     ]
 

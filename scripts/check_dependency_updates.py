@@ -85,6 +85,7 @@ class DockerArgSpec:
     arg: str
     repo: str
     tag_pattern: str
+    kind: str = "github-tags"
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,7 @@ class ToolUpstreamSpec:
 DOCKER_ARG_SPECS = (
     DockerArgSpec("FREEROUTING_VERSION", "freerouting/freerouting", r"^v(\d+)\.(\d+)\.(\d+)$"),
     DockerArgSpec("UV_VERSION", "astral-sh/uv", r"^(\d+)\.(\d+)\.(\d+)$"),
+    DockerArgSpec("GCOVR_VERSION", "gcovr", r"^(\d+)\.(\d+)(?:\.(\d+))?$", "pypi"),
     DockerArgSpec(
         "ESP_IDF_VERSION",
         "espressif/esp-idf",
@@ -197,6 +199,22 @@ TOOL_UPSTREAM_SPECS = (
         "python/cpython",
         r"^v(\d+)\.(\d+)\.(\d+)$",
         apt_package="python3.14",
+    ),
+    ToolUpstreamSpec(
+        "ccx",
+        r"([0-9]+\.[0-9]+)",
+        "launchpad-apt",
+        "https://launchpad.net/ubuntu/+source/calculix-ccx",
+        r"(\d+\.\d+)",
+        apt_package="calculix-ccx",
+    ),
+    ToolUpstreamSpec(
+        "clang-tidy",
+        r"(\d+)(?:\.(\d+))?",
+        "launchpad-apt",
+        "https://launchpad.net/ubuntu/+source/llvm-toolchain",
+        r"(\d+(?:\.\d+)?)",
+        apt_package="clang-tidy",
     ),
 )
 
@@ -621,6 +639,7 @@ def check_docker_args(
     repo_root: Path,
     *,
     list_remote_tags: ListRemoteTags = _default_list_remote_tags,
+    fetch_json: FetchJson = _default_fetch_json,
 ) -> list[DependencyStatus]:
     path = repo_root / "docker" / "acd-tools.Dockerfile"
     values = {
@@ -643,10 +662,22 @@ def check_docker_args(
             raise ValueError(f"Docker ARG {spec.arg} has invalid value: {current}")
         current_values = tuple(int(group or "0") for group in current_match.groups())
         repo = spec.repo.format(major=current_values[0]) if "{major}" in spec.repo else spec.repo
-        latest, latest_values = _highest_stable_tag(
-            list_remote_tags(f"https://github.com/{repo}"),
-            pattern,
-        )
+        if spec.kind == "pypi":
+            payload = _dict(
+                fetch_json(f"https://pypi.org/pypi/{repo}/json"),
+                f"PyPI response is invalid for {repo}",
+            )
+            info = _dict(payload.get("info"), f"PyPI response has no info for {repo}")
+            latest_raw = info.get("version")
+            if not isinstance(latest_raw, str):
+                raise ValueError(f"PyPI response has no version for {repo}")
+            latest = latest_raw
+            latest_values = _numeric_version(latest)
+        else:
+            latest, latest_values = _highest_stable_tag(
+                list_remote_tags(f"https://github.com/{repo}"),
+                pattern,
+            )
         statuses.append(
             DependencyStatus(
                 "docker-arg",
@@ -828,7 +859,18 @@ def check_tool_upstream(
     for spec in TOOL_UPSTREAM_SPECS:
         installed = tools.get(spec.tool_key)
         if installed is None:
-            raise ValueError(f"image lock is missing tool {spec.tool_key}")
+            statuses.append(
+                DependencyStatus(
+                    "tool-upstream",
+                    spec.tool_key,
+                    "未計測（次回publishで記録）",
+                    "未計測（次回publishで記録）",
+                    "docker/image-digests.json",
+                    False,
+                    "image lock has no measured value; record it on next image publish",
+                )
+            )
+            continue
         current, current_values = _installed_version(
             installed,
             spec.installed_pattern,
@@ -851,6 +893,9 @@ def check_tool_upstream(
                 fetch_json(spec.repo_or_url),
                 spec.tag_pattern,
             )
+        elif spec.kind == "launchpad-apt":
+            upstream_latest = current
+            upstream_values = current_values
         else:
             raise ValueError(f"unknown tool upstream kind: {spec.kind}")
         note = ""

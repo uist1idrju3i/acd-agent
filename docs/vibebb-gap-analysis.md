@@ -683,6 +683,23 @@ container起動前に拒否され、生container経路の`unknown` provenanceは
 （`hooks/matcher-matrix.txt`）。Y-4・Y-5・Y-9は今回の設計経路で該当場面に達しておらず
 未確認である。
 
+14.22のprovisional host + tools-image測定（2026-09-14）は、
+[`examples/dual-beacon-tag-provisional-20260914/`](../examples/dual-beacon-tag-provisional-20260914/)
+に収録した。30 x 22 mm・2-layerは28候補×3 roundを評価し、全候補が
+`not_converged`、最終unrouted=21、plateau=5、10 open nets、zero-wire netは
+CC1／CC2／USB_D+／USB_D-／USER_BTNだった。40 x 30 mm variantでは
+`placement-0003`が0 unrouted、connectivity pass、DRC pass、independent reload passに
+到達したが、synthetic archiveのparse gapでcandidate評価が
+`<path>: archived LCSC response lacks packageDetail/dataStr/shape` の
+`FabOutputError`となりrejectされた。30 x 22 mmのoutline／placement geometryが確認済みの
+設計入力上のwallであり、router parameterのwallではない。30 x 22 mmのwall-clockは
+約1998.19 s（board約74.33 s、exploration約1921.52 s）、40 x 30 mmは約305.42 sだった。
+実CPL recordをproducerから取得し、containerで実行すること、variantで観測された
+enclosure interferenceとFW coverage findings（`comp.d2`がtargetされない、
+`button_pressed` transitionが発火しない）を解消することが残る。14.22の状態は
+**部分達成（残: 実CPL record取得と container run による end-to-end 合格の実証）**
+であり、達成とは記録しない。
+
 ## Z. 第9回実機実測（2026-09-07、14.22反映後の同一要件再検証）で残った不足
 
 roadmap 14.22（Y-1〜Y-11・hook matcher）をmergeした`main`（`180b628`）と更新済みimage

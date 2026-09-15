@@ -60,7 +60,14 @@ def _skip_if_gd1_geometry_library_is_missing(graph: DesignGraph) -> None:
 
 # GD1 does not declare the led_current_limit functional block, so its predicate
 # is not applicable to the GD1 graph.
-UNDECLARED_GD1_PREDICATES = ("led_series_element",)
+UNDECLARED_GD1_PREDICATES = (
+    "led_series_element",
+    "single_point_of_failure",
+    "protection_selectivity",
+    "signal_class_segregation",
+    "sneak_path",
+    "trapezoid_current_capacity",
+)
 
 
 def _assert_predicates_pass(results: Iterable[PredicateResult]) -> None:

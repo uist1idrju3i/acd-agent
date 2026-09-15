@@ -61,6 +61,9 @@ def _pins_header(directory: Path, revision: str = "r1") -> Path:
     return path
 
 
+pins_header = _pins_header
+
+
 def _config_report(
     directory: Path,
     *,
@@ -107,6 +110,9 @@ def _config_report(
         encoding="utf-8",
     )
     return path
+
+
+config_report = _config_report
 
 
 def _spec(

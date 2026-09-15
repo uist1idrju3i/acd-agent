@@ -1,0 +1,7 @@
+{
+  "gate": "erc",
+  "message": "ECO revision ERC passed.",
+  "schema_version": "0.1",
+  "status": "pass",
+  "target_revision": "r2"
+}

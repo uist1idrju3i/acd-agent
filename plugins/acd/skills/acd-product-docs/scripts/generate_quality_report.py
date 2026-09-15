@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
 # ]
 # ///
 """Project the quality documents deterministically from authoritative Evidence.
@@ -17,9 +17,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
 
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence
@@ -29,22 +29,63 @@ from acd.schema.rationale import (
     RationaleRecord,
 )
 from doc_inputs import (
+    ANALYSIS_KIND_TEMPLATE_KEYS,
+    ANALYSIS_STATUS_TEMPLATE_KEYS,
+    AnalysisBundle,
+    DesignPredicates,
+    DfmFinding,
+    DfmReport,
     DocumentGenerationError,
     DocumentInput,
+    DocumentTemplate,
+    PredicateObservation,
+    analysis_summary,
+    load_analysis_results,
+    load_design_predicates,
+    load_dfm_report,
     load_graph,
+    load_json_object,
+    load_template,
     nodes_of_kind,
     relative_path,
+    require_list,
+    require_object,
+    require_str,
     sha256_file,
     text_attr,
     write_document,
 )
 
-TEMPLATE_ID = "acd-quality-report-ja-v1"
 DOCUMENT_NAME = "inspection-report.md"
 TRACEABILITY_DOCUMENT_NAME = "traceability-report.md"
 JSON_DOCUMENT_NAME = "quality-report.json"
 
+_TEMPLATE: ContextVar[DocumentTemplate | None] = ContextVar(
+    "quality_report_template", default=None
+)
+
+
+def t(key: str, **values: object) -> str:
+    template = _TEMPLATE.get() or load_template("ja")
+    return template.t(key, **values)
+
 DEFAULT_REQUIRED_LANES = ("electrical", "mechanical", "firmware")
+
+__all__ = [
+    "DesignPredicates",
+    "DfmFinding",
+    "DfmReport",
+    "DocumentGenerationError",
+    "DocumentInput",
+    "PredicateObservation",
+    "load_design_predicates",
+    "load_dfm_report",
+    "load_graph",
+    "load_json_object",
+    "require_list",
+    "require_object",
+    "require_str",
+]
 
 
 @dataclass(frozen=True)
@@ -53,71 +94,6 @@ class LaneEvidence:
 
     lane: str
     evidence: Evidence
-
-
-@dataclass(frozen=True)
-class PredicateObservation:
-    """One design-predicate observation row."""
-
-    name: str
-    evaluation_stage: str
-    status: str
-    detail: str
-
-
-@dataclass(frozen=True)
-class DesignPredicates:
-    """Parsed design-predicates gate observation."""
-
-    target_revision: str
-    status: str
-    predicates: tuple[PredicateObservation, ...]
-
-
-@dataclass(frozen=True)
-class DfmFinding:
-    """One DFM finding row."""
-
-    rule_id: str
-    message: str
-
-
-@dataclass(frozen=True)
-class DfmReport:
-    """Parsed DFM report."""
-
-    target_revision: str
-    status: str
-    profile_id: str
-    findings: tuple[DfmFinding, ...]
-    unknowns: dict[str, str]
-    checks_not_implemented: tuple[DfmFinding, ...]
-
-
-def _require_object(value: object, *, field: str) -> dict[str, object]:
-    if not isinstance(value, dict):
-        raise DocumentGenerationError(f"field {field!r} is not an object")
-    return cast(dict[str, object], value)
-
-
-def _require_str(value: object, *, field: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise DocumentGenerationError(f"field {field!r} is missing or not text")
-    return value
-
-
-def _require_list(value: object, *, field: str) -> list[object]:
-    if not isinstance(value, list):
-        raise DocumentGenerationError(f"field {field!r} is not a list")
-    return cast(list[object], value)
-
-
-def _load_json_object(path: Path, *, label: str) -> dict[str, object]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise DocumentGenerationError(f"{label} {path} is not valid: {exc}") from exc
-    return _require_object(payload, field=label)
 
 
 def load_evidence(path: Path, graph: DesignGraph, *, lane: str) -> LaneEvidence:
@@ -195,84 +171,6 @@ def load_rationale(path: Path, graph: DesignGraph) -> RationaleDocument:
     return document
 
 
-def load_design_predicates(path: Path, graph: DesignGraph) -> DesignPredicates:
-    """Parse the design-predicates gate observation file."""
-    data = _load_json_object(path, label="design predicates")
-    observation = _require_object(data.get("observation"), field="observation")
-    predicates = tuple(
-        PredicateObservation(
-            name=_require_str(item.get("name"), field="predicates[].name"),
-            evaluation_stage=_require_str(
-                item.get("evaluation_stage"), field="predicates[].evaluation_stage"
-            ),
-            status=_require_str(item.get("status"), field="predicates[].status"),
-            detail=_require_str(item.get("detail"), field="predicates[].detail"),
-        )
-        for item in (
-            _require_object(entry, field="predicates[]")
-            for entry in _require_list(
-                observation.get("predicates"), field="observation.predicates"
-            )
-        )
-    )
-    return DesignPredicates(
-        target_revision=_require_str(
-            data.get("target_revision"), field="target_revision"
-        ),
-        status=_require_str(data.get("status"), field="status"),
-        predicates=predicates,
-    )
-
-
-def load_dfm_report(path: Path, graph: DesignGraph) -> DfmReport:
-    """Parse the DFM report file."""
-    data = _load_json_object(path, label="DFM report")
-    findings = tuple(
-        DfmFinding(
-            rule_id=_require_str(item.get("rule_id"), field="findings[].rule_id"),
-            message=_require_str(item.get("message"), field="findings[].message"),
-        )
-        for item in (
-            _require_object(entry, field="findings[]")
-            for entry in _require_list(data.get("findings"), field="findings")
-        )
-    )
-    unknowns_raw = _require_object(data.get("unknowns"), field="unknowns")
-    unknowns = {
-        key: _require_str(
-            _require_object(value, field=f"unknowns.{key}").get("reason"),
-            field=f"unknowns.{key}.reason",
-        )
-        for key, value in unknowns_raw.items()
-    }
-    checks_not_implemented = tuple(
-        DfmFinding(
-            rule_id=_require_str(
-                item.get("rule_id"), field="checks_not_implemented[].rule_id"
-            ),
-            message=_require_str(
-                item.get("reason"), field="checks_not_implemented[].reason"
-            ),
-        )
-        for item in (
-            _require_object(entry, field="checks_not_implemented[]")
-            for entry in _require_list(
-                data.get("checks_not_implemented"), field="checks_not_implemented"
-            )
-        )
-    )
-    return DfmReport(
-        target_revision=_require_str(
-            data.get("target_revision"), field="target_revision"
-        ),
-        status=_require_str(data.get("status"), field="status"),
-        profile_id=_require_str(data.get("profile_id"), field="profile_id"),
-        findings=findings,
-        unknowns=unknowns,
-        checks_not_implemented=checks_not_implemented,
-    )
-
-
 def _guard_graph_references(
     graph: DesignGraph,
     lanes: tuple[LaneEvidence, ...],
@@ -297,7 +195,7 @@ def _guard_graph_references(
 
 def _claims_table(lane: LaneEvidence) -> list[str]:
     lines = [
-        "| 対象ノード | 属性 | 値 | verified |",
+        t("quality.claims_header"),
         "|---|---|---|---|",
     ]
     for claim in lane.evidence.claims:
@@ -314,20 +212,20 @@ def _render_inspection(
     coverages: tuple[tuple[Path, RationaleCoverageReport], ...],
     predicates: DesignPredicates,
     dfm: DfmReport,
+    analyses: AnalysisBundle,
     base_dir: Path,
 ) -> str:
-    """Render the inspection report (検査成績書) Markdown body."""
+    """Render the inspection report () Markdown body."""
     lane_map = {lane.lane: lane for lane in lanes}
     lines = [
-        f"# 検査成績書: {graph.graph_id}",
+        t("quality.inspection_title", graph_id=graph.graph_id),
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        "この文書はauthoritative Evidenceと決定論的観測から生成されたL3観測であり、"
-        "合否判定のEvidenceではない。",
+        t("quality.inspection_paragraph"),
         "",
-        "## Evidence一覧",
+        t("quality.gate_results_heading"),
         "",
         "| lane | evidence_id | status | tool | context | image digest | source_revision |",
         "|---|---|---|---|---|---|---|",
@@ -341,11 +239,16 @@ def _render_inspection(
             f"| {envelope.execution_context} | `{digest}` | "
             f"{envelope.source_revision or 'unknown'} |"
         )
-    lines += ["", "## ゲート結果", ""]
+    lines += ["", t("quality.electrical_heading"), ""]
 
     if "electrical" in lane_map:
-        lines += ["### 電気", "", *_claims_table(lane_map["electrical"]), ""]
-    lines += ["### 設計predicate", "", "| name | stage | status | detail |", "|---|---|---|---|"]
+        lines += [t("quality.predicate_heading"), "", *_claims_table(lane_map["electrical"]), ""]
+    lines += [
+        t("quality.mechanical_heading"),
+        "",
+        "| name | stage | status | detail |",
+        "|---|---|---|---|",
+    ]
     for item in predicates.predicates:
         lines.append(
             f"| {item.name} | {item.evaluation_stage} | {item.status} | {item.detail} |"
@@ -356,7 +259,7 @@ def _render_inspection(
         "",
         f"- status: `{dfm.status}`",
         f"- profile_id: `{dfm.profile_id}`",
-        f"- findings: {len(dfm.findings)} 件",
+        t("quality.findings_sentence", count=len(dfm.findings)),
     ]
     for finding in dfm.findings:
         lines.append(f"  - {finding.rule_id}: {finding.message}")
@@ -366,7 +269,12 @@ def _render_inspection(
             lines.append(f"  - `{key}`: {dfm.unknowns[key]}")
     lines.append("")
     if "mechanical" in lane_map:
-        lines += ["### 機械", "", *_claims_table(lane_map["mechanical"]), ""]
+        lines += [
+            t("quality.virtual_measurement_note"),
+            "",
+            *_claims_table(lane_map["mechanical"]),
+            "",
+        ]
     if "firmware" in lane_map:
         lines += ["### FW", "", *_claims_table(lane_map["firmware"])]
         if any(
@@ -374,10 +282,69 @@ def _render_inspection(
             for claim in lane_map["firmware"].evidence.claims
         ):
             lines.append(
-                "\n`measurement_class: virtual`はQEMU上の仮想検証であり、"
-                "実機Evidenceではない。"
+                t("quality.virtual_measurement_sentence")
             )
         lines.append("")
+
+    summaries = [analysis_summary(item) for item in analyses.artifacts]
+    statuses = [str(item["status"]) for item in summaries]
+    overall = (
+        "findings"
+        if any(status in {"fail", "unknown"} for status in statuses)
+        else "not_run"
+        if all(status == "not_run" for status in statuses)
+        else "pass"
+    )
+    lines += [
+        t("quality.analysis_heading"),
+        "",
+        t("quality.analysis_sentence"),
+        "",
+        t(
+            "quality.analysis_overall_sentence",
+            status=t(ANALYSIS_STATUS_TEMPLATE_KEYS[overall]),
+        ),
+        "",
+        t("quality.analysis_table_header"),
+        "|---|---|---|---|---|---|---|",
+    ]
+    for summary in summaries:
+        status = str(summary["status"])
+        status_text = (
+            t(ANALYSIS_STATUS_TEMPLATE_KEYS["not_run"])
+            if status == "not_run"
+            else status
+        )
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    t(ANALYSIS_KIND_TEMPLATE_KEYS[str(summary["kind"])]),
+                    status_text,
+                    str(summary["authority"]),
+                    str(summary["measured"]),
+                    str(summary["tool_versions"]),
+                    str(summary["input_hashes"]),
+                    str(summary["findings"]),
+                ]
+            )
+            + " |"
+        )
+    stop_side = [
+        summary
+        for summary in summaries
+        if summary["status"] in {"fail", "unknown"}
+    ]
+    lines += ["", t("quality.analysis_stop_heading"), ""]
+    if stop_side:
+        for summary in stop_side:
+            lines.append(
+                f"- {t(ANALYSIS_KIND_TEMPLATE_KEYS[str(summary['kind'])])}: "
+                f"{summary['status']} — {summary['findings']}"
+            )
+    else:
+        lines.append(t("quality.analysis_stop_none"))
+    lines.append("")
 
     lines += [
         "## rationale coverage",
@@ -397,12 +364,12 @@ def _render_inspection(
             f"| {len(report.unclassified)} | {len(report.templated)} "
             f"| {len(report.generator_violations)} |"
         )
-    lines += ["", "## 既知の未実装チェック", ""]
+    lines += ["", t("quality.unimplemented_none"), ""]
     if dfm.checks_not_implemented:
         for check in dfm.checks_not_implemented:
             lines.append(f"- `{check.rule_id}`: {check.message}")
     else:
-        lines.append("なし。")
+        lines.append(t("quality.traceability_intro"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
@@ -499,13 +466,12 @@ def _render_traceability(
 ) -> str:
     """Render the traceability report Markdown body."""
     lines = [
-        f"# トレーサビリティ報告書: {graph.graph_id}",
+        t("quality.traceability_title", graph_id=graph.graph_id),
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        "この文書はgraph・rationale record・authoritative Evidenceから生成された"
-        "L3観測であり、合否判定のEvidenceではない。",
+        t("quality.dependent_nodes_note"),
         "",
     ]
     for row in rows:
@@ -514,27 +480,30 @@ def _render_traceability(
             "",
             f"{row.text}",
             "",
-            "依存する設計ノード:",
+            t("quality.rationale_heading"),
         ]
         if row.design_nodes:
             for node_id, kind in row.design_nodes:
                 lines.append(f"- `{node_id}`（{kind}）")
         else:
-            lines.append("- なし")
-        lines += ["", "根拠record:"]
+            lines.append(t("quality.rationale_none"))
+        lines += ["", t("quality.claims_heading")]
         if row.rationale_records:
             for rationale_id, decision_kind, subjects in row.rationale_records:
                 lines.append(
-                    f"- `{rationale_id}`（{decision_kind}、対象: "
-                    + ", ".join(f"`{subject}`" for subject in subjects)
-                    + "）"
+                    t(
+                        "quality.rationale_record_row",
+                        rationale_id=rationale_id,
+                        decision_kind=decision_kind,
+                        subjects=", ".join(f"`{subject}`" for subject in subjects),
+                    )
                 )
         else:
-            lines.append("- なし")
-        lines += ["", "関連Evidence claim:"]
+            lines.append(t("quality.traceability_claims_header"))
+        lines += ["", t("quality.claims_none")]
         if row.claims:
             lines += [
-                "| lane | 対象ノード | 属性 | 値 | verified |",
+                t("quality.untraced_heading"),
                 "|---|---|---|---|---|",
             ]
             for lane, subject, prop, value, verified in row.claims:
@@ -542,23 +511,26 @@ def _render_traceability(
                     f"| {lane} | `{subject}` | {prop} | {value} | {verified} |"
                 )
         else:
-            lines.append("- なし")
+            lines.append(t("quality.untraced_none"))
         lines.append("")
-    lines += ["## 未追跡の要求", ""]
+    lines += [t("quality.rationale_coverage_heading"), ""]
     if untraced:
         for requirement in untraced:
             lines.append(f"- `{requirement}`")
     else:
-        lines.append("なし。")
-    lines += ["", "## 根拠recordの被参照状況", ""]
+        lines.append(t("quality.all_records_traced"))
+    lines += ["", t("quality.inspection_title_legacy"), ""]
     if no_requirement_records:
         lines.append(
-            f"要求を持たない根拠record: {len(no_requirement_records)} 件"
+            t(
+                "quality.orphan_record_sentence",
+                count=len(no_requirement_records),
+            )
         )
         for rationale_id in no_requirement_records:
             lines.append(f"- `{rationale_id}`")
     else:
-        lines.append("すべての根拠recordが要求を参照する。")
+        lines.append(t("quality.traceability_title_legacy"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
@@ -573,6 +545,7 @@ def build_quality_report(
     dfm: DfmReport,
     rows: tuple[TraceabilityRow, ...],
     untraced: tuple[str, ...],
+    analyses: AnalysisBundle,
 ) -> dict[str, object]:
     """Build the machine-readable quality report body."""
     return {
@@ -671,6 +644,7 @@ def build_quality_report(
             for row in rows
         ],
         "untraced_requirements": list(untraced),
+        "analysis": [analysis_summary(item) for item in analyses.artifacts],
     }
 
 
@@ -702,13 +676,23 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--rationale", type=Path, required=True)
     parser.add_argument("--design-predicates", type=Path, required=True)
     parser.add_argument("--dfm-report", type=Path, required=True)
+    parser.add_argument(
+        "--analysis",
+        type=Path,
+        action="append",
+        default=None,
+        help="analysis result file or directory; repeatable",
+    )
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--base-dir", type=Path, default=Path.cwd())
+    parser.add_argument("--lang", choices=("ja", "en"), default="ja")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    template = load_template(args.lang)
+    _TEMPLATE.set(template)
     graph, graph_input = load_graph(args.graph)
 
     evidence_paths = {path.name: path for path in args.evidence}
@@ -744,12 +728,18 @@ def main(argv: list[str] | None = None) -> int:
             f"{dfm.target_revision!r}, not {graph.revision!r}"
         )
     _guard_graph_references(graph, tuple(lanes), rationale)
+    analyses = load_analysis_results(
+        args.analysis or [],
+        graph_id=graph.graph_id,
+        revision=graph.revision,
+    )
     rows, untraced, no_requirement_records = _build_traceability(
         graph, tuple(lanes), rationale
     )
 
     inputs: list[DocumentInput] = [
         graph_input,
+        *analyses.inputs(),
         *(
             DocumentInput(path=path, content_hash=sha256_file(path))
             for path in args.evidence
@@ -772,7 +762,13 @@ def main(argv: list[str] | None = None) -> int:
         (
             "inspection_report",
             _render_inspection(
-                graph, tuple(lanes), coverages, predicates, dfm, args.base_dir
+                graph,
+                tuple(lanes),
+                coverages,
+                predicates,
+                dfm,
+                analyses,
+                args.base_dir,
             ),
             DOCUMENT_NAME,
         ),
@@ -794,6 +790,7 @@ def main(argv: list[str] | None = None) -> int:
                     dfm,
                     rows,
                     untraced,
+                    analyses,
                 ),
                 ensure_ascii=False,
                 indent=2,
@@ -807,13 +804,23 @@ def main(argv: list[str] | None = None) -> int:
         document_path, provenance_path = write_document(
             document_kind=document_kind,
             body=body,
-            out_dir=args.out_dir,
+            out_dir=args.out_dir if args.lang == "ja" else args.out_dir / args.lang,
             document_name=document_name,
-            template_id=TEMPLATE_ID,
+            template_id=f"acd-quality-report-{args.lang}-v1",
             generator=Path(__file__).resolve(),
             graph=graph,
             inputs=inputs,
             base_dir=args.base_dir,
+            template=template,
+            analysis_provenance=[
+                {
+                    "artifact_kind": artifact.artifact_kind,
+                    "path": relative_path(artifact.path, args.base_dir),
+                    "sha256": artifact.content_hash,
+                }
+                for artifact in analyses.artifacts
+                if artifact.path is not None
+            ],
         )
         print(f"generated {document_path}")
         print(f"provenance {provenance_path}")

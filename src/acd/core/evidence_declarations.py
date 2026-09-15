@@ -27,6 +27,7 @@ from acd.core.naming import artifact_prefix
 from acd.pipeline.repository import repository_root
 from acd.schema.design_fixture import DesignFixtureSpec
 from acd.schema.design_graph import DesignGraph
+from acd.schema.lane_preflight import LanePreflightProducerGap
 
 EvidenceDeclarationCode = Literal[
     "evidence.cpl_rotation.declared_unverified",
@@ -121,9 +122,10 @@ def check_fab_profile_declaration(
 
 
 def _cpl_rotation_findings(
-    graph: DesignGraph, root: Path
+    graph: DesignGraph, root: Path, evidence_root: Path | None = None
 ) -> list[EvidenceDeclarationFinding]:
     findings: list[EvidenceDeclarationFinding] = []
+    record_root = evidence_root if evidence_root is not None else root
     for node in sorted(graph.nodes, key=lambda item: item.id):
         if node.kind != "electrical.component":
             continue
@@ -133,7 +135,7 @@ def _cpl_rotation_findings(
         refdes = refdes_value if isinstance(refdes_value, str) else node.id
         lcsc_value = node.attrs.get("lcsc")
         lcsc = lcsc_value if isinstance(lcsc_value, str) else None
-        record_path = cpl_rotation_record_path(root, graph.graph_id, refdes)
+        record_path = cpl_rotation_record_path(record_root, graph.graph_id, refdes)
         reason = check_cpl_rotation_record(record_path, refdes=refdes, lcsc=lcsc)
         if reason is None:
             declared_mpn = node.attrs.get("mpn")
@@ -385,15 +387,114 @@ def _structural_copy_findings(
 
 
 def collect_evidence_declaration_findings(
-    graph: DesignGraph, *, root: Path | None = None
+    graph: DesignGraph,
+    *,
+    root: Path | None = None,
+    evidence_root: Path | None = None,
 ) -> list[EvidenceDeclarationFinding]:
     """Report declared evidence attributes without a resolving record."""
     resolved_root = root if root is not None else repository_root()
     return [
-        *_cpl_rotation_findings(graph, resolved_root),
+        *_cpl_rotation_findings(graph, resolved_root, evidence_root),
         *_fab_profile_findings(graph, resolved_root),
         *_structural_copy_findings(graph, resolved_root),
     ]
+
+
+def collect_producer_gaps(
+    graph: DesignGraph,
+    *,
+    root: Path | None = None,
+    evidence_root: Path | None = None,
+) -> list[LanePreflightProducerGap]:
+    """Return deterministic acquisition gaps for declared provenance inputs."""
+    resolved_root = root if root is not None else repository_root()
+    record_root = evidence_root if evidence_root is not None else resolved_root
+    gaps: list[LanePreflightProducerGap] = []
+    for node in sorted(graph.nodes, key=lambda item: item.id):
+        if (
+            node.kind == "electrical.component"
+            and node.attrs.get("cpl_rotation_evidence_basis") == "confirmed"
+        ):
+            refdes_value = node.attrs.get("refdes")
+            refdes = refdes_value if isinstance(refdes_value, str) else node.id
+            lcsc_value = node.attrs.get("lcsc")
+            lcsc = lcsc_value if isinstance(lcsc_value, str) else None
+            path = cpl_rotation_record_path(record_root, graph.graph_id, refdes)
+            reason = check_cpl_rotation_record(path, refdes=refdes, lcsc=lcsc)
+            if reason is not None:
+                gaps.append(
+                    LanePreflightProducerGap(
+                        kind="cpl_orientation",
+                        refdes=refdes,
+                        lcsc=lcsc,
+                        producer=(
+                            "uv run python scripts/"
+                            "fetch_lcsc_footprint_orientation.py"
+                            f" --lcsc {lcsc or '<id>'} --refdes {refdes}"
+                            " ... --out evidence/<design>-cpl-orientation/"
+                        ),
+                        detail=reason,
+                    )
+                )
+        elif node.kind == "fab.order_intent":
+            fab_profile = node.attrs.get("fab_profile")
+            profile_source = node.attrs.get("profile_source")
+            profile_fetched_at = node.attrs.get("profile_fetched_at")
+            if not (
+                isinstance(fab_profile, str)
+                and fab_profile
+                and isinstance(profile_source, str)
+                and profile_source
+                and isinstance(profile_fetched_at, str)
+                and profile_fetched_at
+            ):
+                continue
+            try:
+                registry = load_fab_profile_registry(
+                    resolved_root / "profiles" / "fab-profile-registry.json"
+                )
+                profile_path = resolve_fab_profile_path(fab_profile, registry)
+                profile = load_fab_profile(profile_path)
+                sources: list[dict[str, str | None]] = []
+                for source in cast(
+                    Sequence[Mapping[str, object]], profile.data.get("sources", [])
+                ):
+                    url = source.get("url")
+                    fetched_at = source.get("fetched_at")
+                    sources.append(
+                        {
+                            "url": url if isinstance(url, str) else None,
+                            "fetched_at": (
+                                fetched_at if isinstance(fetched_at, str) else None
+                            ),
+                        }
+                    )
+            except (ValueError, OSError):
+                continue
+            if any(
+                source["url"] == profile_source
+                and source["fetched_at"] == profile_fetched_at
+                for source in sources
+            ):
+                continue
+            gaps.append(
+                LanePreflightProducerGap(
+                    kind="fab_profile",
+                    profile_source=profile_source,
+                    declared_fetched_at=profile_fetched_at,
+                    loaded_sources=sources,
+                    producer=(
+                        "fab profile acquisition/re-recording producer "
+                        "(no fetch script is currently present under scripts/)"
+                    ),
+                    detail=(
+                        f"declared ({profile_source!r}, {profile_fetched_at!r}) "
+                        f"does not match loaded sources {sources!r}"
+                    ),
+                )
+            )
+    return gaps
 
 
 __all__ = [
@@ -402,5 +503,6 @@ __all__ = [
     "check_cpl_rotation_record",
     "check_fab_profile_declaration",
     "collect_evidence_declaration_findings",
+    "collect_producer_gaps",
     "cpl_rotation_record_path",
 ]

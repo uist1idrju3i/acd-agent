@@ -1,0 +1,42 @@
+{
+  "artifact_kind": "wca_result",
+  "authority": "estimate",
+  "composition_method": "bias_sum_plus_rss",
+  "environment_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "findings": [],
+  "graph_id": "golden-design-1",
+  "input_hashes": {
+    "graph": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "quantities": [
+    {
+      "bias_components": [],
+      "bias_total_pct": 0.0,
+      "findings": [],
+      "nominal": 0.001480687,
+      "quantity_id": "led_current",
+      "random_components": [],
+      "random_rss_pct": 1.0,
+      "status": "pass",
+      "worst_high": 0.001496,
+      "worst_low": 0.001465
+    },
+    {
+      "bias_components": [],
+      "bias_total_pct": 0.0,
+      "findings": [],
+      "nominal": 206.0,
+      "quantity_id": "i2c_rise",
+      "random_components": [],
+      "random_rss_pct": 5.0,
+      "status": "pass",
+      "worst_high": 259.148,
+      "worst_low": 217.742
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1",
+  "spice_result_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "status": "pass",
+  "tolerance_table_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+}

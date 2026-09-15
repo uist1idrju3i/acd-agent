@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
 # ]
 # ///
 """Generate the deterministic instruction manual from graph declarations.
@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,8 +26,10 @@ from acd.schema.design_graph import DesignGraph
 from doc_inputs import (
     DocumentGenerationError,
     DocumentInput,
+    DocumentTemplate,
     format_number,
     load_graph,
+    load_template,
     number_attr,
     sha256_file,
     single_node_of_kind,
@@ -34,8 +37,16 @@ from doc_inputs import (
     write_document,
 )
 
-TEMPLATE_ID = "acd-instruction-manual-ja-v2"
 DOCUMENT_NAME = "instruction-manual.md"
+
+_TEMPLATE: ContextVar[DocumentTemplate | None] = ContextVar(
+    "instruction_manual_template", default=None
+)
+
+
+def t(key: str, **values: object) -> str:
+    template = _TEMPLATE.get() or load_template("ja")
+    return template.t(key, **values)
 
 _DEFINE_PATTERN = re.compile(r"^#define\s+(?P<name>[A-Z0-9_]+)\s+(?P<value>\S+)\s*$")
 _REQUIRED_MACROS = ("ACD_TARGET_REVISION",)
@@ -134,11 +145,18 @@ def _function_section(
     omissions: list[Omission],
 ) -> list[str]:
     firmware = extract_firmware_lane(graph)
-    lines = ["## 機能説明", "", "起動後のFWは次の状態を遷移する。", ""]
-    lines += ["| 状態 | 初期状態 |", "|---|---|"]
+    lines = [t("manual.function_heading"), "", t("manual.function_intro"), ""]
+    lines += [t("manual.state_header"), "|---|---|"]
     for state in sorted(firmware.states, key=lambda item: item.state_name):
-        lines.append(f"| {state.state_name} | {'はい' if state.initial else 'いいえ'} |")
-    lines += ["", "動作順序は次のとおり。", "", "| 手順 | 対象 | 動作 |", "|---|---|---|"]
+        initial = t("manual.yes") if state.initial else t("manual.no")
+        lines.append(f"| {state.state_name} | {initial} |")
+    lines += [
+        "",
+        t("manual.sequence_intro"),
+        "",
+        t("manual.sequence_header"),
+        "|---|---|---|",
+    ]
     for step in sorted(firmware.sequence_steps, key=lambda item: item.step_index):
         lines.append(f"| {step.step_index} | {step.target} | {step.action} |")
     sensor_declared = any(
@@ -153,11 +171,11 @@ def _function_section(
         )
         lines += [
             "",
-            f"温湿度センサはI2Cアドレス`0x{address:02x}`で読み出す。",
+            t("manual.sensor_address_sentence", address=f"{address:02x}"),
         ]
     else:
         omissions.append(
-            Omission("機能説明（センサ）", "graphにセンサ読み出しstepの宣言が無い")
+            Omission(t("manual.sensor_section"), t("manual.sensor_omitted"))
         )
     if any(step.action == "write_serial_log" for step in firmware.sequence_steps):
         log_period_ms = _required_macro_int(
@@ -165,12 +183,12 @@ def _function_section(
             "ACD_LOG_PERIOD_MS",
             because="write_serial_log step",
         )
-        lines.append(f"{log_period_ms} msごとにシリアルログへ出力する。")
+        lines.append(t("manual.serial_log_sentence", period_ms=log_period_ms))
     else:
         omissions.append(
             Omission(
-                "機能説明（シリアルログ）",
-                "graphにwrite_serial_log stepの宣言が無い",
+                t("manual.serial_section"),
+                t("manual.serial_omitted"),
             )
         )
     lines.append("")
@@ -193,10 +211,10 @@ def _connection_section(
     )
     if not openings:
         omissions.append(
-            Omission("接続手順", "mechanical.connector_openingの宣言が無い")
+            Omission(t("manual.connection_section"), t("manual.connection_omitted"))
         )
         return []
-    lines = ["## 接続手順", ""]
+    lines = [t("manual.connection_heading"), ""]
     step = 1
     for opening in openings:
         connector_id = text_attr(opening, "connector")
@@ -209,17 +227,31 @@ def _connection_section(
                 f"connector component {connector_id!r} is missing"
             )
         lines += [
-            f"{step}. 筐体{text_attr(opening, 'face')}面の開口部から、"
-            f"{connector.refdes}（{connector.mpn}）へケーブルを挿入する。",
-            f"{step + 1}. ケーブルの他端をPCまたは電源へ接続する。",
+            t(
+                "manual.connector_opening_sentence",
+                step=step,
+                face=text_attr(opening, "face"),
+                refdes=connector.refdes,
+                mpn=connector.mpn,
+            ),
+            t("manual.connector_connect_sentence", step=step + 1),
             "",
             f"### {opening.id}",
             "",
-            "| 開口部項目 | 値 |",
+            t("manual.opening_header"),
             "|---|---|",
-            f"| 幅 | {format_number(number_attr(opening, 'width_mm'))} mm |",
-            f"| 高さ | {format_number(number_attr(opening, 'height_mm'))} mm |",
-            f"| 余裕 | {format_number(number_attr(opening, 'margin_mm'))} mm |",
+            t(
+                "manual.opening_width_row",
+                width=format_number(number_attr(opening, "width_mm")),
+            ),
+            t(
+                "manual.opening_height_row",
+                height=format_number(number_attr(opening, "height_mm")),
+            ),
+            t(
+                "manual.opening_margin_row",
+                margin=format_number(number_attr(opening, "margin_mm")),
+            ),
             "",
         ]
         step += 2
@@ -234,13 +266,13 @@ def _connection_section(
     if usb is None:
         omissions.append(
             Omission(
-                "接続手順（USBシリアル）",
-                "pin role usb_dp/usb_dn の宣言が無い",
+                t("manual.usb_section"),
+                t("manual.usb_omitted"),
             )
         )
     else:
         lines += [
-            f"USBシリアル（IO{usb[0]}／IO{usb[1]}）経由でログを確認できる。",
+            t("manual.usb_serial_sentence", gpio_a=usb[0], gpio_b=usb[1]),
             "",
         ]
     return lines
@@ -257,7 +289,7 @@ def _led_section(
     ]
     if not toggles:
         omissions.append(
-            Omission("LED表示の意味", "graphにtoggle_led stepの宣言が無い")
+            Omission(t("manual.led_section"), t("manual.led_omitted"))
         )
         return []
     period_ms = _required_macro_int(
@@ -274,17 +306,16 @@ def _led_section(
         state.state_name for state in firmware.states if state.state_name == "fault"
     )
     lines = [
-        "## LED表示の意味",
+        t("manual.led_heading"),
         "",
-        "| 表示 | 意味 |",
+        t("manual.led_table_header"),
         "|---|---|",
-        f"| 周期{period_ms} msの点滅 | IO{gpio}のLEDが点滅し、"
-        "計測ループが動作していることを示す |",
-        "| 消灯のまま | 給電またはFW書き込みが完了していない |",
+        t("manual.led_blink_row", period_ms=period_ms, gpio=gpio),
+        t("manual.led_off_row"),
     ]
     for state in fault_states:
         lines.append(
-            f"| 点滅停止 | FWが`{state}`状態であり、センサ読み出しに失敗している |"
+            t("manual.led_fault_row", state=state)
         )
     if any(step.action == "toggle_led2" for step in firmware.sequence_steps):
         gpio2 = _required_macro_int(
@@ -294,7 +325,7 @@ def _led_section(
         )
         lines.insert(
             6,
-            f"| 逆相の点滅 | IO{gpio2}のLEDが逆相で点滅する |",
+            t("manual.button_opposite_row", gpio=gpio2),
         )
     lines.append("")
     return lines
@@ -307,19 +338,28 @@ def _operation_section(
 ) -> list[str]:
     firmware = extract_firmware_lane(graph)
     if not any(step.action == "read_button" for step in firmware.sequence_steps):
-        omissions.append(Omission("操作", "graphにread_button stepの宣言が無い"))
+        omissions.append(
+            Omission(
+                t("manual.operation_label"),
+                t("manual.operation_omitted_sentence"),
+            )
+        )
         return []
     button = _required_macro_int(
         macros,
         "ACD_PIN_BUTTON",
         because="read_button step",
     )
-    lines = ["## 操作", ""]
+    lines = [t("manual.operation_heading"), ""]
     for transition in sorted(firmware.transitions, key=lambda item: item.node_id):
         if transition.trigger == "button_pressed":
             lines.append(
-                f"IO{button}のボタンを押すと`{transition.from_state}`から"
-                f"`{transition.to_state}`へ遷移する。"
+                t(
+                    "manual.button_transition_sentence",
+                    gpio=button,
+                    from_state=transition.from_state,
+                    to_state=transition.to_state,
+                )
             )
     lines.append("")
     return lines
@@ -339,7 +379,7 @@ def _flashing_section(
     )
     if mcu is None:
         raise DocumentGenerationError("MCU component is missing from the graph")
-    lines = ["## 書き込み手順", ""]
+    lines = [t("manual.flash_heading"), ""]
     step = 1
     usb = _pin_pair(
         firmware,
@@ -357,21 +397,30 @@ def _flashing_section(
     )
     if usb is not None:
         lines.append(
-            f"{step}. `{mcu.mpn}`のUSBシリアルJTAG（IO{usb[0]}／IO{usb[1]}）でPCへ接続する。"
+            f"{step}. {t(
+                "manual.usb_flash_sentence",
+                step=step,
+                mpn=mcu.mpn,
+                gpio_a=usb[0],
+                gpio_b=usb[1],
+            )}"
         )
         step += 1
     elif uart is not None:
         lines.append(
-            f"{step}. `{mcu.mpn}`のUART（TX: IO{uart[0]}／RX: IO{uart[1]}）でPCへ接続する。"
+            f"{step}. {t(
+                "manual.uart_flash_sentence",
+                step=step,
+                mpn=mcu.mpn,
+                tx=uart[0],
+                rx=uart[1],
+            )}"
         )
         step += 1
     else:
-        lines.append(
-            f"{step}. 書き込み経路（USB／UART）の宣言が無いため、"
-            "MCUのデータシートに従って接続する。"
-        )
+        lines.append(f"{step}. {t('manual.boot_recovery_sentence')}")
         omissions.append(
-            Omission("書き込み経路", "graphにUSB／UART書き込み経路の宣言が無い")
+            Omission(t("manual.flash_section"), t("manual.flash_omitted"))
         )
         step += 1
     if "net.boot" in _declared_nets(firmware):
@@ -381,14 +430,13 @@ def _flashing_section(
             because="pin role boot",
         )
         lines.append(
-            f"{step}. 書き込みに失敗する場合はIO{boot}の"
-            "BOOT信号をGNDへ落として再接続する。"
+            f"{step}. {t('manual.boot_recovery_gpio_sentence', boot=boot)}",
         )
         step += 1
-    lines.append(f"{step}. revision`{graph.revision}`のFWイメージを書き込む。")
+    lines.append(f"{step}. {t('manual.firmware_flash_sentence', revision=graph.revision)}")
     step += 1
-    reset = "LED点滅とシリアルログが再開する。" if led_written else "FWが再開する。"
-    lines.append(f"{step}. 書き込み後にリセットすると、{reset}")
+    reset = t("manual.provenance_intro") if led_written else t("manual.provenance_values")
+    lines.append(f"{step}. {t('manual.reset_sentence', reset=reset)}")
     lines.append("")
     return lines
 
@@ -398,32 +446,46 @@ def _safety_section(graph: DesignGraph) -> list[str]:
     board = single_node_of_kind(graph, "electrical.board")
     max_voltage = format_number(number_attr(safety, "max_net_voltage_v"))
     max_current = format_number(number_attr(safety, "max_current_a"))
+    antenna_keepout_text = (
+        t("manual.keepout_declared")
+        if board.attrs.get("antenna_keepout") is True
+        else t("manual.keepout_undeclared")
+    )
     lines = [
-        "## 安全上の注意",
+        t("manual.safety_heading"),
         "",
-        f"- 電源はUSBのみとし、最大ネット電圧{max_voltage} V、"
-        f"最大電流{max_current} Aを超える使用をしない。",
-        f"- 想定用途は`{text_attr(safety, 'intended_use')}`であり、"
-        "バッテリ、充電回路、モータ・アクチュエータ・レーザを接続しない。",
-        f"- アンテナ部（基板端）を金属で覆わない（アンテナkeepout: "
-        f"{'宣言あり' if board.attrs.get('antenna_keepout') is True else '宣言なし'}）。",
-        "- 筐体を開けた状態で通電しない。",
+        t(
+            "manual.safety_power_sentence",
+            max_voltage=max_voltage,
+            max_current=max_current,
+        ),
+        t(
+            "manual.safety_use_sentence",
+            intended_use=text_attr(safety, "intended_use"),
+        ),
+        t("manual.safety_antenna_sentence", keepout=antenna_keepout_text),
+        t("manual.enclosure_power_warning"),
         "",
     ]
     return lines
 
 
-def render_manual(graph: DesignGraph, macros: dict[str, str]) -> str:
+def render_manual(
+    graph: DesignGraph,
+    macros: dict[str, str],
+    *,
+    template: DocumentTemplate | None = None,
+) -> str:
     """Render the instruction manual body for a graph and its pin projection."""
+    _TEMPLATE.set(template or load_template("ja"))
     _revision_guard(graph, macros)
     lines = [
-        f"# 取扱説明書: {graph.graph_id}",
+        t("manual.document_title", graph_id=graph.graph_id),
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        "この文書はDesign GraphとFWピン投影（`acd_pins.h`）から決定論的に生成された観測であり、"
-        "設計や製品の合否を判定しない。記載値はすべて入力由来で、推定値を含まない。",
+        t("manual.provenance_observation"),
         "",
     ]
     omissions: list[Omission] = []
@@ -439,11 +501,11 @@ def render_manual(graph: DesignGraph, macros: dict[str, str]) -> str:
         led_written=bool(led_lines),
     )
     lines += _safety_section(graph)
-    lines += ["## 省略した項目", ""]
+    lines += [t("manual.omitted_items_heading"), ""]
     if omissions:
         lines += [f"- {item.section}: {item.reason}" for item in omissions]
     else:
-        lines.append("省略した項目はない。")
+        lines.append(t("manual.omitted_items_none"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
@@ -459,14 +521,16 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--base-dir", type=Path, default=Path.cwd())
+    parser.add_argument("--lang", choices=("ja", "en"), default="ja")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    template = load_template(args.lang)
     graph, graph_input = load_graph(args.graph)
     macros = parse_pins_header(args.pins_header)
-    body = render_manual(graph, macros)
+    body = render_manual(graph, macros, template=template)
     inputs: list[DocumentInput] = [
         graph_input,
         DocumentInput(path=args.pins_header, content_hash=sha256_file(args.pins_header)),
@@ -474,13 +538,14 @@ def main(argv: list[str] | None = None) -> int:
     document_path, provenance_path = write_document(
         document_kind="instruction_manual",
         body=body,
-        out_dir=args.out_dir,
+        out_dir=args.out_dir if args.lang == "ja" else args.out_dir / args.lang,
         document_name=DOCUMENT_NAME,
-        template_id=TEMPLATE_ID,
+        template_id=f"acd-instruction-manual-{args.lang}-v2",
         generator=Path(__file__).resolve(),
         graph=graph,
         inputs=inputs,
         base_dir=args.base_dir,
+        template=template,
     )
     print(f"generated {document_path}")
     print(f"provenance {provenance_path}")

@@ -1,0 +1,9 @@
+{
+  "artifact_kind": "rework_dfa",
+  "base_revision": "r1",
+  "assessments": [],
+  "graph_id": "golden-design-1",
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "workaround_id": "WA-002"
+}

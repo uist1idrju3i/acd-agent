@@ -1,0 +1,7 @@
+{
+  "gate": "drc",
+  "message": "ECO revision DRC passed.",
+  "schema_version": "0.1",
+  "status": "pass",
+  "target_revision": "r2"
+}

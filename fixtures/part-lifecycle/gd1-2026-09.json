@@ -1,0 +1,182 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "part_lifecycle_registry",
+  "registry_id": "gd1-part-lifecycle-2026-09",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "as_of": "2026-09-01",
+  "entries": [
+    {
+      "mpn": "0603WAF1001T5E",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "0603WAF1002T5E",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "0603WAF4701T5E",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "0603WAF5101T5E",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "AMS1117-3.3",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": [
+        {
+          "mpn": "AMS1117-3.3-ALT",
+          "equivalence": "footprint_compatible_value_check",
+          "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+          "verified_by": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-alternate-review"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "CL10A105KB8NNNC",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "CL10A106MQ8NNNC",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "CL10B104KB8NNNC",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "ESP32-C3-MINI-1-N4",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": [
+        {
+          "mpn": "ESP32-C3-MINI-1-N8",
+          "equivalence": "drop_in",
+          "footprint": "Espressif:ESP32-C3-MINI-1",
+          "verified_by": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-alternate-review"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "KT-0603R",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "SHT40-AD1B-R3",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": [
+        {
+          "mpn": "SHT40-AD1B-R2",
+          "equivalence": "footprint_compatible_value_check",
+          "footprint": "Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
+          "verified_by": {
+            "kind": "manual_declaration",
+            "reference": "internal:gd1-alternate-review"
+          }
+        }
+      ]
+    },
+    {
+      "mpn": "TS-1088-AR02016",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    },
+    {
+      "mpn": "TYPE-C-31-M-12",
+      "lifecycle_status": "active",
+      "status_source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-bom-review-2026-09",
+        "observed_at": "2026-08-15"
+      },
+      "alternates": []
+    }
+  ],
+  "policy": {
+    "require_second_source_for": "none",
+    "max_status_age_days": 60,
+    "reject_statuses": [
+      "eol",
+      "obsolete"
+    ],
+    "warn_statuses": [
+      "nrnd",
+      "last_time_buy"
+    ]
+  }
+}

@@ -23,6 +23,12 @@ def _runner_factory(calls: list[list[str]]):
             names = ("instruction-manual.md",)
         elif "generate_interface_spec.py" in " ".join(command):
             names = ("interface-spec.md", "interface-spec.json")
+        elif "generate_shipping_inspection.py" in " ".join(command):
+            names = ("shipping-inspection.md", "shipping-inspection.json")
+        elif "generate_bringup_plan.py" in " ".join(command):
+            names = ("bringup-test-plan.md", "bringup-test-plan.json")
+        elif "generate_review_package.py" in " ".join(command):
+            names = ("review-package.md", "review-package.json", "graph-diff.json")
         elif "generate_idea_allocation_docs.py" in " ".join(command):
             names = (
                 "idea-record.md",
@@ -122,18 +128,27 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
         enclosure_out=enclosure_out,
         runner=_runner_factory(calls),
     )
-    assert len(result.documents) == 7
+    assert len(result.documents) == 14
     hashes = (output / "hashes.json").read_text(encoding="utf-8")
     assert "product-readme.md" in hashes
     assert "instruction-manual.md" in hashes
     assert "interface-spec.md" in hashes
     assert "interface-spec.json" in hashes
+    assert "shipping-inspection.md" in hashes
+    assert "shipping-inspection.json" in hashes
     assert "inspection-report.md" in hashes
     assert "traceability-report.md" in hashes
     assert "quality-report.json" in hashes
+    assert "review-package.md" in hashes
+    assert "review-package.json" in hashes
+    assert "graph-diff.json" in hashes
     assert result.provenance["skill_name"] == "acd-product-docs"
     assert result.provenance["pass_evidence"] is False
     assert all("theme-song-projection" not in command for command in calls)
+    review_command = next(
+        command for command in calls if "generate_review_package.py" in " ".join(command)
+    )
+    assert "--no-previous-revision" in review_command
 
     (board_out / "theme-song-projection.json").write_text("{}\n", encoding="utf-8")
     calls.clear()
@@ -177,6 +192,77 @@ def test_run_projection_docs_surfaces_generator_stderr(
             output=output,
             enclosure_out=enclosure_out,
             runner=failing_runner,
+        )
+
+
+def test_run_projection_docs_generates_two_language_trees(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = (
+        _inputs(tmp_path)
+    )
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        projection_docs,
+        "collect_visual_projection_sets",
+        _projection_collector(out_root),
+    )
+    result = run_projection_docs(
+        repository,
+        graph_path=graph_path,
+        out_root=out_root,
+        board_out=board_out,
+        firmware_out=firmware_out,
+        output=output,
+        enclosure_out=enclosure_out,
+        languages=("ja", "en"),
+        runner=_runner_factory(calls),
+    )
+    assert len(result.documents) == 28
+    assert {document.language for document in result.documents} == {"ja", "en"}
+    assert result.provenance["languages"] == ["ja", "en"]
+    for language in ("ja", "en"):
+        root = output if language == "ja" else output / language
+        assert (root / "review-package.json").is_file()
+        assert (root / "review-package.json.provenance.json").is_file()
+    assert any(
+        "--lang" in command
+        and command[command.index("--lang") + 1] == "en"
+        and command[command.index("--out-dir") + 1] == str(output / "en")
+        for command in calls
+    )
+    hashes = (output / "hashes.json").read_text(encoding="utf-8")
+    assert "en/review-package.json" in hashes
+
+
+@pytest.mark.parametrize(
+    ("languages", "message"),
+    [
+        ((), "at least one"),
+        (("fr",), "unsupported"),
+        (("ja", "ja"), "duplicate"),
+    ],
+)
+def test_run_projection_docs_rejects_invalid_languages(
+    tmp_path: Path,
+    languages: tuple[str, ...],
+    message: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = (
+        _inputs(tmp_path)
+    )
+    with pytest.raises(ProjectionDocsError, match=message):
+        run_projection_docs(
+            repository,
+            graph_path=graph_path,
+            out_root=out_root,
+            board_out=board_out,
+            firmware_out=firmware_out,
+            output=output,
+            enclosure_out=enclosure_out,
+            languages=languages,
+            runner=_runner_factory([]),
         )
 
 
@@ -331,7 +417,7 @@ def test_idea_allocation_docs_not_declared(
     assert not any(
         "generate_idea_allocation_docs.py" in command for command in calls
     )
-    assert len(result.documents) == 7
+    assert len(result.documents) == 14
 
 
 def test_idea_allocation_docs_partial_inputs_fail(
@@ -351,7 +437,7 @@ def test_idea_allocation_docs_full(
     calls: list[list[str]] = []
     result, _output = _run_docs(tmp_path, monkeypatch, calls)
     assert result.provenance["idea_allocation_docs"] == "generated"
-    assert len(result.documents) == 13
+    assert len(result.documents) == 20
     assert any(
         "generate_idea_allocation_docs.py" in " ".join(command)
         for command in calls

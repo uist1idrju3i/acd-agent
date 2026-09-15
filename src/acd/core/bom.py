@@ -57,6 +57,16 @@ def build_bom(lane: ElectricalLane) -> tuple[BomRow, ...]:
     return tuple(rows)
 
 
+def group_bom_rows_by_mpn(
+    rows: tuple[BomRow, ...],
+) -> dict[str, tuple[BomRow, ...]]:
+    """Group BOM rows by MPN while retaining deterministic row ordering."""
+    grouped: dict[str, list[BomRow]] = {}
+    for row in rows:
+        grouped.setdefault(row.mpn, []).append(row)
+    return {mpn: tuple(grouped[mpn]) for mpn in sorted(grouped)}
+
+
 def bom_csv(lane: ElectricalLane) -> str:
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")

@@ -1,0 +1,290 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "part_price_book",
+  "price_book_id": "gd1-bom-cost-2026-09",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "as_of": "2026-09-01",
+  "currency": "USD",
+  "minor_unit_digits": 2,
+  "build_quantity": 10,
+  "entries": [
+    {
+      "mpn": "0603WAF1001T5E",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 2},
+        {"min_qty": 100, "unit_price_minor": 1}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "0603WAF1002T5E",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 2},
+        {"min_qty": 100, "unit_price_minor": 1}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "0603WAF4701T5E",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 2},
+        {"min_qty": 100, "unit_price_minor": 1}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "0603WAF5101T5E",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 2},
+        {"min_qty": 100, "unit_price_minor": 1}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "AMS1117-3.3",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 18},
+        {"min_qty": 100, "unit_price_minor": 15}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 10,
+      "basis": "primary"
+    },
+    {
+      "mpn": "AMS1117-3.3-ALT",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 16},
+        {"min_qty": 100, "unit_price_minor": 13}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 10,
+      "basis": "primary"
+    },
+    {
+      "mpn": "CL10A105KB8NNNC",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 3},
+        {"min_qty": 100, "unit_price_minor": 2}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "CL10A106MQ8NNNC",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 3},
+        {"min_qty": 100, "unit_price_minor": 2}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "CL10B104KB8NNNC",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 3},
+        {"min_qty": 100, "unit_price_minor": 2}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "ESP32-C3-MINI-1-N4",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 650},
+        {"min_qty": 100, "unit_price_minor": 590}
+      ],
+      "stock_quantity": 1000,
+      "lead_time_days": 21,
+      "basis": "primary"
+    },
+    {
+      "mpn": "ESP32-C3-MINI-1-N8",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 610},
+        {"min_qty": 100, "unit_price_minor": 560}
+      ],
+      "stock_quantity": 1000,
+      "lead_time_days": 21,
+      "basis": "primary"
+    },
+    {
+      "mpn": "KT-0603R",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 5},
+        {"min_qty": 100, "unit_price_minor": 4}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 7,
+      "basis": "primary"
+    },
+    {
+      "mpn": "SHT40-AD1B-R3",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 225},
+        {"min_qty": 100, "unit_price_minor": 205}
+      ],
+      "stock_quantity": 1000,
+      "lead_time_days": 21,
+      "basis": "primary"
+    },
+    {
+      "mpn": "SHT40-AD1B-R2",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 215},
+        {"min_qty": 100, "unit_price_minor": 195}
+      ],
+      "stock_quantity": 1000,
+      "lead_time_days": 21,
+      "basis": "primary"
+    },
+    {
+      "mpn": "TS-1088-AR02016",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 7},
+        {"min_qty": 100, "unit_price_minor": 6}
+      ],
+      "stock_quantity": 10000,
+      "lead_time_days": 14,
+      "basis": "primary"
+    },
+    {
+      "mpn": "TYPE-C-31-M-12",
+      "supplier": "fixture-supplier",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "internal:gd1-price-review-2026-09",
+        "fetched_at": "2026-08-15T00:00:00Z",
+        "valid_until": "2026-12-31T00:00:00Z"
+      },
+      "price_breaks": [
+        {"min_qty": 1, "unit_price_minor": 32},
+        {"min_qty": 100, "unit_price_minor": 28}
+      ],
+      "stock_quantity": 1000,
+      "lead_time_days": 21,
+      "basis": "primary"
+    }
+  ],
+  "policy": {
+    "target_total_minor": 100000,
+    "max_unit_share_pct": 60,
+    "require_primary_basis": true
+  }
+}

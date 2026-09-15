@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, NoReturn, cast
 
 from acd.adapters.cad.assembly_viewer import three_version, write_assembly_viewer_html
+from acd.adapters.cad.component_3d import ComponentSolid
 from acd.adapters.cad.constants import (
     CAD_ANGULAR_DEFLECTION_DEG,
     CAD_LINEAR_DEFLECTION_MM,
@@ -216,6 +217,7 @@ def build_assembly_mesh(
     target_revision: str,
     graph_id: str,
     refdes_by_component_id: Mapping[str, str],
+    component_solids: tuple[ComponentSolid, ...] | None = None,
 ) -> AssemblyMesh:
     build123d = _load_build123d()
     outline = lane.outline
@@ -258,34 +260,59 @@ def build_assembly_mesh(
         (body for body in lane.component_bodies if body.body_type != "none"),
         key=lambda body: (refdes(body.component_id), body.component_id),
     )
-    for body in bodies:
-        shape = build_component_body_shape(body, plane_z, outline.width_mm, outline.depth_mm)
-        nodes.append(
-            _tessellated_node(
-                shape=shape,
-                build123d=build123d,
-                name=refdes(body.component_id),
-                layer="component",
-                source="approximated",
-                color=_COMPONENT_COLOR,
-                extras=_extras(
-                    graph_revision=target_revision,
+    if component_solids is None:
+        for body in bodies:
+            shape = build_component_body_shape(body, plane_z, outline.width_mm, outline.depth_mm)
+            nodes.append(
+                _tessellated_node(
+                    shape=shape,
+                    build123d=build123d,
+                    name=refdes(body.component_id),
                     layer="component",
                     source="approximated",
-                    extra={
-                        "component_id": body.component_id,
-                        "refdes": refdes(body.component_id),
-                        "body_type": body.body_type,
-                        "mounting_side": body.mounting_side,
-                        "dimensions_source": body.dimensions_source,
-                        "dimensions_source_ref": body.dimensions_source_ref,
-                        "note": (
-                            "KiCad 3D model not bundled; box approximation from component_bodies"
-                        ),
-                    },
-                ),
+                    color=_COMPONENT_COLOR,
+                    extras=_extras(
+                        graph_revision=target_revision,
+                        layer="component",
+                        source="approximated",
+                        extra={
+                            "component_id": body.component_id,
+                            "refdes": refdes(body.component_id),
+                            "body_type": body.body_type,
+                            "mounting_side": body.mounting_side,
+                            "dimensions_source": body.dimensions_source,
+                            "dimensions_source_ref": body.dimensions_source_ref,
+                            "note": (
+                                "KiCad 3D model not bundled; box approximation "
+                                "from component_bodies"
+                            ),
+                        },
+                    ),
+                )
             )
-        )
+    else:
+        for component in sorted(component_solids, key=lambda item: (item.refdes, item.body_id)):
+            nodes.append(
+                _tessellated_node(
+                    shape=component.shape,
+                    build123d=build123d,
+                    name=component.refdes,
+                    layer="component",
+                    source="kicad_step",
+                    color=_COMPONENT_COLOR,
+                    extras=_extras(
+                        graph_revision=target_revision,
+                        layer="component",
+                        source="kicad_step",
+                        extra={
+                            "component_id": component.component_id,
+                            "refdes": component.refdes,
+                            "body_id": component.body_id,
+                            "model_sha256": component.model_hash,
+                        },
+                    ),
+                )
+            )
 
     for step_path, name, color in (
         (projection.shell_step_path, "enclosure-shell", _SHELL_COLOR),
@@ -318,12 +345,24 @@ def build_assembly_mesh(
         raise Assembly3DProjectionError("assembly STEP contains no solids")
     interference_volumes: list[float] = []
     interference_nodes: list[tuple[str, MeshNode]] = []
+    component_shapes = (
+        {component.body_id: component.shape for component in component_solids}
+        if component_solids is not None
+        else {}
+    )
     for body in bodies:
         fused: Any = None
         volume_mm3 = 0.0
         for solid in solids:
-            intersection = solid & build_component_body_shape(
-                body, plane_z, outline.width_mm, outline.depth_mm
+            component_shape = component_shapes.get(body.node_id)
+            if component_solids is not None and component_shape is None:
+                continue
+            intersection = solid & (
+                component_shape
+                if component_shape is not None
+                else build_component_body_shape(
+                    body, plane_z, outline.width_mm, outline.depth_mm
+                )
             )
             volume = 0.0 if intersection is None else float(intersection.volume)
             interference_volumes.append(volume)
@@ -779,6 +818,7 @@ def generate_assembly_3d_projection(
     graph_id: str,
     refdes_by_component_id: Mapping[str, str],
     out_dir: Path,
+    component_solids: tuple[ComponentSolid, ...] | None = None,
 ) -> Assembly3DRecord:
     """Generate the L3 integrated 3D assembly projection artifacts."""
     build_dir = out_dir / "3d"
@@ -790,6 +830,7 @@ def generate_assembly_3d_projection(
         target_revision=target_revision,
         graph_id=graph_id,
         refdes_by_component_id=refdes_by_component_id,
+        component_solids=component_solids,
     )
     glb_path = build_dir / "assembly.glb"
     glb_bytes = write_glb(mesh, glb_path)

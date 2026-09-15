@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
+from pydantic import TypeAdapter, ValidationError
+
 from acd.core.process import source_provenance_fields
 from acd.schema.common import Revision, Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, MeasurementInstrument, PhysicalEvidence
@@ -19,6 +21,9 @@ class ReceiptReconciliationError(ValueError):
     """Raised when receipt reconciliation cannot produce a fail-closed result."""
 
 
+REVISION_ADAPTER: TypeAdapter[str] = TypeAdapter[str](Revision)
+
+
 def _parse_sha256(value: object) -> Sha256:
     if not isinstance(value, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", value) is None:
         raise ValueError("value is not a SHA-256 digest")
@@ -26,9 +31,12 @@ def _parse_sha256(value: object) -> Sha256:
 
 
 def _parse_revision(value: object) -> Revision:
-    if not isinstance(value, str) or re.fullmatch(r"r[0-9]+", value) is None:
+    if not isinstance(value, str):
         raise ValueError("value is not a revision")
-    return value
+    try:
+        return REVISION_ADAPTER.validate_python(value)
+    except ValidationError as exc:
+        raise ValueError("value is not a revision") from exc
 
 
 def _load_json(path: Path) -> object:
@@ -127,7 +135,9 @@ def reconcile_receipt(
     except ReceiptReconciliationError as exc:
         manifest_status, unknown_keys = _manifest_report_context(manifest)
         target_revision = manifest.get("target_revision")
-        if not isinstance(target_revision, str) or not re.fullmatch(r"r[0-9]+", target_revision):
+        try:
+            target_revision = _parse_revision(target_revision)
+        except ValueError:
             target_revision = "unknown"
         return ReconciliationReport(
             status="unknown",

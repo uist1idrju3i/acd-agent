@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
 # ]
 # ///
 # The PEP 723 git pin remains for standalone runs; project execution uses the checkout directly.
@@ -27,10 +27,12 @@ electrical and mechanical gates.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -47,12 +49,15 @@ from fw_graph import (
     extract_firmware_settings,
     resolve_firmware_capability_plan,
 )
+from fw_inspection import derive_inspection_sequence
 from fw_project import write_firmware_project
 from fw_qemu import (
     QemuRunner,
+    assert_sensor_log_matches_scenario,
     assert_virtual_log_ok,
     measurement_conditions_for_plan,
 )
+from fw_security import load_declaration
 
 
 class _LegacyFlag(argparse.Action):
@@ -104,7 +109,14 @@ def resolve_mcu_refdes(graph: DesignGraph) -> str:
 
 
 def run_pipeline(
-    fixture_dir: Path, out_dir: Path, run_seconds: int
+    fixture_dir: Path,
+    out_dir: Path,
+    run_seconds: int,
+    *,
+    stack_usage: bool = False,
+    sim_peripherals: bool = False,
+    security_declaration: Path | None = None,
+    coverage: bool = False,
 ) -> dict[str, object]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -113,7 +125,44 @@ def run_pipeline(
     fw_lane = extract_firmware_lane(graph)
     plan = resolve_firmware_capability_plan(graph, fw_lane)
     fw_settings = extract_firmware_settings(graph)
+    inspection_sequence = derive_inspection_sequence(
+        graph, fw_lane, plan, fw_settings
+    )
+    scenario: list[dict[str, float]] | None = None
+    if sim_peripherals:
+        scenario_path = fixture_dir / "sht40-scenario.json"
+        raw_scenario: object = json.loads(
+            scenario_path.read_text(encoding="utf-8")
+        )
+        if not isinstance(raw_scenario, list) or not raw_scenario:
+            raise ValueError("sht40-scenario.json is malformed")
+        scenario_data: list[dict[str, object]] = []
+        for raw_item in cast(list[object], raw_scenario):
+            if not isinstance(raw_item, dict):
+                raise ValueError("sht40-scenario.json is malformed")
+            item = cast(dict[str, object], raw_item)
+            if not isinstance(item.get("t_c"), (int, float)) or not isinstance(
+                item.get("rh_pct"), (int, float)
+            ):
+                raise ValueError("sht40-scenario.json is malformed")
+            scenario_data.append(item)
+        scenario = [
+            {
+                "t_c": float(cast(int | float, item["t_c"])),
+                "rh_pct": float(cast(int | float, item["rh_pct"])),
+            }
+            for item in scenario_data
+        ]
     electrical = extract_electrical_lane(graph)
+    security = (
+        load_declaration(security_declaration)
+        if security_declaration is not None
+        else None
+    )
+    if security is not None and (
+        security.graph_id != graph.graph_id or security.revision != graph.revision
+    ):
+        raise ValueError("firmware security declaration graph/revision mismatch")
 
     project = write_firmware_project(
         fw_lane,
@@ -122,6 +171,12 @@ def run_pipeline(
         graph.graph_id,
         fw_settings,
         plan=plan,
+        inspection_sequence=inspection_sequence,
+        stack_usage=stack_usage,
+        sim_peripherals=sim_peripherals,
+        sim_scenario=scenario,
+        security_declaration=security,
+        coverage=coverage,
     )
     mcu_refdes = resolve_mcu_refdes(graph)
     config_report = {
@@ -136,6 +191,7 @@ def run_pipeline(
             "led_blink_period_ms": fw_settings.led_blink_period_ms,
             "log_period_ms": fw_settings.log_period_ms,
             "boot_log_message": fw_settings.boot_log_message,
+            "inspection_entry_command": fw_settings.inspection_entry_command,
         },
         "provenance": {
             "registry_path": plan.registry_path,
@@ -159,6 +215,20 @@ def run_pipeline(
             ],
         },
     }
+    if inspection_sequence is not None:
+        sequence_path = out_dir / "firmware-inspection-sequence.json"
+        sequence_path.write_text(
+            json.dumps(
+                inspection_sequence.model_dump(mode="json"),
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    else:
+        sequence_path = None
     (out_dir / "firmware-config-report.json").write_text(
         json.dumps(config_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -190,11 +260,14 @@ def run_pipeline(
         boot_log_message=fw_settings.boot_log_message,
         lane=fw_lane,
         plan=plan,
+        inspection_sequence=inspection_sequence,
     )
+    if sim_peripherals and scenario is not None:
+        assert_sensor_log_matches_scenario(log, scenario)
     print("[5/5] virtual log check passed")
     print("NOTE: real-device flashing/LED measurement unavailable (no debug probe attached)")
 
-    return {
+    summary: dict[str, object] = {
         "target_revision": revision,
         "toolchain_version": build.toolchain_version,
         "source_hash": build.source_hash,
@@ -207,7 +280,18 @@ def run_pipeline(
         "virtual_run_stopped_by_intended_timeout": result.stopped_by_intended_timeout,
         "virtual_log": str(result.log_path),
         "config_report": str(out_dir / "firmware-config-report.json"),
+        "inspection_sequence": (
+            str(sequence_path) if sequence_path is not None else None
+        ),
+        "inspection_sequence_hash": (
+            hashlib.sha256(sequence_path.read_bytes()).hexdigest()
+            if sequence_path is not None
+            else None
+        ),
     }
+    if coverage:
+        summary["coverage_enabled"] = True
+    return summary
 
 
 def main() -> int:
@@ -222,6 +306,10 @@ def main() -> int:
     )
     parser.add_argument("--out", type=Path, default=Path("out/gd1-fw"))
     parser.add_argument("--run-seconds", type=int, default=15)
+    parser.add_argument("--stack-usage", action="store_true")
+    parser.add_argument("--sim-peripherals", action="store_true")
+    parser.add_argument("--security-declaration", type=Path)
+    parser.add_argument("--coverage", action="store_true")
     for legacy, replacement in (
         ("--graph", "--fixture"),
         ("--graph-dir", "--fixture"),
@@ -238,7 +326,15 @@ def main() -> int:
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     try:
-        summary = run_pipeline(args.fixture, args.out, args.run_seconds)
+        summary = run_pipeline(
+            args.fixture,
+            args.out,
+            args.run_seconds,
+            stack_usage=args.stack_usage,
+            sim_peripherals=args.sim_peripherals,
+            security_declaration=args.security_declaration,
+            coverage=args.coverage,
+        )
     except Exception as exc:
         print(f"PIPELINE FAILED: {exc}", file=sys.stderr)
         return 1

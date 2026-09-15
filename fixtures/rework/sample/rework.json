@@ -1,0 +1,32 @@
+{
+  "artifact_kind": "rework_diff",
+  "base_revision": "r1",
+  "defect_ids": [
+    "defect.r4-mpn"
+  ],
+  "graph_id": "golden-design-1",
+  "operations": [
+    {
+      "attrs": {
+        "jlcpcb_class": "extended"
+      },
+      "component_id": "comp.r4",
+      "op": "replace",
+      "reason": "Use the alternate assembly classification for the workaround."
+    },
+    {
+      "attrs": {
+        "jlcpcb_class": "extended"
+      },
+      "component_id": "comp.r5",
+      "op": "replace",
+      "reason": "Use the alternate assembly classification for the adjacent resistor."
+    }
+  ],
+  "pass_evidence": false,
+  "rationale_records": [],
+  "schema_version": "0.1",
+  "touches_safety_boundary": true,
+  "workaround_id": "WA-001",
+  "firmware_changes": []
+}

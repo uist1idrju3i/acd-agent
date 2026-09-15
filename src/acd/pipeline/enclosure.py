@@ -7,12 +7,17 @@ import hashlib
 import inspect
 import json
 import sys
+from dataclasses import replace
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
 from typing import TypeGuard
 
 from acd.adapters.cad.assembly_3d import generate_assembly_3d_projection
+from acd.adapters.cad.component_3d import (
+    check_assembly_interference_3d,
+    import_component_step,
+)
 from acd.adapters.cad.mechanical import (
     EnclosureArtifactReport,
     MechanicalGateReport,
@@ -22,6 +27,7 @@ from acd.adapters.cad.mechanical import (
 )
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
+from acd.adapters.kicad.step_export import export_board_step
 from acd.core.electrical import extract_electrical_lane
 from acd.core.lane_cli import add_lane_io_arguments
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
@@ -70,6 +76,11 @@ def run_pipeline(
     *,
     pipeline_workers: int = DEFAULT_CAD_STAGE_WORKERS,
     timing_recorder: TimingRecorder | None = None,
+    component_step: Path | None = None,
+    pcb_path: Path | None = None,
+    with_kicad_3d: bool = False,
+    models_dir: Path | None = None,
+    kicad_cli: str = "kicad-cli",
 ) -> dict[str, object]:
     with PipelineStageRunner(pipeline_workers) as runner:
         return _run_pipeline(
@@ -77,6 +88,11 @@ def run_pipeline(
             out_dir,
             runner=runner,
             timing_recorder=timing_recorder,
+            component_step=component_step,
+            pcb_path=pcb_path,
+            with_kicad_3d=with_kicad_3d,
+            models_dir=models_dir,
+            kicad_cli=kicad_cli,
         )
 
 
@@ -86,6 +102,11 @@ def _run_pipeline(
     *,
     runner: PipelineStageRunner,
     timing_recorder: TimingRecorder | None = None,
+    component_step: Path | None = None,
+    pcb_path: Path | None = None,
+    with_kicad_3d: bool = False,
+    models_dir: Path | None = None,
+    kicad_cli: str = "kicad-cli",
 ) -> dict[str, object]:
     runner.warm_up(("build123d",))
     graph_path = fixture_dir / "graph.json"
@@ -185,6 +206,58 @@ def _run_pipeline(
     refdes_by_component_id = {
         component.node_id: component.refdes for component in electrical.components
     }
+    component_import = None
+    if with_kicad_3d and component_step is None:
+        if pcb_path is None or models_dir is None:
+            raise ValueError("--with-kicad-3d requires --pcb and --models-dir")
+        export_path = out_dir / "component-board.step"
+        export_record = export_board_step(
+            pcb_path,
+            export_path,
+            kicad_cli=kicad_cli,
+            models_dir=models_dir,
+        )
+        (out_dir / "component-step-export.json").write_text(
+            json.dumps(
+                {
+                    "status": export_record.status,
+                    "pcb_sha256": export_record.pcb_sha256,
+                    "model_directory_sha256": export_record.model_directory_sha256,
+                    "kicad_version": export_record.kicad_version,
+                    "output_step_sha256": export_record.output_step_sha256,
+                    "error": export_record.error,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        if export_record.status != "pass":
+            raise ValueError(f"KiCad STEP export is {export_record.status}: {export_record.error}")
+        component_step = export_path
+    if component_step is not None:
+        component_import = import_component_step(
+            component_step,
+            lane,
+            refdes_by_component_id=refdes_by_component_id,
+        )
+        build123d = __import__("build123d")
+        shell_shape = build123d.import_step(projection.shell_step_path)
+        lid_shape = build123d.import_step(projection.lid_step_path)
+        component_gate = check_assembly_interference_3d(
+            component_import,
+            shell=shell_shape,
+            lid=lid_shape,
+            lane=lane,
+        )
+        gate_report = replace(
+            gate_report,
+            assembly_interference_3d=component_gate.status,
+            assembly_interference_3d_findings=component_gate.findings,
+        )
+        if component_gate.status != "pass":
+            raise ValueError(f"assembly_interference_3d is {component_gate.status}")
     assembly_3d = generate_assembly_3d_projection(
         projection=projection,
         lane=lane,
@@ -193,6 +266,9 @@ def _run_pipeline(
         graph_id=graph.graph_id,
         refdes_by_component_id=refdes_by_component_id,
         out_dir=out_dir,
+        component_solids=(
+            component_import.component_solids if component_import is not None else None
+        ),
     )
     print(
         "[3/5] mechanical gates passed: "
@@ -263,6 +339,42 @@ def _run_pipeline(
                 property="maximum_interference_volume_mm3",
                 value=gate_report.measured_max_interference_volume_mm3,
                 verified=True,
+            ),
+            *(
+                [
+                    EvidenceClaim(
+                        subject_node=subject_node,
+                        property="motion_sweep_status",
+                        value=gate_report.motion_sweep,
+                        verified=True,
+                    )
+                ]
+                if gate_report.motion_sweep != "not_applicable"
+                else []
+            ),
+            *(
+                [
+                    EvidenceClaim(
+                        subject_node=subject_node,
+                        property="assembly_interference_3d_status",
+                        value=gate_report.assembly_interference_3d,
+                        verified=True,
+                    )
+                ]
+                if gate_report.assembly_interference_3d != "not_applicable"
+                else []
+            ),
+            *(
+                [
+                    EvidenceClaim(
+                        subject_node=subject_node,
+                        property="mechanical_dfm_status",
+                        value=gate_report.mechanical_dfm,
+                        verified=True,
+                    )
+                ]
+                if gate_report.mechanical_dfm != "not_applicable"
+                else []
             ),
             EvidenceClaim(
                 subject_node=subject_node,
@@ -360,6 +472,60 @@ def _run_pipeline(
         "measured_max_interference_volume_mm3": (
             gate_report.measured_max_interference_volume_mm3
         ),
+        **(
+            {
+                "motion_sweep_status": gate_report.motion_sweep,
+                "motion_sweep_findings": [
+                    {
+                        "feature_id": finding.feature_id,
+                        "poses_checked": finding.poses_checked,
+                        "worst_pose": finding.worst_pose,
+                        "worst_interference_mm3": finding.worst_interference_mm3,
+                        "colliding_ids": list(finding.colliding_ids),
+                        "status": finding.status,
+                    }
+                    for finding in gate_report.motion_findings
+                ],
+            }
+            if gate_report.motion_sweep != "not_applicable"
+            else {}
+        ),
+        **(
+            {
+                "assembly_interference_3d_status": gate_report.assembly_interference_3d,
+                "assembly_interference_3d_findings": [
+                    {
+                        "rule_id": getattr(finding, "rule_id", "unknown"),
+                        "status": getattr(finding, "status", "unknown"),
+                        "message": getattr(finding, "message", "unknown"),
+                        "refdes": getattr(finding, "refdes", None),
+                        "body_id": getattr(finding, "body_id", None),
+                    }
+                    for finding in gate_report.assembly_interference_3d_findings
+                ],
+            }
+            if gate_report.assembly_interference_3d != "not_applicable"
+            else {}
+        ),
+        **(
+            {
+                "mechanical_dfm_status": gate_report.mechanical_dfm,
+                "mechanical_dfm_findings": [
+                    {
+                        "rule_id": finding.rule_id,
+                        "status": finding.status,
+                        "message": finding.message,
+                        "measured": finding.measured,
+                        "limit": finding.limit,
+                        "face_center_mm": finding.face_center_mm,
+                        "feature_id": finding.feature_id,
+                    }
+                    for finding in gate_report.mechanical_dfm_findings
+                ],
+            }
+            if gate_report.mechanical_dfm != "not_applicable"
+            else {}
+        ),
         "shell_measured_volume_mm3": artifact_report.shell_volume_mm3,
         "lid_measured_volume_mm3": artifact_report.lid_volume_mm3,
         "assembly_measured_volume_mm3": artifact_report.assembly_volume_mm3,
@@ -409,6 +575,11 @@ def main() -> int:
         default=DEFAULT_CAD_STAGE_WORKERS,
         help="parallel workers for independent Python pipeline stages",
     )
+    parser.add_argument("--component-step", type=Path)
+    parser.add_argument("--pcb", type=Path)
+    parser.add_argument("--models-dir", type=Path)
+    parser.add_argument("--with-kicad-3d", action="store_true")
+    parser.add_argument("--kicad-cli", default="kicad-cli")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     timing = TimingRecorder()
@@ -416,6 +587,15 @@ def main() -> int:
     try:
         parameters = inspect.signature(run_pipeline).parameters
         kwargs: dict[str, object] = {"pipeline_workers": args.pipeline_workers}
+        for name, value in {
+            "component_step": args.component_step,
+            "pcb_path": args.pcb,
+            "models_dir": args.models_dir,
+            "with_kicad_3d": args.with_kicad_3d,
+            "kicad_cli": args.kicad_cli,
+        }.items():
+            if name in parameters:
+                kwargs[name] = value
         if "timing_recorder" in parameters:
             kwargs["timing_recorder"] = timing
         summary = run_pipeline(args.fixture, args.out, **kwargs)  # type: ignore[arg-type]

@@ -517,3 +517,16 @@ def test_cross_validate_cpl_rejects_rotation_offset_mismatch(tmp_path: Path) -> 
             {"C1": "pad_bbox_center"},
             {"C1": 0.0},
         )
+
+
+@pytest.mark.parametrize("loader", [load_lcsc_pin_centers, load_lcsc_pin_geometries])
+def test_truncated_lcsc_archive_reports_explicit_structure_error(
+    tmp_path: Path, loader: object
+) -> None:
+    path = tmp_path / "truncated.json"
+    path.write_text('{"response":{"result":{"packageDetail":', encoding="utf-8")
+    with pytest.raises(
+        FabOutputError,
+        match=r"archived LCSC response lacks packageDetail/dataStr/shape",
+    ):
+        loader(path)  # type: ignore[operator]

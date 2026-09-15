@@ -8,7 +8,7 @@ import shutil
 from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 from acd.core.cpl_orientation import cpl_evidence_attrs, cpl_orientation_attrs
 from acd.core.decoupling_placement import (
@@ -18,6 +18,7 @@ from acd.core.decoupling_placement import (
     solve_decoupling_placements,
 )
 from acd.core.electrical import GraphExtractionError
+from acd.core.evidence_declarations import check_cpl_rotation_record
 from acd.core.firmware_capability import (
     FirmwareCapabilityContractError,
     load_firmware_capability_registry,
@@ -31,6 +32,7 @@ from acd.core.library_assets import (
     materialize_library_assets,
     verify_materialized_library_assets,
 )
+from acd.core.naming import artifact_prefix
 from acd.core.part_selection import PartSelectionError, select_part
 from acd.core.pin_functions import pin_function_attrs
 from acd.core.rationale import (
@@ -83,6 +85,7 @@ def _write_atomic(path: Path, content: str) -> None:
 def _decision_kind(kind: str) -> DecisionKind:
     mapping: dict[str, DecisionKind] = {
         "electrical.board": "stackup",
+        "electrical.stackup": "stackup",
         "electrical.component": "part_selection",
         "electrical.net": "net_class",
         "firmware.module": "firmware_pin",
@@ -96,6 +99,7 @@ def _decision_kind(kind: str) -> DecisionKind:
         "mechanical.board_edge_overhang": "mechanical",
         "mechanical.enclosure": "mechanical",
         "safety.boundary": "safety_scope",
+        "safety.redundant_group": "net_class",
         "mechanical.silk_text": "silkscreen",
         "mechanical.silk_graphic": "silkscreen",
         "fab.order_intent": "fab_process",
@@ -710,12 +714,87 @@ def _copy_declared_overlays(graph: DesignGraph, spec_dir: Path | None, out_dir: 
         shutil.copyfile(source, destination)
 
 
+def copy_cpl_evidence(
+    graph: DesignGraph, source_dir: Path | None, out_dir: Path
+) -> None:
+    """Copy validated measured CPL records into the generated fixture."""
+    if source_dir is None:
+        return
+    if not source_dir.is_dir():
+        raise FixtureBuilderError(f"CPL evidence directory is missing: {source_dir}")
+    declared: dict[str, str | None] = {}
+    for node in graph.nodes:
+        if (
+            node.kind == "electrical.component"
+            and node.attrs.get("cpl_rotation_evidence_basis") == "confirmed"
+        ):
+            refdes_value = node.attrs.get("refdes")
+            refdes = refdes_value if isinstance(refdes_value, str) else node.id
+            lcsc_value = node.attrs.get("lcsc")
+            declared[refdes] = lcsc_value if isinstance(lcsc_value, str) else None
+    if not declared:
+        raise FixtureBuilderError(
+            "--cpl-evidence-dir was supplied but the graph declares no "
+            "confirmed CPL orientation records"
+        )
+    records: dict[str, Path] = {}
+    for source in sorted(source_dir.glob("*.json")):
+        try:
+            document = json.loads(source.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise FixtureBuilderError(
+                f"CPL evidence record is unreadable: {source}: {exc}"
+            ) from exc
+        if not isinstance(document, dict):
+            raise FixtureBuilderError(f"CPL evidence record is not an object: {source}")
+        typed_document = cast(dict[str, object], document)
+        refdes = typed_document.get("refdes")
+        if not isinstance(refdes, str) or refdes not in declared:
+            raise FixtureBuilderError(
+                f"CPL evidence record {source} has unknown refdes {refdes!r}"
+            )
+        revision = typed_document.get("revision")
+        if revision is not None and revision != graph.revision:
+            raise FixtureBuilderError(
+                f"{source}: archived CPL revision {revision!r} does not match "
+                f"fixture revision {graph.revision!r}"
+            )
+        reason = check_cpl_rotation_record(
+            source, refdes=refdes, lcsc=declared[refdes]
+        )
+        if reason is not None:
+            raise FixtureBuilderError(f"{source}: invalid CPL evidence: {reason}")
+        if refdes in records:
+            raise FixtureBuilderError(f"duplicate CPL evidence refdes: {refdes}")
+        records[refdes] = source
+    missing = sorted(set(declared) - set(records))
+    if missing:
+        rendered = ", ".join(
+            f"{refdes} (LCSC {declared[refdes] or '<unknown>'})"
+            for refdes in missing
+        )
+        raise FixtureBuilderError(
+            f"CPL evidence directory is missing confirmed records: {rendered}"
+        )
+    destination_dir = (
+        out_dir
+        / "evidence"
+        / f"{artifact_prefix(graph.graph_id)}-cpl-orientation"
+    )
+    destination_dir.mkdir(parents=True, exist_ok=True)
+    for refdes in sorted(records):
+        destination = destination_dir / f"{refdes}.json"
+        if records[refdes].resolve() != destination.resolve():
+            shutil.copyfile(records[refdes], destination)
+
+
 def build_design_fixture(
     spec: DesignFixtureSpec,
     out_dir: Path,
     *,
     overwrite: bool = False,
     spec_dir: Path | None = None,
+    cpl_evidence_dir: Path | None = None,
 ) -> DesignGraph:
     """Build and atomically write graph, requirements, and rationale documents."""
     registry = load_functional_block_registry()
@@ -766,6 +845,7 @@ def build_design_fixture(
     _write_atomic(out_dir / "requirements.json", requirements_content)
     _write_atomic(out_dir / "rationale.json", rationale_content)
     _copy_declared_overlays(graph, spec_dir, out_dir)
+    copy_cpl_evidence(graph, cpl_evidence_dir, out_dir)
     try:
         verify_materialized_library_assets(graph, out_dir)
     except LibraryAssetError as exc:

@@ -1,0 +1,38 @@
+{
+  "artifact_kind": "tolerance_table",
+  "entries": [
+    {
+      "aging_pct": {
+        "horizon_years": 10.0,
+        "value": 0.5
+      },
+      "initial_tolerance_pct": 1.0,
+      "part_class_or_refdes": "R",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "GD1 resistor tolerance declaration"
+      },
+      "temp_coeff_ppm_per_c": 100.0
+    },
+    {
+      "initial_tolerance_pct": 10.0,
+      "part_class_or_refdes": "C",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "GD1 X7R capacitor tolerance declaration"
+      },
+      "temp_coeff_ppm_per_c": 6000.0
+    },
+    {
+      "initial_tolerance_pct": 2.0,
+      "part_class_or_refdes": "ldo",
+      "source": {
+        "kind": "manual_declaration",
+        "reference": "AMS1117-3.3 declared output tolerance"
+      },
+      "temp_coeff_ppm_per_c": 200.0
+    }
+  ],
+  "schema_version": "0.1",
+  "table_id": "gd1-tolerances-2026-09"
+}

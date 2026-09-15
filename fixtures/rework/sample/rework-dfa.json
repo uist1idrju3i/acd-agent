@@ -1,0 +1,24 @@
+{
+  "artifact_kind": "rework_dfa",
+  "base_revision": "r1",
+  "assessments": [
+    {
+      "basis": "DFA review for the resistor assembly change.",
+      "enclosure_disassembly": "not_required",
+      "hand_solderable": "yes",
+      "operation_index": 0,
+      "tool_access": "yes"
+    },
+    {
+      "basis": "DFA review for the adjacent resistor assembly change.",
+      "enclosure_disassembly": "not_required",
+      "hand_solderable": "yes",
+      "operation_index": 1,
+      "tool_access": "yes"
+    }
+  ],
+  "graph_id": "golden-design-1",
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "workaround_id": "WA-001"
+}

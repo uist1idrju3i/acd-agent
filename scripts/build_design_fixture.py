@@ -21,6 +21,12 @@ def main() -> int:
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument(
+        "--cpl-evidence-dir",
+        type=Path,
+        default=None,
+        help="directory of measured CPL records produced by the LCSC fetch script",
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help=(
@@ -32,14 +38,22 @@ def main() -> int:
     try:
         spec = DesignFixtureSpec.model_validate(json.loads(args.spec.read_text(encoding="utf-8")))
         graph = build_design_fixture(
-            spec, args.out, overwrite=args.overwrite, spec_dir=args.spec.parent
+            spec,
+            args.out,
+            overwrite=args.overwrite,
+            spec_dir=args.spec.parent,
+            cpl_evidence_dir=args.cpl_evidence_dir,
         )
     except (OSError, json.JSONDecodeError, TypeError, ValueError, FixtureBuilderError) as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False))
         return 2
     # Diagnostic L3 preflight: names the declarations the spec still lacks so
     # the design input can be completed before the loop stops at its entry.
-    preflight = run_lane_preflight(graph)
+    preflight = run_lane_preflight(
+        graph,
+        root=Path.cwd(),
+        evidence_root=args.out,
+    )
     report: dict[str, object] = {
         "status": "written",
         "graph_id": graph.graph_id,
@@ -52,6 +66,9 @@ def main() -> int:
             item.model_dump(mode="json") for item in missing_declarations(preflight)
         ]
         report["next_step_action"] = missing_declaration_action(preflight)
+    report["producer_gaps"] = [
+        item.model_dump(mode="json") for item in preflight.producer_gaps
+    ]
     print(
         json.dumps(
             report,

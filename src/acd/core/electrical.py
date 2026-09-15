@@ -7,6 +7,8 @@ graph semantics stay in core. Missing or malformed attributes fail closed.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from itertools import pairwise
+from typing import cast
 
 from acd.schema.design_graph import DesignGraph, GraphNode
 
@@ -64,6 +66,8 @@ class ComponentView:
     cpl_rotation_unverified_pads: tuple[str, ...] = ()
     cpl_rotation_unverified_pad_reason: str | None = None
     cpl_rotation_unverified_pad_source: str | None = None
+    esd_protection: bool = False
+    test_point: bool = False
     cpl_rotation_pin_functions: dict[str, str] = field(
         default_factory=lambda: dict[str, str]()
     )
@@ -84,6 +88,14 @@ class NetView:
     manufacturing_margin_mm: float | None
     power_rail: bool = False
     power_source_pin: str | None = None
+    differential_pair: str | None = None
+    differential_polarity: str | None = None
+    target_impedance_ohm: float | None = None
+    impedance_tolerance_pct: float | None = None
+    impedance_reference_layer: str | None = None
+    impedance_trace_width_mm: float | None = None
+    impedance_gap_mm: float | None = None
+    impedance_routing_layer: str | None = None
 
 
 @dataclass(frozen=True)
@@ -135,11 +147,30 @@ class BoardView:
 
 
 @dataclass(frozen=True)
+class StackupLayer:
+    name: str
+    kind: str
+    thickness_mm: float
+    copper_um: int | None = None
+    material: str | None = None
+    dielectric_constant: float | None = None
+
+
+@dataclass(frozen=True)
+class StackupView:
+    node_id: str
+    board_id: str
+    layers: tuple[StackupLayer, ...]
+    finished_thickness_mm: float
+
+
+@dataclass(frozen=True)
 class ElectricalLane:
     components: tuple[ComponentView, ...]
     nets: tuple[NetView, ...]
     pins: tuple[PinView, ...]
     board: BoardView
+    stackup: StackupView | None = None
 
     def component_by_id(self, node_id: str) -> ComponentView:
         for comp in self.components:
@@ -240,6 +271,8 @@ def _optional_string_map(node: GraphNode, key: str) -> dict[str, str]:
         raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string map list")
     result: dict[str, str] = {}
     for item in value:
+        if not isinstance(item, str):
+            raise GraphExtractionError(f"node {node.id!r}: attr {key!r} has invalid entry")
         parts = item.split("=", 1)
         if len(parts) != 2 or not all(parts):
             raise GraphExtractionError(f"node {node.id!r}: attr {key!r} has invalid entry")
@@ -253,7 +286,128 @@ def _optional_string_list(node: GraphNode, key: str) -> list[str]:
         return []
     if not isinstance(value, list):
         raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string list")
+    if not all(isinstance(item, str) for item in value):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string list")
+    return cast(list[str], value)
+
+
+def _optional_positive_number(node: GraphNode, key: str) -> float | None:
+    value = _optional_number(node, key)
+    if value is not None and value <= 0:
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be positive")
     return value
+
+
+def _stackup(graph: DesignGraph, board: BoardView) -> StackupView | None:
+    nodes = tuple(node for node in graph.nodes if node.kind == "electrical.stackup")
+    if not nodes:
+        return None
+    if len(nodes) != 1:
+        raise GraphExtractionError("expected at most one electrical.stackup node")
+    node = nodes[0]
+    board_id = node.attrs.get("board_id")
+    board_dependencies = [
+        dependency
+        for dependency in node.depends_on
+        if dependency.startswith("board.")
+    ]
+    if board_id is not None and board_id != board.node_id:
+        raise GraphExtractionError(f"stackup {node.id!r} references an unknown board")
+    if board_dependencies and board_dependencies != [board.node_id]:
+        raise GraphExtractionError(f"stackup {node.id!r} has an ambiguous board relation")
+    if board.node_id not in node.depends_on and board_id is None:
+        raise GraphExtractionError(
+            f"stackup {node.id!r} must reference the board by edge or board_id"
+        )
+    raw_layers = node.attrs.get("layers")
+    if not isinstance(raw_layers, list) or not raw_layers:
+        raise GraphExtractionError(f"node {node.id!r}: layers must be a non-empty list")
+    layers: list[StackupLayer] = []
+    names: set[str] = set()
+    for index, raw in enumerate(raw_layers):
+        if not isinstance(raw, dict):
+            raise GraphExtractionError(f"stackup layer {index} must be an object")
+        raw = cast(dict[str, str | float | int | bool | None], raw)
+        name = raw.get("name")
+        kind = raw.get("kind")
+        thickness = raw.get("thickness_mm")
+        if not isinstance(name, str) or not name or name in names:
+            raise GraphExtractionError("stackup copper layer names must be unique")
+        if kind not in {"signal", "plane", "dielectric"}:
+            raise GraphExtractionError(f"stackup layer {name!r} has invalid kind")
+        if isinstance(thickness, bool) or not isinstance(thickness, int | float) or thickness <= 0:
+            raise GraphExtractionError(f"stackup layer {name!r} has invalid thickness_mm")
+        copper = raw.get("copper_um")
+        material = raw.get("material")
+        dielectric = raw.get("dielectric_constant")
+        if kind == "dielectric":
+            if copper is not None:
+                raise GraphExtractionError(
+                    f"dielectric layer {name!r} cannot declare copper_um"
+                )
+            if material is not None and (not isinstance(material, str) or not material):
+                raise GraphExtractionError(f"dielectric layer {name!r} has invalid material")
+            if dielectric is not None and (
+                isinstance(dielectric, bool)
+                or not isinstance(dielectric, int | float)
+                or dielectric <= 0
+            ):
+                raise GraphExtractionError(
+                    f"dielectric layer {name!r} has invalid dielectric_constant"
+                )
+        else:
+            if (
+                isinstance(copper, bool)
+                or not isinstance(copper, int)
+                or copper <= 0
+            ):
+                raise GraphExtractionError(
+                    f"copper layer {name!r} requires positive integer copper_um"
+                )
+            if material is not None:
+                raise GraphExtractionError(f"copper layer {name!r} cannot declare material")
+            if dielectric is not None:
+                raise GraphExtractionError(
+                    f"copper layer {name!r} cannot declare dielectric_constant"
+                )
+        names.add(name)
+        layers.append(
+            StackupLayer(
+                name=name,
+                kind=kind,
+                thickness_mm=float(thickness),
+                copper_um=copper if isinstance(copper, int) else None,
+                material=material if isinstance(material, str) else None,
+                dielectric_constant=float(dielectric)
+                if isinstance(dielectric, int | float) and not isinstance(dielectric, bool)
+                else None,
+            )
+        )
+    if layers[0].kind == "dielectric" or layers[-1].kind == "dielectric":
+        raise GraphExtractionError("stackup must start and end with copper layers")
+    copper_layers = [layer for layer in layers if layer.kind != "dielectric"]
+    if not copper_layers or copper_layers[0].name != "F.Cu" or copper_layers[-1].name != "B.Cu":
+        raise GraphExtractionError("stackup copper layers must start at F.Cu and end at B.Cu")
+    expected_inner = [f"In{index}.Cu" for index in range(1, len(copper_layers) - 1)]
+    if [layer.name for layer in copper_layers[1:-1]] != expected_inner:
+        raise GraphExtractionError("stackup inner copper layers must be In<n>.Cu in order")
+    for left, right in pairwise(layers):
+        if left.kind == right.kind:
+            raise GraphExtractionError("stackup copper layers must alternate with dielectric")
+    if len(copper_layers) != board.layers:
+        raise GraphExtractionError("stackup copper layer count does not match board.layers")
+    if not set(board.ground_plane_layers) <= {layer.name for layer in copper_layers}:
+        raise GraphExtractionError("ground_plane_layers contains a layer absent from stackup")
+    finished = _float_attr(node, "finished_thickness_mm")
+    total = sum(layer.thickness_mm for layer in layers)
+    if abs(total - finished) > finished * 0.10:
+        raise GraphExtractionError("stackup thickness sum is outside finished thickness tolerance")
+    return StackupView(
+        node_id=node.id,
+        board_id=board.node_id,
+        layers=tuple(layers),
+        finished_thickness_mm=finished,
+    )
 
 
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
@@ -339,6 +493,8 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     cpl_rotation_unverified_pad_source=_optional_str(
                         node, "cpl_rotation_unverified_pad_source"
                     ),
+                    esd_protection=_optional_bool(node, "esd_protection", False),
+                    test_point=_optional_bool(node, "test_point", False),
                     cpl_rotation_pin_functions=_optional_string_map(
                         node, "cpl_rotation_pin_functions"
                     ),
@@ -364,6 +520,22 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ),
                     power_rail=_optional_bool(node, "power_rail", False),
                     power_source_pin=_optional_str(node, "power_source_pin"),
+                    differential_pair=_optional_str(node, "differential_pair"),
+                    differential_polarity=_optional_str(node, "differential_polarity"),
+                    target_impedance_ohm=_optional_positive_number(
+                        node, "target_impedance_ohm"
+                    ),
+                    impedance_tolerance_pct=_optional_positive_number(
+                        node, "impedance_tolerance_pct"
+                    ),
+                    impedance_reference_layer=_optional_str(
+                        node, "impedance_reference_layer"
+                    ),
+                    impedance_trace_width_mm=_optional_positive_number(
+                        node, "impedance_trace_width_mm"
+                    ),
+                    impedance_gap_mm=_optional_positive_number(node, "impedance_gap_mm"),
+                    impedance_routing_layer=_optional_str(node, "impedance_routing_layer"),
                     width_basis=_str_attr(node, "width_basis"),
                     current_max_a=_optional_number(node, "current_max_a"),
                     width_basis_source=_optional_str(node, "width_basis_source"),
@@ -375,6 +547,11 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ),
                 )
             )
+            polarity = nets[-1].differential_polarity
+            if polarity is not None and polarity not in {"p", "n"}:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: differential_polarity must be 'p' or 'n'"
+                )
         elif node.kind == "electrical.pin":
             net_value = node.attrs.get("net")
             if net_value is not None and not isinstance(net_value, str):
@@ -473,6 +650,12 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
             raise GraphExtractionError(
                 f"pin {pin.node_id!r} has no net and is not marked no_connect (unknown state)"
             )
+    board = boards[0]
+    stackup = _stackup(graph, board)
     return ElectricalLane(
-        components=tuple(components), nets=tuple(nets), pins=tuple(pins), board=boards[0]
+        components=tuple(components),
+        nets=tuple(nets),
+        pins=tuple(pins),
+        board=board,
+        stackup=stackup,
     )

@@ -91,6 +91,9 @@ executionEnvironments = [
     { root = "plugins/acd/skills/acd-reliability-review", extraPaths = [
         "plugins/acd/skills/acd-reliability-review/scripts",
     ] },
+    { root = "plugins/acd/skills/acd-dfa-review", extraPaths = [
+        "plugins/acd/skills/acd-dfa-review/scripts",
+    ] },
     { root = "plugins/acd/skills/acd-placement-search", extraPaths = [
         "plugins/acd/skills/acd-placement-search/scripts",
     ] },
@@ -103,12 +106,16 @@ executionEnvironments = [
     { root = "plugins/acd/skills/acd-theme-song", extraPaths = [
         "plugins/acd/skills/acd-theme-song/scripts",
     ] },
+    { root = "plugins/acd/skills/acd-workaround", extraPaths = [
+        "plugins/acd/skills/acd-workaround/scripts",
+    ] },
     { root = "plugins/acd/skills/acd-design-knowledge", extraPaths = [
         "plugins/acd/skills/acd-design-knowledge/scripts",
     ] },
     { root = "scripts", extraPaths = [
         ".",
         "src",
+        "plugins/acd/skills/acd-firmware-esp32c3/scripts",
         "vendor/software-agent-sdk/openhands-workspace",
     ] },
     { root = ".", extraPaths = [

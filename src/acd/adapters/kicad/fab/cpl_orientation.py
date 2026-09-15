@@ -180,17 +180,54 @@ def _parse_lcsc_pin_shape(shape: str) -> tuple[str, str, float, float] | None:
         return None
 
 
+def _load_lcsc_shapes(path: Path) -> tuple[object, ...]:
+    """Load package shapes while normalizing archived-response structure errors."""
+    try:
+        document = cast(Mapping[str, object], json.loads(path.read_text(encoding="utf-8")))
+        response = cast(Mapping[str, object], document["response"])
+        result = cast(Mapping[str, object], response["result"])
+        package_detail = cast(Mapping[str, object], result["packageDetail"])
+        data_str = cast(Mapping[str, object], package_detail["dataStr"])
+        package_shapes = data_str["shape"]
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise FabOutputError(
+            f"{path}: archived LCSC response lacks packageDetail/dataStr/shape"
+        ) from exc
+    if not isinstance(package_shapes, list):
+        raise FabOutputError(
+            f"{path}: archived LCSC response lacks packageDetail/dataStr/shape"
+        )
+    return tuple(cast(list[object], package_shapes))
+
+
+def _load_lcsc_fallback_shapes(path: Path) -> tuple[object, ...]:
+    try:
+        document = cast(Mapping[str, object], json.loads(path.read_text(encoding="utf-8")))
+        response = cast(Mapping[str, object], document["response"])
+        result = cast(Mapping[str, object], response["result"])
+        data_str = cast(Mapping[str, object], result["dataStr"])
+        shapes = data_str["shape"]
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise FabOutputError(
+            f"{path}: archived LCSC response lacks packageDetail/dataStr/shape"
+        ) from exc
+    if not isinstance(shapes, list):
+        raise FabOutputError(
+            f"{path}: archived LCSC response lacks packageDetail/dataStr/shape"
+        )
+    return tuple(cast(list[object], shapes))
+
+
 def load_lcsc_pin_centers(path: Path) -> tuple[tuple[str, str, float, float], ...]:
     """Read pin-function pad centers from an archived EasyEDA package response."""
-    document = json.loads(path.read_text(encoding="utf-8"))
-    package_shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
+    package_shapes = _load_lcsc_shapes(path)
     pad_shapes = [_parse_lcsc_pad_shape(str(shape)) for shape in package_shapes]
     pad_centers = {
         number: (x, y) for item in pad_shapes if item is not None for number, x, y in [item]
     }
     pin_shapes = package_shapes
     if not any(str(shape).startswith("P~") for shape in pin_shapes):
-        pin_shapes = document["response"]["result"]["dataStr"]["shape"]
+        pin_shapes = _load_lcsc_fallback_shapes(path)
     pins = [_parse_lcsc_pin_shape(str(shape)) for shape in pin_shapes]
     parsed = tuple(
         (number, function, pad_centers[number][0], pad_centers[number][1])
@@ -208,8 +245,7 @@ def load_lcsc_pin_geometries(
     path: Path,
 ) -> tuple[tuple[str, str, float, float, float, float], ...]:
     """Read pin functions and pad geometry from an archived EasyEDA response."""
-    document = json.loads(path.read_text(encoding="utf-8"))
-    package_shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
+    package_shapes = _load_lcsc_shapes(path)
     pad_geometries = [_parse_lcsc_pad_geometry(str(shape)) for shape in package_shapes]
     pads = {
         number: (x, y, width, height)
@@ -219,7 +255,7 @@ def load_lcsc_pin_geometries(
     }
     pin_shapes = package_shapes
     if not any(str(shape).startswith("P~") for shape in pin_shapes):
-        pin_shapes = document["response"]["result"]["dataStr"]["shape"]
+        pin_shapes = _load_lcsc_fallback_shapes(path)
     parsed = tuple(
         (number, function, *pads[number])
         for item in [_parse_lcsc_pin_shape(str(shape)) for shape in pin_shapes]

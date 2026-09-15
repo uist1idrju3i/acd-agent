@@ -6,6 +6,16 @@ from acd.core.cad_normalize import (
     normalize_step,
     normalize_stl,
 )
+from acd.core.defect_records import (
+    DefectCheckResult,
+    DefectFinding,
+    DefectRecordError,
+    LoadedDefectDocument,
+    check_defect_records,
+    compute_horizontal_scope,
+    load_defect_document,
+)
+from acd.core.eco_gate import MINIMUM_GATES, EcoGateError, evaluate_eco
 from acd.core.fab import (
     FabOrderIntentView,
     FabProfile,
@@ -22,6 +32,12 @@ from acd.core.feedback import (
     FeedbackError,
     propose_input_feedback,
     validate_applied_feedback,
+)
+from acd.core.fem import (
+    FemAnalysisError,
+    evaluate_fem,
+    generate_ccx_input,
+    run_ccx,
 )
 from acd.core.firmware import (
     FunctionalRunError,
@@ -45,11 +61,14 @@ from acd.core.functional_block_entry import (
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
+    block_path,
     declared_functional_blocks,
     load_functional_block_registry,
     required_predicate_names,
     validate_predicate_coverage,
 )
+from acd.core.gate_evidence_run import external_gate_run
+from acd.core.graph_diff import GraphDiffError, build_graph_diff, unknown_graph_diff
 from acd.core.mechanical import REQUIRED_MECHANICAL_ATTRS
 from acd.core.mechanical_preflight import (
     MechanicalPreflightReport,
@@ -73,6 +92,7 @@ from acd.core.order_total import (
     order_total_result_from_document,
     order_total_result_to_document,
 )
+from acd.core.pdn import analyze_pdn, pdn_markdown
 from acd.core.quote import (
     FixtureQuoteProvider,
     QuoteFeeSet,
@@ -98,6 +118,15 @@ from acd.core.receipt import (
     reconcile_files,
     reconcile_receipt,
 )
+from acd.core.rework_diff import (
+    DerivedGraph,
+    LoadedReworkDiff,
+    ReworkDiffError,
+    apply_rework_diff,
+    load_rework_diff,
+    safety_related_node_ids,
+    write_derived_graph,
+)
 from acd.core.side_effect_journal import (
     JournalOrderReconstruction,
     SideEffectJournalError,
@@ -106,17 +135,30 @@ from acd.core.side_effect_journal import (
     read_journal,
     reconstruct_order,
 )
+from acd.core.spice import evaluate_spice, extract_power_netlist, run_ngspice
+from acd.core.thermal import estimate_thermal, thermal_markdown
+from acd.core.workaround_ledger import (
+    WorkaroundLedgerError,
+    evaluate_workaround_retirement,
+)
 
 __all__ = [
+    "MINIMUM_GATES",
     "RATIONALE_EXEMPT_ATTRS",
     "REQUIRED_MECHANICAL_ATTRS",
     "REQUIRED_RATIONALE_ATTRS",
     "CadNormalizationError",
     "DeclaredProviderUnavailable",
+    "DefectCheckResult",
+    "DefectFinding",
+    "DefectRecordError",
+    "DerivedGraph",
+    "EcoGateError",
     "FabOrderIntentView",
     "FabProfile",
     "FabProfileRegistry",
     "FeedbackError",
+    "FemAnalysisError",
     "FirmwareCapabilityContractError",
     "FirmwareCapabilityRegistry",
     "FirmwareConsistencyReport",
@@ -125,7 +167,10 @@ __all__ = [
     "FunctionalBlockEntryResult",
     "FunctionalBlockRegistry",
     "FunctionalRunError",
+    "GraphDiffError",
     "JournalOrderReconstruction",
+    "LoadedDefectDocument",
+    "LoadedReworkDiff",
     "MechanicalPreflightReport",
     "OrderSubmissionProvider",
     "OrderSubtotal",
@@ -140,33 +185,52 @@ __all__ = [
     "ReceiptReconciliationError",
     "ReconciliationReport",
     "RequirementFinding",
+    "ReworkDiffError",
     "SideEffectJournalError",
+    "WorkaroundLedgerError",
     "aggregate_order_total",
+    "analyze_pdn",
     "append_post_order",
     "append_pre_order",
+    "apply_rework_diff",
+    "block_path",
     "build_dry_run_order_payload",
+    "build_graph_diff",
     "build_order_submission_record",
     "build_receipt_evidence",
+    "check_defect_records",
     "check_firmware_graph_consistency",
     "check_mechanical_preflight",
     "check_rationale_coverage",
+    "compute_horizontal_scope",
     "declared_functional_blocks",
+    "estimate_thermal",
+    "evaluate_eco",
+    "evaluate_fem",
     "evaluate_firmware_graph_consistency",
     "evaluate_functional_run",
+    "evaluate_spice",
+    "evaluate_workaround_retirement",
+    "external_gate_run",
     "extract_fab_intent",
+    "extract_power_netlist",
+    "generate_ccx_input",
     "load_and_evaluate_functional_run",
+    "load_defect_document",
     "load_fab_profile",
     "load_fab_profile_by_id",
     "load_fab_profile_registry",
     "load_firmware_capability_registry",
     "load_functional_block_registry",
     "load_quote",
+    "load_rework_diff",
     "normalize_3mf",
     "normalize_step",
     "normalize_stl",
     "order_total_breakdown_hash",
     "order_total_result_from_document",
     "order_total_result_to_document",
+    "pdn_markdown",
     "propose_input_feedback",
     "quote_provider_from_config",
     "read_journal",
@@ -179,11 +243,17 @@ __all__ = [
     "required_predicate_names",
     "resolve_fab_profile_path",
     "resolve_order_provider",
+    "run_ccx",
+    "run_ngspice",
+    "safety_related_node_ids",
     "subject_hash_for",
     "summarize_rationale_coverage",
+    "thermal_markdown",
+    "unknown_graph_diff",
     "validate_allowances_against_profile",
     "validate_applied_feedback",
     "validate_predicate_coverage",
+    "write_derived_graph",
 ]
 
 
