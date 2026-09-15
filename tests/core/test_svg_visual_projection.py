@@ -175,10 +175,12 @@ def _layer_svg(
     return (
         f'<svg width="240mm" height="100mm" viewBox="0 0 240 100">'
         f"<title>{outer_title}</title>"
+        '<g id="layer-view-frame" data-display-scale="7.0" '
+        'transform="translate(10 20) scale(7.0) translate(-10 -20)">'
         '<svg id="layer-view" width="30mm" height="25mm" '
         'viewBox="0.0000 0.0000 30.0000 25.0000">'
         f"<title>{nested_title}</title><desc>KiCad E.D.A. 10.0.5</desc>"
-        "</svg></svg>"
+        "</svg></g></svg>"
     ).encode()
 
 

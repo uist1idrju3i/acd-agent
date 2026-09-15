@@ -10,8 +10,9 @@
 ## 現在地
 
 OpenHands plugin、11 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefinition、
-GD1基板・筐体・FW pipeline、SDK hooksによるfail-closed境界を提供する。マイルストーン1〜8、
-9.1〜9.7、11.5、12、14.1〜14.15、14.19、15.1〜15.20、20.1〜20.2は達成済みであり、完了条件と実装記録は
+GD1基板・筐体・FW pipeline、SDK hooksによるfail-closed境界を提供する。マイルストーン1〜4、
+9〜13、14.1〜14.15、14.19〜14.21、14.23〜14.25、15.1〜15.20、16.1・16.3〜16.6、17、18.1・18.3〜18.5、
+19、20.1・20.2・20.4、21は達成済みであり、完了条件と実装記録は
 [`roadmap-completed.md`](roadmap-completed.md)を正とする。
 
 決定論的ゲートのauthoritative Evidenceはdigest固定container実行だけが生成する。
@@ -41,12 +42,18 @@ GD1に限れば要件検証から製造提出判定・authoritative Evidence検�
 これらはV-1〜V-10として14.20・14.21・15.17〜15.19で扱う。実測で全laneを通過した設計は
 GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判定はW-1〜W-4（14.21）で行う。
 
-残る未了は、14.16のR-3（FW復帰の実測記録）、14.17のS-3
-（ambient install経路の配布形態）と復帰成立実行の実測記録、14.18の復帰成立runの
-wall-clock記録、15.21、および計画段階のマイルストーン
-10、11.1〜11.4、13、16.1〜16.6、17〜21である。11.4aと14.21は達成済みである。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
-未実装であり、8.5の電気視覚照合が図枠のtitle blockを読むため現行exportを維持し、
-極小表示の所見は20.4の可読性検査で扱う。
+残る未了は次のとおりである。実機実測待ちは、5（GD1実機の`measured` Evidence）、
+14.16のR-3（FW復帰の実測記録）、14.17の復帰成立実行の実測記録、14.18の復帰成立runの
+wall-clock記録、14.22の残（実CPL record取得とcontainer runによるend-to-end合格の実証）
+である。15.21（代替routerの単独実測）はOrthoRouteを実測のうえ不採用として閉じた。計画段階のフェーズは16.2、
+18.2、20.3、20.5である。7の実発注と
+実supplier接続は本範囲外である。KiCad由来SVGは既に`--page-size-mode 2`で
+board-only exportしており、現在はacd-svg wrapperがlayer viewを文書幅へzoomし、
+寸法とscale barをtrue-mmで表示する。8.5はboard-only modeでもKiCadが出力する
+`File:`／`KiCad E.D.A.` title-block textを読む（digest-locked imageのkicad-cli 10.0.6で
+確認した29.9974×24.9936 mm出力にも`File: golden-design-1.kicad_pcb`と
+`KiCad E.D.A. 10.0.6`が残る）。回路図SVGはtitle blockを8.5が読むためsheetを維持し、
+`select_paper`が既にsheetをcontentへfitする。
 
 ## 現行実装計画
 
@@ -67,18 +74,18 @@ wall-clock記録、15.21、および計画段階のマイルストーン
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 7.5 dry-run・拒否境界まで達成（実発注は本範囲外） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.6実装済み、8.5はFW lane照合まで実装済み。8.4のvision経路はdesign loopの必須段（`visual-review-manifest`）へ接続済み |
 | 9 | 生成文書lane | 設計入力、投影、ゲート結果、Evidenceから再現可能な製品・品質・レビュー文書を生成する | 9.1〜9.7実装済み |
-| 10 | シミュレーション解析lane | 電気・機械・FWのprovisional解析を追加し、決定論的ゲートを置き換えずに結果を文書へ統合する | 計画 |
-| 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.1〜11.3・11.4a・11.5達成（11.4は計画） |
+| 10 | シミュレーション解析lane | 電気・機械・FWのprovisional解析を追加し、決定論的ゲートを置き換えずに結果を文書へ統合する | 10.1〜10.6達成 |
+| 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.1〜11.5達成 |
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
-| 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
-| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19・14.25は達成。14.16はR-1・R-2を達成、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証） |
-| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.20達成（15.21は計画） |
-| 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1〜16.6は計画 |
-| 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
-| 18 | 量産・出荷準備lane | ブリングアップ、panelization、DFA、出荷検査文書と検査FWを整備する | 計画 |
+| 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 13.1〜13.6達成 |
+| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.17・14.19〜14.21・14.23〜14.25は達成。14.16はR-1・R-2を達成しR-3は実測待ち、14.17の復帰成立実行と14.18の実測記録は未了、14.22は部分達成） |
+| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.21達成（15.21は不採用で閉じた） |
+| 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1・16.3〜16.6達成（16.2は計画） |
+| 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 17.1〜17.4達成 |
+| 18 | 量産・出荷準備lane | ブリングアップ、panelization、DFA、出荷検査文書と検査FWを整備する | 18.1・18.3〜18.5達成（18.2は計画） |
 | 19 | FWセキュリティと検証拡張 | secure boot、暗号化、OTA、QEMUカバレッジと実機HILを拡張する | 19.1〜19.2達成 |
-| 20 | 改訂管理とレビュー運用 | ECO、graph差分、PR提示、視覚品質、トークン・コスト予算を運用する | 20.2・20.4達成（20.1・20.3・20.5は計画） |
-| 21 | 構想ブラッシュアップと分野横断の責務割当 | ものづくりアイデアを宣言contractとして受け取り、利用者との対話で洗練して要件へ確定し、機能の配置先を宣言と決定論的検査で割り当てる | 計画 |
+| 20 | 改訂管理とレビュー運用 | ECO、graph差分、PR提示、視覚品質、トークン・コスト予算を運用する | 20.1・20.2・20.4達成（20.3・20.5は計画） |
+| 21 | 構想ブラッシュアップと分野横断の責務割当 | ものづくりアイデアを宣言contractとして受け取り、利用者との対話で洗練して要件へ確定し、機能の配置先を宣言と決定論的検査で割り当てる | 21.1〜21.8達成 |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
@@ -220,7 +227,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.14 | 宣言経路解消後の実機実測で残った不足（O-1、O-2、O-4、O-5、O-9〜O-13） | O-1、O-2、O-4、O-5、O-9、O-10、O-11、O-12、O-13を達成。FWはcapability／device registryとgraph sequenceからpinとcodeを導出し、未宣言peripheralを生成しない。筐体laneは設計非依存entrypointと機械preflightを備え、機械ノード・属性・参照・rationale coverageを一括診断する。lane preflightは`declarations_complete`／`declarations_incomplete`とL3診断契約、checked／unchecked predicate集合を記録し、rationale stop hookは対象設計を決定論的に解決する。container起動前は物理メモリ（swapを加算しない）、MemAvailable、CPU、disk、JVM heapをfail-closedで検査し、FreeRoutingの最大heapをhost／container両経路で明示する。O-12の残項も達成し、`OrderScope`は`scripts/derive_order_scope.py`が設計fixtureとfab profile registry・`order-terms.json`宣言から決定論的に導出し、`QuoteRecord`は合成せずquote request宣言を出力する。O-3、O-6〜O-8の運用整備も15.14〜15.16で達成済み。判定と閾値は緩めず、timeout・unknown・未宣言を合格へ倒さない |
 | 14.15 | Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10） | 多コアVPS実測（2026-08-30）とその後の復帰経路のコード監査で残った不足を扱う。却下後に設計入力を決定論的に修正して反復する経路をend-to-endで閉じることが本フェーズの目的であり、Q-4（探索後のrationale更新）とQ-5（宣言された上書きによるfixture再生成）を前提として、Q-2・Q-3（会話経路からの起動とremediation由来の候補生成）、Q-1・Q-8（laneごとの復帰次元の宣言）、Q-6・Q-7・Q-9・Q-10（要件差分の拡張、bounded反復harnessの接続、診断入力の拡張、firmware capability registryへの宣言追加経路）へ広げる。設計側の不足としてP-2（初期配置のdecoupling制約）、観測側としてP-3（QEMU打ち切り表示）とP-4（FW laneのauthoritative Evidence）を含む。L1権限、閾値、fail-closed境界は変更しない |
 | 14.16 | FW lane専用の候補生成と配置テストの環境依存解消（R-1〜R-3） | FW固有remediationだけを入力とする候補生成器、footprint library非依存の配置回帰、FW復帰の実測記録を扱う。R-1・R-2は達成（firmware専用候補生成器とdeclaration_required契約、decoupling-placement-minimal fixtureとcontainer実行marker）、R-3は未了 |
-| 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、宣言toolの不在検出、library資材宣言の統一、進行表示を扱う。S-3の配布形態と復帰成立実行の実測は未了 |
+| 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、ambient MCP配布、library資材宣言の統一、進行表示を扱う。復帰成立実行の実測は未了 |
 | 14.18 | 復帰候補評価からL3観測の混入を除く（T-1〜T-5） | 候補評価の独立timing記録、複数候補の列挙、宣言tool不在のdrift guard、L3 digestの統合、transport失敗時の出力保持を扱う。T-1〜T-5は実装済みで、復帰成立runの実測記録は未取得 |
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
 | 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-1、V-3、V-5〜V-7、V-9を達成。入力・出所と実装を固定し、診断・報告はL3に留め、判定権限はL1ゲートのままとする |
@@ -268,7 +275,7 @@ pinned footprint library非依存で回帰し、実libraryを要するGD1 case�
 `rationale coverage failed: missing=18, stale=18`で却下され、`winner_written=false`、
 `termination_reason=fail_closed_stop`で復帰が成立しない。さらに新規specからのfixture生成は
 部品catalogのlibrary資材宣言と生成fixtureの不一致により最初のstageで停止し、GUI配布形態では
-`acd_*` ToolDefinitionが会話へ登録されないためcommandの宣言toolへ到達できない。ゲートは
+pluginの`.mcp.json` stdio serverが`acd_*`を配布する。ゲートは
 いずれも正しく閉じており、緩和ではなく経路の是正で解くフェーズである。
 
 | 要素 | 完了条件 |
@@ -279,10 +286,10 @@ pinned footprint library非依存で回帰し、実libraryを要するGD1 case�
 | negative・fail-closed | rationale更新不能、graph ID／revisionの不一致、正規化hashの不変、候補予算・round上限の超過、宣言と生成が食い違うlibrary資材、宣言toolの不在はいずれもfail-closedで停止する。候補report、進行表示、GUI観測はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
 | 再現性 | 候補ごとの評価入力hash、rationale更新結果、予算消費、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
 
-S-1とS-4は単体成立の前提であり先に扱う。S-3は配布・登録経路の定義であり、実装だけでは
-閉じない。S-2とS-5は予算と進行の可視化である。
+S-1とS-4は単体成立の前提であり先に扱う。S-3はpluginの`.mcp.json` stdio serverで
+ambient会話へ配布する。S-2とS-5は予算と進行の可視化である。
 
-S-1、S-2、S-4、S-5とS-3のdrift guard（`scripts/verify_acd_tool_registration.py --command`）は実装済みで、記録は[`roadmap-completed.md`](roadmap-completed.md)にある。S-3の配布形態そのもの（ambient install経路への登録）と復帰成立実行の実測記録は未了である。
+S-1、S-2、S-3、S-4、S-5とS-3のdrift guardは実装済みで、記録は[`roadmap-completed.md`](roadmap-completed.md)にある。復帰成立実行の実測記録は未了である。
 
 ### 14.18 復帰候補評価からL3観測の混入を除く（T-1〜T-5）
 
@@ -299,7 +306,7 @@ L1判定へ持ち込まないための是正フェーズである。
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `src/acd/core/runtime_records.py`の`TimingRecorder`、`src/acd/pipeline/design_loop.py`の候補`pipeline_runner`、`src/acd/core/exploration.py`の候補評価と`_refill_pending`、`plugins/acd/skills/acd-placement-search`の候補生成、`scripts/report_progress.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のT節 |
-| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、pinned SDK v1.44.1のplugin形式（`vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）にToolDefinition登録面がないため、ambient経路ではcommandが宣言toolの不在をfail-closedに検出し決定論的CLIへ倒すdrift guardをfast段で実行する（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
+| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、pinned SDK v1.44.1のplugin形式に直接のToolDefinition登録面はないが`.mcp.json` stdio serverをambient登録面として使い、tool名driftをfast段で検出する（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
 | 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し（`winner_written=true`）、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。候補生成は上限まで候補を返し、`consumed_budget`と`remaining_budget`が実行と一致する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
 | 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
@@ -307,7 +314,7 @@ L1判定へ持ち込まないための是正フェーズである。
 T-1〜T-5は実装済みで、記録は[`roadmap-completed.md`](roadmap-completed.md)にある。実機で成功した復帰runのwall-clock記録は未取得である。
 
 T-1は復帰経路の唯一の停止点であり先に扱う。T-2はT-1解消後に予算を意味あるものにする前提、
-T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論点、T-5は検証作業の可読性である。
+T-4は表示の統合、T-3はS-3のMCP配布形態、T-5は検証作業の可読性である。
 いずれもEvidenceの合否権限とfail-closed境界を変更しない。
 
 ### 14.20 Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9）
@@ -534,9 +541,9 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 15.18 | 資源計測ラッパのscript化（V-8） | 達成。`scripts/measure_lane_resources.py`がcheckout path、digest固定image、download対象、計測間隔を引数で受け、`run_in_workspace.py`をwrapしてhost CPU／memory／swapとdocker statsをintervalごとに記録する。計測結果はL3観測であり合否権限を持たない |
 | 15.19 | 成果物の最小収録集合の宣言（V-10） | FW laneのESP-IDF buildツリーのように再生成可能で大きい出力を区別し、lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言する。成果物の必須性判定（U-5）は変更しない。達成：`contracts/lane-artifact-retention.json`と`scripts/collect_lane_artifacts.py` |
 | 15.20 | 長時間runの予算・中断・再開契約 | 達成。wall-clock／token予算を宣言し、wall-clockはstage境界だけで超過停止する。L3 checkpointは各stage後に更新し、`--resume`はcheckpointを参照せずStageArtifactCacheだけを再利用してゲートを再実行する。運用項目に限定し、判定・閾値には作用させない |
-| 15.21 | 代替routerの単独実測 | GD1と`dual-beacon-tag`をOrthoRoute headlessの`--cpu-only`／GPU modeで単独実測し、収束・DRC・時間・再現性と2回のhash一致を`operations.md`へ記録する。決定論的`.ORP`生成が不能なら不採用として閉じ、合否へ作用させない |
+| 15.21 | 代替routerの単独実測 | 達成（不採用で閉じた）。GD1と`dual-beacon-tag`をOrthoRoute headless `--cpu-only`で各2回実測し、決定論的`.ORP`生成は可能だが、2層基板では信号netが1本も配線されず非収束、GD1は2回のhashが不一致、`.ORS`→基板変換経路が無くDRC照合不能だった。GPU modeはCUDA GPUの無い環境のため未測定。補遺としてKiCadRoutingTools・kicad-tools・freerouteも同手順で実測し、いずれも入力DRC規則で合格出力に至らず不採用（KiCadRoutingToolsは再検討条件付き）。記録は`operations.md`、合否へは作用させない |
 
-15.1〜15.20は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.21は未着手であり、運用・計測側だけを整備する項目であり、判定と閾値には触れない。
+15.1〜15.21は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.21は運用・計測側だけの項目であり、判定と閾値には触れていない。
 
 ## マイルストーン16: 設計能力の拡張
 

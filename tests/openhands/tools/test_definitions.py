@@ -801,10 +801,6 @@ def test_removed_server_is_not_a_runtime_or_dependency_reference() -> None:
         if path.suffix not in {".py", ".toml", ".json", ".lock"}:
             continue
         text = path.read_text(encoding="utf-8", errors="ignore").lower()
-        if (
-            "fast" + "mcp" in text
-            or "acd-" + "mcp" in text
-            or "." + "mcp.json" in text
-        ) and path.name != "uv.lock":
+        if ("fast" + "mcp" in text or "acd-" + "mcp" in text) and path.name != "uv.lock":
             references.append(str(path.relative_to(root)))
     assert references == []

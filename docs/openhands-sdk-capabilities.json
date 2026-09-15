@@ -606,10 +606,18 @@
       "domain": "sdk.mcp",
       "modules": ["sdk.mcp", "sdk.mcp.*"],
       "representative_apis": ["MCPClient"],
-      "use": "MCP連携",
-      "adoption": "不採用",
-      "rationale": "OpenHands専用拡張にMCP互換層を追加しない",
-      "verification": "pinned API確認、採用しない"
+      "use": "plugin `.mcp.json`によるACD tool配布（stdio MCP server）",
+      "adoption": "採用",
+      "rationale": "ambient install経路の唯一の登録面が`.mcp.json`であり、ADR-0036の改訂としてstdio serverで`acd_*` ToolDefinitionを同名配布する。MCP互換層を一般に追加するのではなくACD tool配布に限定する",
+      "verification": "tests/openhands/tools/test_acd_mcp_server.py、install doctorのMCP検査、verify_all.py --stage fast",
+      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/.mcp.json",
+          "symbol": "mcpServers",
+          "note": "ambient会話へACD toolを配布するstdio server宣言"
+        }
+      ]
     },
     {
       "domain": "sdk.observability",

@@ -442,7 +442,9 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
     importing_scripts = 0
     imported_script_data: dict[str, tuple[str, set[str]]] = {}
     expected_dependency = f"acd @ git+https://github.com/uist1idrju3i/acd-agent@{ref}"
-    for script in sorted((plugin_root / "skills").glob("*/scripts/*.py")):
+    scripts = sorted((plugin_root / "skills").glob("*/scripts/*.py"))
+    scripts.extend(sorted((plugin_root / "mcp").glob("*.py")))
+    for script in scripts:
         try:
             source = script.read_text(encoding="utf-8")
             symbols, parse_error = _acd_symbols(source, str(script))
@@ -575,6 +577,182 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
         "pass",
         counts,
         ref,
+        path="plugin",
+    )
+
+
+def _run_mcp_tool_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=600,
+        check=False,
+    )
+
+
+def _mcp_server_check(plugin_root: Path) -> dict[str, Any]:
+    """Check the ambient MCP server and pre-warm its uv environment."""
+    config_path = plugin_root / ".mcp.json"
+    try:
+        document = _read_json(config_path)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return _check(
+            "ACD MCP server",
+            True,
+            "unknown",
+            f"{_relative(config_path, plugin_root)} could not be inspected: {exc}",
+            path="plugin",
+        )
+    if not isinstance(document, dict):
+        return _check(
+            "ACD MCP server",
+            True,
+            "unknown",
+            "MCP configuration root is not an object",
+            path="plugin",
+        )
+    document = cast(dict[str, Any], document)
+    raw_servers = document.get("mcpServers")
+    servers = (
+        cast(dict[str, Any], raw_servers)
+        if isinstance(raw_servers, dict)
+        else None
+    )
+    server = servers.get("acd") if servers is not None else None
+    if not isinstance(server, dict):
+        return _check(
+            "ACD MCP server",
+            True,
+            "fail",
+            "mcpServers.acd is missing or invalid",
+            path="plugin",
+        )
+    server = cast(dict[str, Any], server)
+    command = server.get("command")
+    args = server.get("args")
+    if command != "uv" or not isinstance(args, list) or not all(
+        isinstance(item, str) for item in cast(list[Any], args)
+    ):
+        return _check(
+            "ACD MCP server",
+            True,
+            "fail",
+            "mcpServers.acd must use the uv command and string args",
+            path="plugin",
+        )
+    args = cast(list[str], args)
+    try:
+        script_index = args.index("--script") + 1
+        script_value = args[script_index]
+    except (ValueError, IndexError):
+        return _check(
+            "ACD MCP server",
+            True,
+            "fail",
+            "mcpServers.acd args must include --script and a script path",
+            path="plugin",
+        )
+    script_value = script_value.replace("${SKILL_ROOT}", str(plugin_root))
+    script_path = Path(script_value)
+    if not script_path.is_absolute():
+        script_path = plugin_root / script_path
+    script_path = script_path.resolve()
+    try:
+        script_path.relative_to(plugin_root.resolve())
+    except ValueError:
+        return _check(
+            "ACD MCP server",
+            True,
+            "fail",
+            "MCP server script must remain under the plugin root",
+            path="plugin",
+        )
+    if not script_path.is_file():
+        return _check(
+            "ACD MCP server",
+            True,
+            "fail",
+            f"MCP server script is missing: {_relative(script_path, plugin_root)}",
+            path="plugin",
+        )
+
+    resolved_args = [
+        argument.replace("${SKILL_ROOT}", str(plugin_root)) for argument in args
+    ]
+    try:
+        completed = _run_mcp_tool_listing([command, *resolved_args, "--list-tools"])
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _check(
+            "ACD MCP server",
+            True,
+            "unknown",
+            f"tool listing could not complete: {exc}",
+            path="plugin",
+        )
+    if completed.returncode != 0:
+        return _check(
+            "ACD MCP server",
+            True,
+            "unknown",
+            f"tool listing exited with {completed.returncode}: "
+            f"{completed.stderr.strip() or 'no stderr'}",
+            path="plugin",
+        )
+    try:
+        listing = json.loads(completed.stdout)
+        if not isinstance(listing, dict):
+            raise ValueError("tool listing must be an object")
+        listing = cast(dict[str, Any], listing)
+        listed_names = listing.get("tools")
+        if not isinstance(listed_names, list) or not all(
+            isinstance(name, str) for name in cast(list[Any], listed_names)
+        ):
+            raise ValueError("tool listing tools must be a string list")
+        manifest = _read_json(plugin_root / ".plugin" / "acd-tool-definitions.json")
+        manifest_tools = manifest["tools"]
+        expected_names = sorted(
+            cast(dict[str, Any], item)["tool_name"]
+            for item in cast(list[Any], manifest_tools)
+            if isinstance(item, dict)
+        )
+        actual_names = sorted(cast(list[str], listed_names))
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        return _check(
+            "ACD MCP server",
+            True,
+            "unknown",
+            f"tool listing was invalid: {exc}",
+            path="plugin",
+        )
+    if actual_names != expected_names:
+        missing = sorted(set(expected_names) - set(actual_names))
+        extra = sorted(set(actual_names) - set(expected_names))
+        return _check(
+            "ACD MCP server",
+            True,
+            "fail",
+            f"tool names differ from .plugin/acd-tool-definitions.json; "
+            f"missing={missing}, extra={extra}",
+            ", ".join(actual_names),
+            path="plugin",
+        )
+    return _check(
+        "ACD MCP server",
+        True,
+        "pass",
+        f"{len(actual_names)} tool(s) exposed through the ambient .mcp.json stdio server. "
+        "The SDK lists MCP tools with a 30s timeout, so this pre-warm must pass before "
+        "a GUI conversation starts; tool calls time out at 300s.",
+        ", ".join(actual_names),
         path="plugin",
     )
 
@@ -1375,7 +1553,8 @@ def _tool_registration_check(plugin_root: Path) -> dict[str, Any]:
         "pass",
         f"{len(tool_names)} ACD tool name(s) registered by {entry_point} and declared by "
         f"{declaring_agents} agent definition(s); a conversation must call {entry_point} "
-        "and use the ACD AgentDefinition for these tools to appear. "
+        "and use either register_acd_tools() (explicit path) or the plugin .mcp.json "
+        "server (ambient path) for these tools to appear. "
         "scripts/verify_acd_tool_registration.py --check is authoritative for the live "
         "SDK registry.",
         ", ".join(sorted(tool_names)),
@@ -1814,6 +1993,7 @@ def diagnose(workspace: Path | None = None, *, pull: bool = True) -> dict[str, A
         _prompt_manifest_check(plugin_root),
         _agent_skills_check(plugin_root),
         _tool_registration_check(plugin_root),
+        _mcp_server_check(plugin_root),
         _package_ref_check(plugin_root),
         _runtime_check(),
         _docker_check(),

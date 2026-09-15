@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shlex
@@ -17,6 +18,14 @@ import pytest
 ROOT = Path(__file__).resolve().parents[5]
 PLUGIN_ROOT = ROOT / "plugins" / "acd"
 SCRIPT = PLUGIN_ROOT / "skills" / "acd-install-doctor" / "scripts" / "install_doctor.py"
+
+
+def _load_doctor_module() -> Any:
+    spec = importlib.util.spec_from_file_location("install_doctor_mcp_test", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _copy_plugin(tmp_path: Path) -> tuple[Path, Path]:
@@ -41,9 +50,20 @@ def _run(
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(parents=True)
-    uv = shutil.which("uv")
-    assert uv is not None
-    (bin_dir / "uv").symlink_to(uv)
+    contract_path = script.parents[3] / ".plugin" / "acd-tool-definitions.json"
+    if contract_path.is_file():
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+        tool_names = [item["tool_name"] for item in contract["tools"]]
+    else:
+        tool_names = []
+    uv_body = (
+        'if [ "$1" = "--version" ]; then printf "uv 0.8.0\\n"; '
+        f'elif [ "$1" = "run" ]; then printf %s {shlex.quote(json.dumps({"tools": tool_names}))}; '
+        "else exit 0; fi"
+    )
+    uv_path = bin_dir / "uv"
+    uv_path.write_text(f"#!/bin/sh\n{uv_body}\n", encoding="utf-8")
+    uv_path.chmod(0o755)
     scripts = dict(tool_scripts or {})
     if include_docker and "docker" not in scripts:
         scripts["docker"] = _docker_stub()
@@ -312,6 +332,103 @@ def test_tool_registration_check_fails_closed_on_missing_manifest(
         item for item in report["checks"] if item["name"] == "ACD tool registration"
     )
     assert check["result"] == "unknown"
+
+
+def test_mcp_server_check_passes_and_prewarms_listing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    copied, _ = _copy_plugin(tmp_path)
+    doctor = _load_doctor_module()
+    names = [
+        item["tool_name"]
+        for item in json.loads(
+            (copied / ".plugin" / "acd-tool-definitions.json").read_text(encoding="utf-8")
+        )["tools"]
+    ]
+    def run_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess[str](
+            command, 0, json.dumps({"tools": names}), ""
+        )
+
+    monkeypatch.setattr(
+        doctor,
+        "_run_mcp_tool_listing",
+        run_listing,
+    )
+    check = doctor._mcp_server_check(copied)
+    assert check["result"] == "pass"
+    assert "30s" in check["detail"]
+    assert "300s" in check["detail"]
+
+
+def test_mcp_server_check_fails_on_name_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    copied, _ = _copy_plugin(tmp_path)
+    doctor = _load_doctor_module()
+    def run_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess[str](
+            command, 0, json.dumps({"tools": ["acd_wrong"]}), ""
+        )
+
+    monkeypatch.setattr(
+        doctor,
+        "_run_mcp_tool_listing",
+        run_listing,
+    )
+    check = doctor._mcp_server_check(copied)
+    assert check["result"] == "fail"
+    assert "missing=" in check["detail"]
+
+
+def test_mcp_server_check_reports_missing_config_as_unknown(tmp_path: Path) -> None:
+    copied, _ = _copy_plugin(tmp_path)
+    copied.joinpath(".mcp.json").unlink()
+    doctor = _load_doctor_module()
+    check = doctor._mcp_server_check(copied)
+    assert check["result"] == "unknown"
+
+
+def test_mcp_server_check_fails_on_missing_script(tmp_path: Path) -> None:
+    copied, _ = _copy_plugin(tmp_path)
+    config_path = copied / ".mcp.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config["mcpServers"]["acd"]["args"][-1] = "${SKILL_ROOT}/mcp/missing.py"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    doctor = _load_doctor_module()
+    check = doctor._mcp_server_check(copied)
+    assert check["result"] == "fail"
+    assert "script is missing" in check["detail"]
+
+
+def test_mcp_server_check_fails_on_invalid_command(tmp_path: Path) -> None:
+    copied, _ = _copy_plugin(tmp_path)
+    config_path = copied / ".mcp.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config["mcpServers"]["acd"]["command"] = "python"
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    doctor = _load_doctor_module()
+    check = doctor._mcp_server_check(copied)
+    assert check["result"] == "fail"
+    assert "uv command" in check["detail"]
+
+
+def test_mcp_server_check_reports_runner_failure_as_unknown(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    copied, _ = _copy_plugin(tmp_path)
+    doctor = _load_doctor_module()
+    def run_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess[str](command, 1, "", "runner failed")
+
+    monkeypatch.setattr(
+        doctor,
+        "_run_mcp_tool_listing",
+        run_listing,
+    )
+    check = doctor._mcp_server_check(copied)
+    assert check["result"] == "unknown"
+    assert "runner failed" in check["detail"]
 
 
 def _break_plugin_name(path: Path) -> None:

@@ -45,7 +45,7 @@
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
 | sdk.logger | `get_logger` | L3観測の構造化 | 採用 | `secret`と`Evidence`をログへ混入させず、観測名とhashだけを構造化ログへ出す | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | ADR-0036のinstalled plugin ambient自動読み込みは採用するが、MarketplaceRegistry自体は使用しない | pinned API確認、MarketplaceRegistryを使用しない |
-| sdk.mcp | `MCPClient` | MCP連携 | 不採用 | OpenHands専用拡張にMCP互換層を追加しない | pinned API確認、採用しない |
+| sdk.mcp | `MCPClient` | plugin `.mcp.json`によるACD tool配布（stdio MCP server） | 採用 | ambient install経路の唯一の登録面が`.mcp.json`であり、ADR-0036の改訂としてstdio serverで`acd_*` ToolDefinitionを同名配布する。MCP互換層を一般に追加するのではなくACD tool配布に限定する | tests/openhands/tools/test_acd_mcp_server.py、install doctorのMCP検査、verify_all.py --stage fast |
 | sdk.observability | `observe` | L3観測の構造化 | 採用 | 既定無効のspanを観測書込みだけに付け、入出力を送らず`Evidence`へ触れない | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | 既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する | 明示ref検証、ambient bootstrap回帰 |
 | sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用 | `OpenHandsAgentProfile`をsecret-freeなまま検証し、routing policyとのprofile driftをfail-closedで検知する | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
@@ -118,6 +118,7 @@
 - `sdk.llm.router`: **直接import** `src/acd/openhands/session/routing.py` / `RouterLLM` — role別model routingのSDK基底を使う
 - `sdk.llm.utils.metrics`: **直接import** `src/acd/openhands/session/bootstrap.py` / `Metrics` — 会話metricsをL3観測として扱う
 - `sdk.logger`: **直接import** `src/acd/openhands/session/observation_log.py` / `get_logger` — 観測ログの構造化loggerをSDKから取得する
+- `sdk.mcp`: **plugin資材** `plugins/acd/.mcp.json` / `mcpServers` — ambient会話へACD toolを配布するstdio server宣言
 - `sdk.observability`: **直接import** `src/acd/openhands/session/observation_log.py` / `observe` — 観測ログspanをSDK decorator経路へ渡す
 - `sdk.plugin`: **直接import** `src/acd/openhands/distribution/plugin.py` / `PluginSource` — pinned plugin sourceをSDKへ渡す
 - `sdk.profiles`: **SDK内部経路** `src/acd/openhands/session/settings.py` / `validate_agent_profile` — ACD設定からSDK profileを検証生成する

@@ -85,7 +85,8 @@ role別promptの`PromptSection`化と資材manifest drift検査、role別LLM rou
 settings/profile資材のcanonical hash固定とcredential参照名だけの保持、
 永続memoryの明示有効化と表示専用event view projectionも実装済みである。
 `ToolDefinition`、現行の`DockerWorkspace`、決定論的gateの責務境界は変更しない。
-MCP、Canvas、remote API、cloud、agent-serverは採用しない。
+汎用MCP互換層、Canvas、remote API、cloud、agent-serverは採用しない。ACD tool配布に限る
+pluginの`.mcp.json` stdio serverはADR-0036の改訂により採用する。
 
 - `sdk.context.prompts`: `plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、
   資材hashを固定してpromptとの整合性を確認する。
@@ -691,7 +692,7 @@ store fallbackには`ACD_REPOSITORY_ROOT`が必要である。よってpinned re
 library資材を解決するSkill script（placement search、vision proposal、vision route proposal、
 silkscreen search）を`acd-firmware-esp32c3`と同じ規約で自身のrepository rootを設定する形へ
 統一した。repository checkoutを伴わないpackaged plugin単体ではcanonical storeが存在せず
-fail-closedになる。この配布形態の扱いはS-3の未了項目と同じ論点として残る。
+fail-closedになる。ambient pluginの配布はS-3で`.mcp.json` stdio serverへ統一する。
 
 
 ### 14.18 実装済みの是正の記録
@@ -702,9 +703,9 @@ T-1、T-2、T-4、T-5は実装済みである。候補評価は親laneと独立�
 workspaceのdownloadが失敗した場合もcommandのexit code・stdout・stderr・部分downloadを出力したうえで
 fail-closedに終了する。T-2ではremediation次元ごとにspacing preferenceの候補を宣言順で生成し、
 候補予算まで評価できるようにした。T-3は、pinned SDK v1.44.1のplugin形式に
-ToolDefinition登録面が無い（根拠: `vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）ため、
-ambient経路でのtool登録を主張せず、commandが宣言toolの不在をfail-closedに検出して
-決定論的CLIへ倒す経路とdrift guardを実装した。CLI入口を持たない3 toolの段は実行せず不成立として報告し、
+直接のToolDefinition登録面は無い（根拠: `vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）が、
+`.mcp.json` stdio serverをambient登録面として配布し、commandが宣言toolの不在をfail-closedに検出する
+経路とdrift guardを実装した。300秒を超える処理は決定論的CLIへ倒し、
 この判定はL3観測でauthoritative Evidenceを生成しない。
 実機で成功した復帰runのwall-clock記録も未取得である。
 
@@ -831,7 +832,7 @@ ECOの恒久変更は`rN+1` graphへ反映し、`rN+WA-001`のワークアラウ
 | （改善バックログ）FW成果物ディレクトリ名のgraph_id由来化 | 14.6（達成） |
 | （レビュー）視覚投影SVGのviewBox相対font-size | 8.2（達成）、再発防止は20.4 |
 | （レビュー）回路図の可読性（機能ブロック配置とネットラベル接続方式の注記） | 8.2（達成） |
-| （レビュー）KiCad由来SVGのfit-to-board化 | 20.4（未採用。8.5が図枠のtitle blockを読むため現行exportを維持する） |
+| （レビュー）KiCad由来SVGのfit-to-board化 | 20.4（達成。8.3/20.4。`--page-size-mode 2`のboard-only exportを維持し、acd-svg wrapperでlayer viewを文書幅へzoomする。8.5はboard-only出力にも残る`File:`／`KiCad E.D.A.` title-block textを読む） |
 | （レビュー）SKILL triggerとToolDefinition登録条件のdoctor診断 | 15.7（達成） |
 | （レビュー）hook遮断理由の要約自動集計 | 15.6（達成） |
 | （レビュー）DFMの未実装チェック一覧の明示 | 9.3 |
@@ -888,7 +889,7 @@ ECOの恒久変更は`rN+1` graphへ反映し、`rN+WA-001`のワークアラウ
 | ACD imageのコンテナ化と配布 | 6・14.9（達成、[`docker/README.md`](../docker/README.md)） |
 | routing後のvia mask開口を含む再解決 | 14.25（2026-09-13） |
 | 長時間runの予算・中断・再開契約 | 15.20（2026-09-13） |
-| 代替routerの単独実測 | 15.21（2026-09-13） |
+| 代替routerの単独実測 | 15.21（2026-09-15、OrthoRouteを実測のうえ不採用で閉じた。記録は[`operations.md`](operations.md)の「代替router（OrthoRoute）の単独実測と不採用」） |
 | 機器I/F契約投影 | 9.6（2026-09-13） |
 | 品質文書生成 | 9.3（2026-09-13） |
 | レビュー資料生成 | 9.4 |
@@ -924,8 +925,8 @@ L3観測であり、合否権限を持たない。出所（rationale ID、Eviden
 ### 14.17 復帰経路と新規設計入口の是正（S-1〜S-5）
 
 S-1〜S-5は、候補評価時のrationale更新、残予算での次候補評価、宣言tool不在検出、
-library資材宣言の統一、進行表示を扱う。S-1、S-2、S-4、S-5とS-3のdrift guardは実装済みで、
-表示・診断は`pass_evidence`を与えない。S-3の配布形態そのものと復帰成立実行の実測記録は未了である。
+library資材宣言の統一、進行表示を扱う。S-1〜S-5とS-3のdrift guardは実装済みで、
+表示・診断は`pass_evidence`を与えない。復帰成立実行の実測記録は未了である。
 
 ### 14.18 復帰候補評価からL3観測の混入を除く（T-1〜T-5）
 
@@ -980,8 +981,9 @@ unknownと答え、推測で補完しない。会話ログは内部向けQAの�
 満たす配置へ到達していた。しかし候補の評価がrationale更新前のgraphで行われるため
 `rationale coverage failed: missing=18, stale=18`で却下され、`winner_written=false`、
 `termination_reason=fail_closed_stop`で復帰が成立しない。さらに新規specからのfixture生成は
-部品catalogのlibrary資材宣言と生成fixtureの不一致により最初のstageで停止し、GUI配布形態では
-`acd_*` ToolDefinitionが会話へ登録されないためcommandの宣言toolへ到達できない。ゲートは
+部品catalogのlibrary資材宣言と生成fixtureの不一致により最初のstageで停止した。GUI配布形態の
+当時の実測では`acd_*` ToolDefinitionが未登録だったが、現在はpluginの`.mcp.json` stdio serverが
+commandの宣言toolを配布する。ゲートは
 いずれも正しく閉じており、緩和ではなく経路の是正で解くフェーズである。
 
 | 要素 | 完了条件 |
@@ -992,10 +994,11 @@ unknownと答え、推測で補完しない。会話ログは内部向けQAの�
 | negative・fail-closed | rationale更新不能、graph ID／revisionの不一致、正規化hashの不変、候補予算・round上限の超過、宣言と生成が食い違うlibrary資材、宣言toolの不在はいずれもfail-closedで停止する。候補report、進行表示、GUI観測はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
 | 再現性 | 候補ごとの評価入力hash、rationale更新結果、予算消費、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
 
-S-1とS-4は単体成立の前提であり先に扱う。S-3は配布・登録経路の定義であり、実装だけでは
-閉じない。S-2とS-5は予算と進行の可視化である。
+S-1とS-4は単体成立の前提であり先に扱う。S-3はpluginの`.mcp.json` stdio serverで
+ambient会話へ配布する。S-2とS-5は予算と進行の可視化である。
 
-S-1、S-2、S-4、S-5とS-3のdrift guard（`scripts/verify_acd_tool_registration.py --command`）は実装済みで、記録は[`roadmap-completed.md`](roadmap-completed.md)にある。S-3の配布形態そのもの（ambient install経路への登録）と復帰成立実行の実測記録は未了である。
+S-1、S-2、S-3、S-4、S-5とS-3のdrift guardは実装済みで、S-3はpluginの`.mcp.json`
+stdio serverが17個の`acd_*`を配布する。復帰成立実行の実測記録は未了である。
 
 ### 14.18 復帰候補評価からL3観測の混入を除く（T-1〜T-5）
 
@@ -1012,7 +1015,7 @@ L1判定へ持ち込まないための是正フェーズである。
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `src/acd/core/runtime_records.py`の`TimingRecorder`、`src/acd/pipeline/design_loop.py`の候補`pipeline_runner`、`src/acd/core/exploration.py`の候補評価と`_refill_pending`、`plugins/acd/skills/acd-placement-search`の候補生成、`scripts/report_progress.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のT節 |
-| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、pinned SDK v1.44.1のplugin形式（`vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）にToolDefinition登録面がないため、ambient経路ではcommandが宣言toolの不在をfail-closedに検出し決定論的CLIへ倒すdrift guardをfast段で実行する（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
+| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、pinned SDK v1.44.1のplugin形式に直接のToolDefinition登録面はないが`.mcp.json` stdio serverをambient登録面として使い、tool名driftをfast段で検出する（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
 | 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し（`winner_written=true`）、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。候補生成は上限まで候補を返し、`consumed_budget`と`remaining_budget`が実行と一致する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
 | 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
@@ -1020,7 +1023,7 @@ L1判定へ持ち込まないための是正フェーズである。
 T-1〜T-5は実装済みで、記録は[`roadmap-completed.md`](roadmap-completed.md)にある。実機で成功した復帰runのwall-clock記録は未取得である。
 
 T-1は復帰経路の唯一の停止点であり先に扱う。T-2はT-1解消後に予算を意味あるものにする前提、
-T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論点、T-5は検証作業の可読性である。
+T-4は表示の統合、T-3はS-3のMCP配布形態、T-5は検証作業の可読性である。
 いずれもEvidenceの合否権限とfail-closed境界を変更しない。
 
 ### 14.20 Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9）

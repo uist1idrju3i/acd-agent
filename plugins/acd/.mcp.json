@@ -1,0 +1,1 @@
+{"mcpServers": {"acd": {"command": "uv", "args": ["run", "--script", "${SKILL_ROOT}/mcp/acd_mcp_server.py"]}}}

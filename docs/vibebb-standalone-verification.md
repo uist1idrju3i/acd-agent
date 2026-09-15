@@ -504,7 +504,7 @@ provisionalであり合格側Evidenceにならない。会話経路で「acd-age
 | `workspace_path` | `/home/openhands/repos/test260901/acd-ws-260901` |
 | `record_class` / `pass_evidence` | `L3` / false |
 
-会話へ登録されたtoolは次の7つで、`acd_*`のToolDefinitionは依然として存在しない
+当時の実測で会話へ登録されたtoolは次の7つで、`acd_*`のToolDefinitionは存在しなかった
 （`SystemPromptEvent`のtool定義を直読）。
 
 ```text
@@ -512,8 +512,9 @@ terminal, file_editor, task_tracker, finish, think, switch_llm_profile, invoke_s
 ```
 
 `/acd:init`が成立したのは、Skillが決定論的CLIをterminalから実行する手順を持つためである。
-ambient install経路（ADR-0036）でACD tool入口が登録されない状態は14.17でも未了であり、
-command宣言の`allowed-tools`はこの配布形態で満たされない（S-3、T-3）。
+これは当時のambient install経路の実測記録である。現在はADR-0036に基づきpluginの
+`.mcp.json` stdio serverがACD tool入口を配布し、command宣言の`allowed-tools`を満たす
+（S-3、T-3）。
 
 ### 11.2 復帰経路の実測（Run E）
 

@@ -266,9 +266,10 @@ lane preflightの状態語彙は`declarations_complete`／`declarations_incomple
 L1の合否権限は決定論的lane gateとrevision一致のauthoritative Evidenceだけが持つ。
 
 返り値のキー、ToolEnvelopeの列挙、入力妥当性、fail-closed契約は旧公開方式から
-不変である。MCP client互換層は提供しない。
+不変である。汎用のMCP client互換層は提供しない。ただしADR-0036により、
+ambient install経路ではpluginの`.mcp.json`からACD ToolDefinitionをstdio serverで同名配布する。
 
-会話がこれらのtoolを実際に呼べる条件は次の3つを同時に満たす場合だけである。
+明示registry経路で会話がこれらのtoolを実際に呼べる条件は次の3つを同時に満たす場合だけである。
 
 1. 会話を構築するprocessで`register_acd_tools()`が実行され、SDKのtool registryへ
    tool名が登録されている（import時の副作用では登録されない）。
