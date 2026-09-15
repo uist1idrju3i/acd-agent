@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-import acd.pipeline.visual_projection as visual_projection
 from acd.adapters.cad.mechanical import MechanicalGateReport, run_mechanical_gates
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
@@ -35,6 +34,7 @@ from acd.pipeline.visual_projection import (
     crosscheck_electrical_visual_projections,
     crosscheck_mechanical_visual_projections,
 )
+from acd.pipeline.visual_projection._common import status_for_items
 from acd.schema.design_graph import DesignGraph
 from acd.schema.visual_crosscheck import (
     VisualCrosscheckItem,
@@ -391,7 +391,6 @@ def test_crosscheck_mismatches_fail_closed(tmp_path: Path, mutation: str) -> Non
 
 
 def test_empty_deterministic_review_basis_fails_closed() -> None:
-    status_for_items = visual_projection.__dict__["_status_for_items"]
     with pytest.raises(ValueError, match="empty item list"):
         status_for_items([])
 

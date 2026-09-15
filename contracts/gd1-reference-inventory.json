@@ -221,10 +221,16 @@
       "note": "Imports placement and hashing helpers from the historically named GD1 modules."
     },
     {
-      "path": "src/acd/pipeline/visual_projection.py",
+      "path": "src/acd/pipeline/visual_projection/firmware.py",
       "purpose": "default_fallback",
-      "reference_lines": 2,
-      "note": "graph_id keyword default and the GD1 functional-run hold message."
+      "reference_lines": 1,
+      "note": "The GD1 functional-run hold message."
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/mechanical.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "graph_id keyword default for the mechanical crosscheck."
     }
   ]
 }
