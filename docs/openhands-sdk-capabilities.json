@@ -878,10 +878,18 @@
         "sdk.tool.builtins.think"
       ],
       "representative_apis": ["FinishTool"],
-      "use": "SDK組み込みtool",
-      "adoption": "不採用",
-      "rationale": "ACDの明示的`ToolDefinition`集合を単一化する",
-      "verification": "pinned API確認、採用しない"
+      "use": "SDK既定の会話制御tool（finish/think）",
+      "adoption": "採用",
+      "rationale": "SDKは`include_default_tools`既定で`FinishTool`と`ThinkTool`をtool_mapへ登録する。ACDはこの既定をそのまま受容し、`switch_llm`はACD model policy（`verify_model_policy.py`）と競合するため既定集合に含めない。いずれも会話制御のみでEvidence・gate結果へ作用しない",
+      "verification": "bootstrap tool_map検査（finish/thinkの登録、switch_llmの不在）",
+      "references": [
+        {
+          "kind": "test_direct_import",
+          "path": "tests/openhands/session/test_bootstrap.py",
+          "symbol": "FinishTool",
+          "note": "SDK既定のfinish/thinkが登録され、switch_llmが登録されないことを固定する"
+        }
+      ]
     },
     {
       "domain": "sdk.tool.builtins.invoke_skill",

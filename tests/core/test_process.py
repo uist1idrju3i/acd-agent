@@ -171,12 +171,15 @@ def test_run_tool_timeout_records_envelope_and_partial_output(tmp_path: Path) ->
     source = tmp_path / "in.txt"
     source.write_text("x")
     envelope_path = tmp_path / "nested" / "timeout.envelope.json"
-    timeout_s = 0.05
+    # Interpreter start-up under parallel test load can exceed tens of
+    # milliseconds, so the child must have ample time to emit its partial output
+    # before the timeout fires; the sleep only needs to outlast the timeout.
+    timeout_s = 1.5
     command = [
         sys.executable,
         "-c",
         "import sys,time; print('partial stdout', flush=True); "
-        "print('partial stderr', file=sys.stderr, flush=True); time.sleep(1)",
+        "print('partial stderr', file=sys.stderr, flush=True); time.sleep(30)",
     ]
     with pytest.raises(ToolTimeoutError) as caught:
         run_tool(
@@ -201,7 +204,7 @@ def test_run_tool_timeout_records_envelope_and_partial_output(tmp_path: Path) ->
     assert envelope.convergence_state == "timed_out"
     assert envelope.output_hash == "unknown"
     assert envelope.exit_code is None
-    assert "0.05" in (envelope.uncertainty or "")
+    assert "1.5" in (envelope.uncertainty or "")
     assert "outputs not produced" in (envelope.uncertainty or "")
 
 
