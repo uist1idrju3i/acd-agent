@@ -36,7 +36,7 @@ def _metric(item: Mapping[str, Any], prefix: str, key: str) -> int:
         return _number(direct, f"{prefix}_{key}")
     nested = item.get(prefix)
     if isinstance(nested, Mapping):
-        value = nested.get(key)
+        value = cast(Mapping[str, object], nested).get(key)
         if value is not None:
             return _number(value, f"{prefix}.{key}")
     return 0
@@ -50,23 +50,25 @@ def parse_gcovr_json(text: str) -> CoverageReport:
         raise ValueError("gcovr JSON is malformed") from exc
     if not isinstance(raw, dict):
         raise ValueError("gcovr JSON must be an object")
-    raw_files = raw.get("files")
+    raw_object = cast(dict[str, object], raw)
+    raw_files = raw_object.get("files")
     if not isinstance(raw_files, list):
         raise ValueError("gcovr JSON must contain a files array")
     files: list[CoverageFile] = []
     for raw_file in cast(list[object], raw_files):
         if not isinstance(raw_file, Mapping):
             raise ValueError("gcovr file entry must be an object")
-        path = raw_file.get("file", raw_file.get("path"))
+        entry = cast(Mapping[str, object], raw_file)
+        path = entry.get("file", entry.get("path"))
         if not isinstance(path, str) or not path.strip():
             raise ValueError("gcovr file entry has no path")
         files.append(
             CoverageFile(
                 path=path,
-                lines_total=_metric(raw_file, "line", "total"),
-                lines_covered=_metric(raw_file, "line", "covered"),
-                branches_total=_metric(raw_file, "branch", "total"),
-                branches_covered=_metric(raw_file, "branch", "covered"),
+                lines_total=_metric(entry, "line", "total"),
+                lines_covered=_metric(entry, "line", "covered"),
+                branches_total=_metric(entry, "branch", "total"),
+                branches_covered=_metric(entry, "branch", "covered"),
             )
         )
     files.sort(key=lambda item: item.path)
