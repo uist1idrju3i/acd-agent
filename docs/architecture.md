@@ -371,6 +371,14 @@ lane群は1 stepとして`DESIGN_LOOP_LANE_IDS`へ展開し、並列実行時も
 テストでの依存差し替えはfacadeではなく所有module（`design_loop.loop`、
 `design_loop.stages`、`design_loop.recovery`）の名前へ行う。
 
+stage結果の共通核は`schema/stage_result.py`の`StageResultCore`
+（`stage_id`、`ok`、`fail_closed`、`pass_evidence=False`固定、`failure_reason`）が契約であり、
+`stage_success`／`stage_failure`はその生成helperの別名である。`loop.run_stage`は
+runnerの返り値を`normalize_stage_result`で検査し、非object、真偽値でないflag、
+`ok`と`fail_closed`の同時成立、理由のない失敗、真の`pass_evidence`をすべて
+fail-closedの失敗recordへ書き換える。`stage_id`はorchestratorが付与した値を正とし、
+runner側の申告で上書きしない。stage固有のpayload keyはそのまま保持される。
+
 ## 生成と判定の分離
 
 配置、回転、シルク候補、FW作業、QC・信頼性レビューはOpenHands Skillまたはagentが

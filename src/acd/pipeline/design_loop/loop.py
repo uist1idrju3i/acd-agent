@@ -33,6 +33,7 @@ from acd.schema import (
     DesignFixtureSpec,
 )
 from acd.schema.common import canonical_json_sha256
+from acd.schema.stage_result import normalize_stage_result
 
 from .config import (
     DEFAULT_DESIGN_LOOP_JOBS,
@@ -385,9 +386,7 @@ def run_design_loop(
                         timing.finish(timing_name)
                     except Exception as exc:
                         timing_error = f"{type(exc).__name__}: {exc}"
-            if not isinstance(stage_result, dict):
-                stage_result = stage_failure(stage_id, "stage runner returned a non-object result")
-            normalized = {**stage_result, "pass_evidence": False}
+            normalized = normalize_stage_result(stage_id, stage_result)
             if timing_error is not None:
                 normalized["timing_error"] = timing_error
             with checkpoint_lock:

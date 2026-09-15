@@ -19,6 +19,7 @@ from acd.pipeline.lane_plan import (
 from acd.schema import (
     DesignGraph,
 )
+from acd.schema.stage_result import failed_stage_result, successful_stage_result
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
@@ -64,25 +65,8 @@ class DesignLoopConfig:
     document_languages: tuple[str, ...] = ("ja",)
 
 
-def stage_success(stage_id: str, **fields: Any) -> dict[str, Any]:
-    return {
-        "stage_id": stage_id,
-        "ok": True,
-        "fail_closed": False,
-        "pass_evidence": False,
-        **fields,
-    }
-
-
-def stage_failure(stage_id: str, reason: str, **fields: Any) -> dict[str, Any]:
-    return {
-        "stage_id": stage_id,
-        "ok": False,
-        "fail_closed": True,
-        "pass_evidence": False,
-        "failure_reason": reason,
-        **fields,
-    }
+stage_success = successful_stage_result
+stage_failure = failed_stage_result
 
 
 def graph_id_of(fixture_dir: Path) -> str:
