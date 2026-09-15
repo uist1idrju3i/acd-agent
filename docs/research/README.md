@@ -97,7 +97,7 @@ MDP（Drawing layer→Mask layer変換）を実行する。締切まで何度で
 | 段（第7回実測） | 所要 | GPU化の候補 | 結論 |
 |---|---:|---|---|
 | `board[3/12]` FreeRouting | 180秒（wall 78%） | OrthoRoute（MIT、CUDA/CuPy、KiCad 9 IPC、headless `.ORP`→`.ORS`、`--cpu-only`、Metal fork） | 唯一の実効候補。Manhattan格子＋blind/buried via前提で多層backplane向き、2層小基板との整合は要実測。VRAMは面積×層÷pitch²（100×100mm・6層・0.4mmで8〜12 GB）。GPU非決定性の再現性検査が必要 |
-| 同（収束の壁） | `not_converged` | OrthoRoute（PathFinder rip-up/reroute）、KiCadRoutingTools（Rust A*、MIT、CPU） | routerアルゴリズムの差し替えで解決し得るが、出力＝正規化hashが変わるためrouter選択を設計入力へ束縛する |
+| 同（収束の壁） | `not_converged` | OrthoRoute（PathFinder rip-up/reroute）、KiCadRoutingTools（Rust A*、MIT、CPU） | routerアルゴリズムの差し替えで解決し得るが、出力＝正規化hashが変わるためrouter選択を設計入力へ束縛する。2026-09-15の単独実測（[`../operations.md`](../operations.md)「代替router」2節）でOrthoRouteは2層基板を配線できず不採用、KiCadRoutingToolsはGD1を約5秒で全net接続したが入力DRC規則でerrorが残り保留 |
 | firmware-pipeline（ESP-IDF build＋QEMU） | 116秒（影に隠れる） | なし | コンパイルとCPUエミュレーションはGPU対象外。`idf.py --ccache`／`IDF_CCACHE_ENABLE`とcache永続化で扱う |
 | `board[8/12]` CPL/BOM・Gerber計測 | 15秒 | なし | 既にProcessPool並列。kicad-cli起動が支配 |
 | enclosure-pipeline（build123d/OCP） | 24秒 | なし | OCCTカーネルはCPUのみ |

@@ -45,7 +45,7 @@ GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判�
 残る未了は次のとおりである。実機実測待ちは、5（GD1実機の`measured` Evidence）、
 14.16のR-3（FW復帰の実測記録）、14.17の復帰成立実行の実測記録、14.18の復帰成立runの
 wall-clock記録、14.22の残（実CPL record取得とcontainer runによるend-to-end合格の実証）
-である。実装未了は15.21（代替routerの単独実測）である。計画段階のフェーズは16.2、
+である。15.21（代替routerの単独実測）はOrthoRouteを実測のうえ不採用として閉じた。計画段階のフェーズは16.2、
 18.2、20.3、20.5である。7の実発注と
 実supplier接続は本範囲外である。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
 未実装であり、8.5の電気視覚照合が図枠のtitle blockを読むため現行exportを維持し、
@@ -75,7 +75,7 @@ wall-clock記録、14.22の残（実CPL record取得とcontainer runによるend
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 13.1〜13.6達成 |
 | 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.17・14.19〜14.21・14.23〜14.25は達成。14.16はR-1・R-2を達成しR-3は実測待ち、14.17の復帰成立実行と14.18の実測記録は未了、14.22は部分達成） |
-| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.20達成（15.21は計画） |
+| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.21達成（15.21は不採用で閉じた） |
 | 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1・16.3〜16.6達成（16.2は計画） |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 17.1〜17.4達成 |
 | 18 | 量産・出荷準備lane | ブリングアップ、panelization、DFA、出荷検査文書と検査FWを整備する | 18.1・18.3〜18.5達成（18.2は計画） |
@@ -537,9 +537,9 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 15.18 | 資源計測ラッパのscript化（V-8） | 達成。`scripts/measure_lane_resources.py`がcheckout path、digest固定image、download対象、計測間隔を引数で受け、`run_in_workspace.py`をwrapしてhost CPU／memory／swapとdocker statsをintervalごとに記録する。計測結果はL3観測であり合否権限を持たない |
 | 15.19 | 成果物の最小収録集合の宣言（V-10） | FW laneのESP-IDF buildツリーのように再生成可能で大きい出力を区別し、lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言する。成果物の必須性判定（U-5）は変更しない。達成：`contracts/lane-artifact-retention.json`と`scripts/collect_lane_artifacts.py` |
 | 15.20 | 長時間runの予算・中断・再開契約 | 達成。wall-clock／token予算を宣言し、wall-clockはstage境界だけで超過停止する。L3 checkpointは各stage後に更新し、`--resume`はcheckpointを参照せずStageArtifactCacheだけを再利用してゲートを再実行する。運用項目に限定し、判定・閾値には作用させない |
-| 15.21 | 代替routerの単独実測 | GD1と`dual-beacon-tag`をOrthoRoute headlessの`--cpu-only`／GPU modeで単独実測し、収束・DRC・時間・再現性と2回のhash一致を`operations.md`へ記録する。決定論的`.ORP`生成が不能なら不採用として閉じ、合否へ作用させない |
+| 15.21 | 代替routerの単独実測 | 達成（不採用で閉じた）。GD1と`dual-beacon-tag`をOrthoRoute headless `--cpu-only`で各2回実測し、決定論的`.ORP`生成は可能だが、2層基板では信号netが1本も配線されず非収束、GD1は2回のhashが不一致、`.ORS`→基板変換経路が無くDRC照合不能だった。GPU modeはCUDA GPUの無い環境のため未測定。補遺としてKiCadRoutingTools・kicad-tools・freerouteも同手順で実測し、いずれも入力DRC規則で合格出力に至らず不採用（KiCadRoutingToolsは再検討条件付き）。記録は`operations.md`、合否へは作用させない |
 
-15.1〜15.20は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.21は未着手であり、運用・計測側だけを整備する項目であり、判定と閾値には触れない。
+15.1〜15.21は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.21は運用・計測側だけの項目であり、判定と閾値には触れていない。
 
 ## マイルストーン16: 設計能力の拡張
 

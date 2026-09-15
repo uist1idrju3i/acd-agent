@@ -40,8 +40,9 @@
 - ASIC製造（MPWシャトル）への対応。OpenSUSI-MPW（TR-1um）やTiny Tapeout等のオープンPDK
   シャトルへGDSIIを提出できるシリコンlaneと提出先アダプタを、基板laneと同じ決定論的
   ゲートとOrder Readiness Gateの拡張として扱う
-- 長時間処理へのGPU活用。第1段（代替routerの単独実測）はマイルストーン15.21へ移行済み。
-  第2・3段はここに残す。実機実測でwall-clockの78%を占めるFreeRouting（`board[3/12]`）に
+- 長時間処理へのGPU活用。第1段（代替routerの単独実測）はマイルストーン15.21でOrthoRouteを
+  実測し不採用で閉じた（[`operations.md`](operations.md)）。第2・3段は内層を持つ多層基板など
+  別の入力で再実測して採用と判断された場合に限りここに残す。実機実測でwall-clockの78%を占めるFreeRouting（`board[3/12]`）に
   対し、GPU autorouter（OrthoRoute等）を宣言で選べる代替routerとして追加し、router差し替えを
   正規化hashと決定論的ゲートの境界内に収める。GPUが効かない段（kicad-cli、ESP-IDF build、QEMU、
   CAD kernel）はcache・並列度で扱う
@@ -210,9 +211,10 @@ GPUが効かない段は別手段で扱う。反復（VibeBB loopの2周目以�
 同一入力の実測を[`operations.md`](operations.md)へ記録する（AGENTS.mdの並列実行規約と同じ）。
 
 段階は、第1段でGD1と`dual-beacon-tag`をOrthoRoute headless（`--cpu-only`とGPU）で
-単独実行し、収束・DRC・所要時間・再現性を実測して採否を決める。OrthoRouteの`.ORP`は現状
-KiCad GUIのIPC経由でplugin側が書き出すため、`.kicad_pcb`から`.ORP`を決定論的に生成する経路
-（またはkicad-cli相当のheadless IPC）が無ければcontainer実行に載らない点をこの段で確認する。
+単独実行し、収束・DRC・所要時間・再現性を実測して採否を決める。この第1段は15.21で実施済みであり、
+`.kicad_pcb`→`.ORP`は同梱parserで決定論的に生成できたが、2層基板では信号netが配線されず非収束、
+GD1は2回の出力hashが不一致、`.ORS`→基板へのheadless変換が無くDRC照合不能だったため不採用とした
+（[`operations.md`](operations.md)）。
 第2段でrouter契約とGPU
 preflightをpipelineへ入れ、第3段でGPU付きdigest固定imageと`container-gates`のGPU runner
 （self-hosted）を整備する順を想定する。採用する場合は、router差し替えのcontract境界、
