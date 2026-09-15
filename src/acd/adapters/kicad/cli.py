@@ -7,12 +7,12 @@ valid tool outcome, not a tool failure.
 
 from __future__ import annotations
 
-import json
 import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.core.process import DEFAULT_TOOL_TIMEOUT_S, ExternalToolError, ToolRun, run_tool
 
 _EXIT_OK_OR_VIOLATIONS = frozenset({0, 5})
@@ -86,7 +86,7 @@ class KicadCli:
             allowed_exit_codes=_EXIT_OK_OR_VIOLATIONS,
             timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
-        report = json.loads(report_path.read_text(encoding="utf-8"))
+        report = read_json(report_path)
         # DRC reports carry violations at top level; ERC nests them per sheet.
         collected: list[dict[str, object]] = list(report.get("violations", []))
         for sheet in report.get("sheets", []):

@@ -7,11 +7,11 @@ required-artifact judgement stays with the manufacturing submission gate.
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from acd.core.fileio import file_sha256
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.lane_artifact_retention import (
@@ -115,7 +115,7 @@ def load_lane_artifact_retention(
 
 def _file_sha256(path: Path) -> str:
     try:
-        return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+        return file_sha256(path)
     except OSError as exc:
         raise LaneArtifactRetentionError(
             f"cannot hash retained artifact: {path}: {exc}"

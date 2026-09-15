@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import json
 import math
 import re
 from collections.abc import Mapping
@@ -12,6 +11,7 @@ from itertools import pairwise
 from pathlib import Path
 from statistics import fmean
 
+from acd.core.fileio import read_json
 from acd.core.process import source_provenance_fields
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, PhysicalEvidence
@@ -31,7 +31,7 @@ class FunctionalRunError(ValueError):
 
 def _load_json(path: Path) -> object:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return read_json(path)
     except Exception as exc:
         raise FunctionalRunError(f"could not parse run JSON: {path}") from exc
 

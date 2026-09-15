@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import write_json
 from acd.schema.common import canonical_json_sha256
 
 _SUMMARY_KEYS = (
@@ -277,10 +277,7 @@ def write_stitch_candidate_report(out_dir: Path, payload: Mapping[str, Any]) -> 
     body = _validate_payload(payload)
     body["content_sha256"] = canonical_json_sha256(body)
     path = out_dir / "stitch-candidate-report.json"
-    path.write_text(
-        json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(path, body, mkdir=False)
     return path
 
 

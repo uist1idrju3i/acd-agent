@@ -8,11 +8,11 @@ embedded into generated schematics.
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
 from acd.core.board_model import FootprintShape, PadShape
+from acd.core.fileio import file_sha256
 from acd.core.sexpr import SExpr, SExprError, find_all, find_one, parse_one
 
 
@@ -20,14 +20,10 @@ class LibraryPinError(ValueError):
     """Raised when a pinned library reference cannot be resolved (fail-closed)."""
 
 
-def _sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def verify_pinned_file(path: Path, expected_sha256: str) -> None:
     if not path.is_file():
         raise LibraryPinError(f"pinned library file missing: {path}")
-    actual = _sha256(path)
+    actual = file_sha256(path)
     if actual != expected_sha256:
         raise LibraryPinError(
             f"pinned library hash mismatch for {path}: expected {expected_sha256}, got {actual}"

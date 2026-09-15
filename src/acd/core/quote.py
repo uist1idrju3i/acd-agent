@@ -9,6 +9,7 @@ from typing import Protocol, cast
 
 from pydantic import ValidationError
 
+from acd.core.fileio import read_json
 from acd.schema.common import (
     Revision,
     Sha256,
@@ -50,7 +51,7 @@ class FixtureQuoteProvider:
         if not isinstance(path, str) or not path:
             raise QuoteReadError("fixture quote provider requires a path")
         try:
-            value = json.loads(Path(path).read_text(encoding="utf-8"))
+            value = read_json(Path(path))
             record = QuoteRecord.model_validate(value)
         except (OSError, json.JSONDecodeError, TypeError, ValueError, ValidationError) as exc:
             raise QuoteReadError("fixture quote record is malformed") from exc
@@ -112,7 +113,7 @@ def load_quote(
 ) -> QuoteFeeSet:
     """Load and deterministically read a quote record from JSON."""
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = read_json(path)
         if not isinstance(value, dict):
             raise ValueError("quote JSON root must be an object")
         record = QuoteRecord.model_validate(cast(dict[str, object], value))

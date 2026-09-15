@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from acd.core.fileio import read_json
 from acd.core.gpio import GpioAssignmentError, apply_gpio_assignment
 from acd.core.rationale import (
     RationaleRefreshError,
@@ -39,7 +40,7 @@ class RequirementCompilationResult:
 
 def _load_record(path: Path) -> RequirementRecord:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = read_json(path)
         return RequirementRecord.model_validate(value)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise RequirementCompilationError(
@@ -244,7 +245,7 @@ def compile_requirement_change(
     rationale_path = fixture_dir / "rationale.json"
     try:
         graph = DesignGraph.model_validate(
-            json.loads(graph_path.read_text(encoding="utf-8"))
+            read_json(graph_path)
         )
         loaded = load_requirements(requirements_path)
         updated = _load_record(requirement_path)
@@ -322,7 +323,7 @@ def compile_requirement_change(
     validate_requirements(updated_requirements, graph)
     try:
         rationale = RationaleDocument.model_validate(
-            json.loads(rationale_path.read_text(encoding="utf-8"))
+            read_json(rationale_path)
         )
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise RequirementCompilationError(f"rationale document is invalid: {exc}") from exc

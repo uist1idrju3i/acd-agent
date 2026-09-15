@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from acd.core.cpl_orientation import cpl_orientation_attrs
+from acd.core.fileio import file_sha256, read_json, write_json
 from acd.core.library_assets import (
     resolve_library_asset,
     verify_fixture_library_assets,
@@ -44,7 +45,6 @@ from .components import (
     REQUIREMENTS,
     LibraryRef,
     components,
-    sha256_of,
 )
 from .mechanical import mechanical_nodes
 from .silkscreen import silkscreen_nodes
@@ -82,15 +82,12 @@ def _run_skill(
 ) -> dict[str, Any]:
     root, _, _, _, _ = _paths()
     input_path = output.with_suffix(".input.json")
-    input_path.write_text(
-        json.dumps(input_data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(input_path, input_data, mkdir=False)
     command = [sys.executable, str(script), "--input", str(input_path)]
     command.extend(extra_args)
     command.extend(["--output", str(output)])
     subprocess.run(command, check=True, cwd=root)
-    value = json.loads(output.read_text(encoding="utf-8"))
+    value = read_json(output)
     if not isinstance(value, dict | list):
         raise ValueError(f"skill output is not a JSON object or array: {script}")
     return value if isinstance(value, dict) else {"placements": value}
@@ -132,7 +129,7 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
                         "placement_y_mm": placement["y_mm"],
                         "placement_rotation_deg": placement["rotation_deg"],
                         "placement_source": "acd-placement-search",
-                        "placement_source_ref": f"plugins/acd/skills/acd-placement-search/scripts/placement_search.py:{sha256_of(placement_skill)}",
+                        "placement_source_ref": f"plugins/acd/skills/acd-placement-search/scripts/placement_search.py:{file_sha256(placement_skill)}",
                     }
                 )
                 updated_nodes.append(node.model_copy(update={"attrs": attrs}))
@@ -198,16 +195,16 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
                         "rotation_deg": resolved["rotation_deg"],
                         "placement_rotation_deg": resolved["rotation_deg"],
                         "placement_source": "acd-silkscreen-placement",
-                        "placement_source_ref": f"plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py:{sha256_of(silk_skill)}",
+                        "placement_source_ref": f"plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py:{file_sha256(silk_skill)}",
                         "placement_evidence": json.dumps(
                             summarize_placement_evidence(evidence_by_id[node.id]),
                             ensure_ascii=False,
                             sort_keys=True,
                         ),
-                        "placement_evidence_input_sha256": sha256_of(
+                        "placement_evidence_input_sha256": file_sha256(
                             directory_path / "silkscreen.input.json"
                         ),
-                        "placement_evidence_output_sha256": sha256_of(
+                        "placement_evidence_output_sha256": file_sha256(
                             evidence_archive / "silkscreen.json"
                         ),
                     }
@@ -221,7 +218,7 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
 
 def lib_attrs(lib: LibraryRef) -> dict[str, AttrValue]:
     def file_hash(rel_or_abs: str) -> str:
-        return sha256_of(resolve_library_asset(rel_or_abs))
+        return file_sha256(resolve_library_asset(rel_or_abs))
 
     return {
         "symbol": lib["symbol"],
@@ -272,7 +269,7 @@ def build_graph() -> DesignGraph:
                 "placement_source": "acd-placement-search",
                 "placement_source_ref": (
                     "plugins/acd/skills/acd-placement-search/scripts/"
-                    f"placement_search.py:{sha256_of(placement_skill)}"
+                    f"placement_search.py:{file_sha256(placement_skill)}"
                 ),
             }
         )
@@ -461,7 +458,7 @@ def check_rationale_hashes(
         return 0
     try:
         document = RationaleDocument.model_validate(
-            json.loads(rationale_path.read_text(encoding="utf-8"))
+            read_json(rationale_path)
         )
     except Exception as exc:
         print(f"rationale validation failed; graph was not written: {exc}", file=sys.stderr)
@@ -530,10 +527,7 @@ def main() -> int:
         return rationale_status
     payload = graph.model_dump(mode="json")
     out = fixture_dir / "graph.json"
-    out.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(out, payload, mkdir=False)
     verify_fixture_library_assets(graph, fixture_dir)
     print(f"wrote {out} ({len(graph.nodes)} nodes)")
     return 0

@@ -8,7 +8,6 @@ closed downstream (ADR-0004).
 from __future__ import annotations
 
 # ruff: noqa: E501,RUF100
-import hashlib
 from pathlib import Path
 from typing import NotRequired, TypedDict
 
@@ -64,10 +63,6 @@ PLACEMENTS: dict[str, tuple[float, float, float]] = {
     "U2": (4.15, 14.7, 90.0),
     "U3": (15.0, 13.05, 0.0),
 }
-
-
-def sha256_of(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 class LibraryRef(TypedDict):

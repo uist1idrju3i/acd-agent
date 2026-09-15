@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
@@ -13,6 +12,7 @@ from acd.core.design_predicates import (
     PredicateResult,
     PredicateStatus,
 )
+from acd.core.fileio import write_json
 from acd.schema.common import canonical_json_sha256
 
 
@@ -30,10 +30,7 @@ def _write_payload(out_dir: Path, filename: str, payload: dict[str, Any]) -> Pat
     body = dict(payload)
     body["content_sha256"] = canonical_json_sha256(body)
     path = evidence_dir / filename
-    path.write_text(
-        json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(path, body, mkdir=False)
     return path
 
 

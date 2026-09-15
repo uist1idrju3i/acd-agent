@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 import sqlite3
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+
+from acd.core.fileio import file_sha256
 
 CERN_SOURCE_URL = "https://gitlab.com/ohwr/cern-kicad-libs"
 CERN_CATALOG_ID = "cern-kicad-libs"
@@ -69,10 +70,6 @@ def cern_checkout_commit(root: Path) -> str:
             f"CERN submodule commit drift: expected {expected}, got {actual}"
         )
     return actual
-
-
-def _sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _quote_identifier(identifier: str) -> str:
@@ -174,7 +171,7 @@ def resolve_cern_part(root: Path, part_number: str) -> ResolvedCernPart:
         symbol_file=str(
             CERN_SUBMODULE / "SchLib" / f"{symbol_library}.kicad_sym"
         ),
-        symbol_sha256=_sha256(symbol_path),
+        symbol_sha256=file_sha256(symbol_path),
         footprint=str(raw_footprint),
         footprint_path=footprint_path,
         footprint_file=str(
@@ -183,7 +180,7 @@ def resolve_cern_part(root: Path, part_number: str) -> ResolvedCernPart:
             / f"{footprint_library}.pretty"
             / f"{footprint_name}.kicad_mod"
         ),
-        footprint_sha256=_sha256(footprint_path),
+        footprint_sha256=file_sha256(footprint_path),
     )
 
 
@@ -191,7 +188,7 @@ def cern_catalog_hash(root: Path) -> str:
     database = root / CERN_SUBMODULE / "CERN.sqlite"
     if not database.is_file():
         raise CernCatalogError(f"CERN catalog database is missing: {database}")
-    return _sha256(database)
+    return file_sha256(database)
 
 
 __all__ = [

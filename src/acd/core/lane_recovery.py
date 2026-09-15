@@ -16,6 +16,7 @@ from acd.core.design_freedom import (
     DesignFreedomDeclaration,
     load_design_freedom_declaration,
 )
+from acd.core.fileio import read_json
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.lane_recovery import (
@@ -77,7 +78,7 @@ def load_lane_recovery_declarations(
         path or repository_root() / "contracts" / "lane-recovery-declaration.json"
     )
     try:
-        value = json.loads(declaration_path.read_text(encoding="utf-8"))
+        value = read_json(declaration_path)
         document = LaneRecoveryDeclarationDocument.model_validate(value)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise LaneRecoveryDeclarationError(

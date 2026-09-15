@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import read_json
 from acd.core.lane_preflight import run_lane_preflight
 from acd.core.lane_recovery import resolve_lane_recovery
 from acd.core.rationale import check_rationale_coverage
@@ -20,7 +21,7 @@ class GateDiagnosisError(ValueError):
 
 def _load_hashed(path: Path) -> dict[str, Any]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = read_json(path)
     except (OSError, json.JSONDecodeError) as exc:
         raise GateDiagnosisError(f"diagnostic artifact is unreadable: {path}") from exc
     if not isinstance(value, dict):

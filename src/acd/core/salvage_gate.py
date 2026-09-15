@@ -14,6 +14,7 @@ from acd.core.design_predicates import (
     evaluate_design_predicates,
 )
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.fileio import read_json, write_json
 from acd.core.gate_evidence_run import external_gate_run
 from acd.core.mechanical_preflight import check_mechanical_preflight
 from acd.core.rationale import (
@@ -151,7 +152,7 @@ def _load_rationale_document(fixture_dir: Path) -> RationaleDocument:
     path = fixture_dir / "rationale.json"
     try:
         return RationaleDocument.model_validate(
-            json.loads(path.read_text(encoding="utf-8"))
+            read_json(path)
         )
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise SalvageGateError(f"rationale document is invalid: {path}: {exc}") from exc
@@ -167,10 +168,7 @@ def _write_derived_rationale(
     output_dir.mkdir(parents=True, exist_ok=True)
     payload = document.model_dump(mode="json")
     rationale_path = output_dir / "derived-rationale.json"
-    rationale_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(rationale_path, payload, mkdir=False)
     provenance = {
         "artifact_kind": "rework_derived_rationale",
         "pass_evidence": False,
@@ -186,10 +184,7 @@ def _write_derived_rationale(
         "tool": "acd.core.salvage_gate",
         "acd_version": "0.0.2",
     }
-    (output_dir / "derived-rationale.provenance.json").write_text(
-        json.dumps(provenance, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(output_dir / "derived-rationale.provenance.json", provenance, mkdir=False)
 
 
 @contextmanager

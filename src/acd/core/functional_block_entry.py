@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from acd.core.design_freedom import load_design_freedom_declaration
+from acd.core.fileio import read_json
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
@@ -58,7 +59,7 @@ def _read_contract_input(
     if isinstance(value, Path):
         source = str(value)
         try:
-            payload = json.loads(value.read_text(encoding="utf-8"))
+            payload = read_json(value)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
             raise FunctionalBlockContractError(
                 f"functional block contract is invalid: {source}: {exc}"

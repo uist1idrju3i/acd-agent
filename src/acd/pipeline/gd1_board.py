@@ -104,6 +104,7 @@ from acd.core.fab import (
     load_fab_profile_registry,
     resolve_fab_profile_path,
 )
+from acd.core.fileio import read_json, write_json
 from acd.core.firmware_lane import extract_firmware_lane
 from acd.core.functional_blocks import (
     declared_functional_blocks,
@@ -512,7 +513,7 @@ def _run_kicad_netclass_positive_control(
     """Measure class-only and board-level KiCad width controls."""
     control_dir = out_dir / "kicad-netclass-positive-control"
     control_dir.mkdir(parents=True, exist_ok=True)
-    project_data = cast(dict[str, object], json.loads(project_path.read_text(encoding="utf-8")))
+    project_data = cast(dict[str, object], read_json(project_path))
     net_settings = project_data.get("net_settings")
     net_settings = cast(dict[str, object], net_settings) if isinstance(net_settings, dict) else None
     classes = (
@@ -577,7 +578,7 @@ def _run_kicad_netclass_positive_control(
             shutil.copy2(dru_path, arm_dru)
         arm_project_data = cast(
             dict[str, object],
-            json.loads(arm_project.read_text(encoding="utf-8")),
+            read_json(arm_project),
         )
         arm_net_settings_obj = arm_project_data.get("net_settings")
         arm_net_settings = (
@@ -810,7 +811,7 @@ def run_pipeline(
     router_timeout_s: float = DEFAULT_TOOL_TIMEOUT_S,
 ) -> dict[str, str]:
     graph = DesignGraph.model_validate(
-        json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+        read_json(fixture_dir / "graph.json")
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     out_dir = out_dir.resolve()
@@ -845,10 +846,7 @@ def run_pipeline(
         "searchable_dimensions": list(searchable_dimensions(design_freedom)),
     }
     design_freedom_body["content_sha256"] = canonical_json_sha256(design_freedom_body)
-    (out_dir / "design-freedom-declaration.json").write_text(
-        json.dumps(design_freedom_body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(out_dir / "design-freedom-declaration.json", design_freedom_body, mkdir=False)
     group0_results = _run_ordered_stages(
         (
             (
@@ -1623,10 +1621,7 @@ def run_pipeline(
         )
     except CplBasisError as exc:
         cpl_basis_report = exc.report
-        cpl_basis_path.write_text(
-            json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        write_json(cpl_basis_path, cpl_basis_report, mkdir=False)
         unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
         dfm_report = run_dfm(
             measurement,
@@ -1646,10 +1641,7 @@ def run_pipeline(
         )
         dfm_report["status"] = "fail"
         dfm_path = fab_dir / "dfm-report.json"
-        dfm_path.write_text(
-            json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        write_json(dfm_path, dfm_report, mkdir=False)
         failure_package: dict[str, object] = {
             "schema_version": "0.1",
             "status": "fail",
@@ -1663,10 +1655,7 @@ def run_pipeline(
             "gates": {"cpl_basis": "fail", "dfm": str(dfm_report["status"])},
             "unknowns": unknowns,
         }
-        (fab_dir / "fab-package.json").write_text(
-            json.dumps(failure_package, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        write_json(fab_dir / "fab-package.json", failure_package, mkdir=False)
         raise
     cpl_path.write_text(jlcpcb_cpl_csv(resolved_pos_rows, fitted), encoding="utf-8")
     declared_rotation_offsets = cast(dict[str, float], cpl_basis_report["rotation_offsets"])
@@ -1679,10 +1668,7 @@ def run_pipeline(
     cpl_unknowns["cpl_rotation_basis_fab_lcsc"] = sorted(
         set(existing_rotation_unknowns).union(rotation_unknowns)
     )
-    cpl_basis_path.write_text(
-        json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(cpl_basis_path, cpl_basis_report, mkdir=False)
     cross_validate_cpl(
         cpl_path,
         pos_rows,
@@ -1769,10 +1755,7 @@ def run_pipeline(
     }
     dfm_report["routing_width"] = width_evidence
     dfm_path = fab_dir / "dfm-report.json"
-    dfm_path.write_text(
-        json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(dfm_path, dfm_report, mkdir=False)
     print(
         f"[9/12] DFM report written ({dfm_report['status']}; "
         f"{len(cast(list[object], dfm_report['findings']))} findings)"
@@ -1868,10 +1851,7 @@ def run_pipeline(
         },
     }
     order_readiness_path = fab_dir / "order-readiness.json"
-    order_readiness_path.write_text(
-        json.dumps(order_readiness, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(order_readiness_path, order_readiness, mkdir=False)
     manifest["status"] = order_readiness["status"]
     cast(dict[str, object], manifest["gates"])["order_readiness"] = order_readiness["status"]
     cast(list[dict[str, str]], manifest["files"]).append(
@@ -1884,10 +1864,7 @@ def run_pipeline(
         cast(dict[str, object], dfm_report["unknowns"])
     )
     package_path = fab_dir / "fab-package.json"
-    package_path.write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(package_path, manifest, mkdir=False)
     print("[10/12] manufacturing package written")
     mark_stage(11)
     functional_registry = load_functional_block_registry()

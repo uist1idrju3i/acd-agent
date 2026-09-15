@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from acd.core.fileio import read_json
 from acd.core.firmware_capability import (
     FirmwareCapabilityContractError,
     FirmwareCapabilityRegistry,
@@ -63,7 +64,7 @@ def _read_capability_input(
         return FirmwareCapabilityContract.model_validate(value), "mapping"
     if isinstance(value, Path):
         try:
-            payload = json.loads(value.read_text(encoding="utf-8"))
+            payload = read_json(value)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
             raise FirmwareCapabilityContractError(
                 f"firmware capability declaration is invalid: {value}: {exc}"

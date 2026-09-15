@@ -26,6 +26,7 @@ from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportU
 from pydantic import Field
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
+from acd.core.fileio import file_sha256, read_json
 from acd.core.firmware_capability_entry import register_firmware_capability
 from acd.core.functional_block_entry import register_functional_block_contract
 from acd.core.naming import artifact_prefix
@@ -77,7 +78,7 @@ def _envelopes(out_dir: Path) -> list[dict[str, Any]]:
     envelopes: list[dict[str, Any]] = []
     for path in sorted(out_dir.rglob("*.json")):
         try:
-            value = json.loads(path.read_text(encoding="utf-8"))
+            value = read_json(path)
         except (OSError, json.JSONDecodeError):
             continue
         if isinstance(value, dict) and {
@@ -95,12 +96,6 @@ def _resolved_resource_path(raw_path: str) -> Path | None:
         return Path(raw_path).expanduser().resolve()
     except (OSError, RuntimeError, ValueError):
         return None
-
-
-def _file_sha256(path: Path) -> str:
-    import hashlib
-
-    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 def _resources(*paths: tuple[str, Path]) -> DeclaredResources:
@@ -593,7 +588,7 @@ class AcdValidateDesignGraphExecutor(ToolExecutor[AcdValidateDesignGraphAction, 
                         operation="validate_design_graph",
                     )
                 )
-            graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
+            graph = DesignGraph.model_validate(read_json(graph_path))
             return AcdValidateDesignGraphObservation(
                 ok=True,
                 operation="validate_design_graph",
@@ -948,12 +943,12 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
                     output_path=str(out_path),
                 )
             summary_path = out_path / "summary.json"
-            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            summary = read_json(summary_path)
             if not isinstance(summary, dict):
                 raise ValueError("firmware Skill summary must be an object")
             from acd.pipeline.firmware_evidence import write_firmware_evidence
 
-            script_sha256 = _file_sha256(script)
+            script_sha256 = file_sha256(script)
             graph = DesignGraph.model_validate_json(
                 (Path(action.fixture) / "graph.json").read_text(encoding="utf-8")
             )

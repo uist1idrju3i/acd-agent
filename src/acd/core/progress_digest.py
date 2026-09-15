@@ -15,6 +15,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import read_json
 from acd.schema.common import canonical_json_sha256
 from acd.schema.progress_digest import (
     ProgressDigestReport,
@@ -36,7 +37,7 @@ EXPLORATION_KINDS: frozenset[str] = frozenset(
 
 def _load(path: Path) -> tuple[Mapping[str, Any] | None, str | None]:
     try:
-        body: object = json.loads(path.read_text(encoding="utf-8"))
+        body: object = read_json(path)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return None, f"record is unreadable: {exc}"
     if not isinstance(body, dict):

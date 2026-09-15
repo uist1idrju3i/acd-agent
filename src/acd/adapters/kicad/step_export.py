@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 import subprocess
 from dataclasses import dataclass
@@ -11,6 +10,7 @@ from pathlib import Path
 from typing import Literal
 
 from acd.core.cad_normalize import normalize_step
+from acd.core.fileio import read_json
 from acd.core.process import ExternalToolError, run_tool, sha256_bytes
 
 
@@ -28,7 +28,7 @@ class StepExportRecord:
 def _expected_version() -> str | None:
     lock_path = Path(__file__).resolve().parents[4] / "docker" / "image-digests.json"
     try:
-        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        lock = read_json(lock_path)
         value = lock["acd_tools"]["tools"]["kicad-cli"]
     except (KeyError, OSError, TypeError, ValueError):
         return None

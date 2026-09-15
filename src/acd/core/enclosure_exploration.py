@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import shutil
 import tempfile
 import threading
@@ -20,6 +19,7 @@ from acd.core.design_freedom import (
     design_freedom_dimension,
     load_design_freedom_declaration,
 )
+from acd.core.fileio import write_json
 from acd.core.rationale import (
     RationaleDocument,
     RationaleRefreshError,
@@ -84,11 +84,7 @@ def _script_hash() -> str:
 
 
 def _write_json(path: Path, body: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(path, body)
 
 
 def _enclosure_node(graph: DesignGraph) -> GraphNode:

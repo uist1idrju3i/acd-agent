@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.core.functional_blocks import (
     FunctionalBlockRegistry,
     load_functional_block_registry,
@@ -31,7 +32,7 @@ def load_requirements(path: Path) -> LoadedRequirements:
     """Load and validate a requirement document."""
     try:
         document = RequirementDocument.model_validate(
-            json.loads(path.read_text(encoding="utf-8"))
+            read_json(path)
         )
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise RequirementError(f"requirements document is invalid: {path}: {exc}") from exc

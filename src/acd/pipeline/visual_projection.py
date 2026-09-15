@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import math
 import re
 from datetime import UTC, datetime
@@ -23,6 +22,7 @@ from acd.adapters.svg.common import (
 from acd.core.board_model import BoardModel
 from acd.core.cad_normalize import normalize_3mf, normalize_step
 from acd.core.electrical import ElectricalLane
+from acd.core.fileio import read_json
 from acd.core.firmware_lane import FirmwareLane
 from acd.core.mechanical import MechanicalLane
 from acd.core.naming import artifact_prefix
@@ -1631,7 +1631,7 @@ def crosscheck_firmware_visual_projections(
             "firmware crosscheck requires two distinct projection identifiers"
         )
     graph = DesignGraph.model_validate(
-        json.loads(graph_input.read_text(encoding="utf-8"))
+        read_json(graph_input)
     )
     graph_pin_assignments: list[tuple[str, int, str]] = []
     for node in graph.nodes:

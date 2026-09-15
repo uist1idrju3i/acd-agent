@@ -34,6 +34,7 @@ from acd.adapters.svg.common import (
     view_box_font_size,
 )
 from acd.core.cad_normalize import normalize_step
+from acd.core.fileio import read_json
 from acd.core.mechanical import SUPPORTED_OPENING_FACES, MechanicalLane
 from acd.core.naming import artifact_prefix
 from acd.core.parallel import PipelineStageRunner
@@ -122,7 +123,7 @@ def _assembly_input(
     if not manifest_path.is_file():
         raise MechanicalVisualProjectionError("CAD artifact manifest is missing")
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = read_json(manifest_path)
         artifacts = manifest["artifacts"]
         assembly = next(item for item in artifacts if item["role"] == "enclosure_assembly")
         expected_hash = assembly["normalized_sha256"]

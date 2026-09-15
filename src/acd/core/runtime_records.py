@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
 
+from acd.core.fileio import read_json, write_json
 from acd.schema.common import canonical_json_sha256
 
 
@@ -121,10 +122,7 @@ def write_timing_record(
     body["content_sha256"] = canonical_json_sha256(body)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "timing-record.json"
-    path.write_text(
-        json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(path, body, mkdir=False)
     return path
 
 
@@ -134,10 +132,7 @@ def write_loop_summary_record(out_dir: Path, body: dict[str, object]) -> Path:
     record["content_sha256"] = canonical_json_sha256(record)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "loop-summary.json"
-    path.write_text(
-        json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(path, record, mkdir=False)
     return path
 
 
@@ -163,7 +158,7 @@ class StageArtifactCache:
             self.events.append({"stage": stage, "key": key, "status": "miss"})
             return None
         try:
-            record = json.loads(metadata.read_text(encoding="utf-8"))
+            record = read_json(metadata)
             data = artifact.read_bytes()
             if (
                 record.get("key") != key

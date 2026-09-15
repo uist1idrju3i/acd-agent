@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import re
 import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import file_sha256, write_json
 from acd.pipeline.visual_review import collect_visual_projection_sets
 
 PRODUCT_DOCS_SKILL = "acd-product-docs"
@@ -53,10 +52,6 @@ class ProjectionDocsResult:
     documents: tuple[GeneratedDocument, ...]
     hashes_path: Path
     provenance: dict[str, object]
-
-
-def _sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _script_path(repository: Path, name: str) -> Path:
@@ -120,7 +115,7 @@ def _require_document(
         kind=kind,
         path=document,
         provenance_path=provenance,
-        sha256=_sha256(document),
+        sha256=file_sha256(document),
         language=language,
     )
 
@@ -128,14 +123,11 @@ def _require_document(
 def _write_hashes(output: Path) -> Path:
     hashes_path = output / "hashes.json"
     hashes = {
-        path.relative_to(output).as_posix(): _sha256(path)
+        path.relative_to(output).as_posix(): file_sha256(path)
         for path in sorted(output.rglob("*"))
         if path.is_file() and path != hashes_path
     }
-    hashes_path.write_text(
-        json.dumps(hashes, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(hashes_path, hashes, mkdir=False)
     return hashes_path
 
 
@@ -518,7 +510,7 @@ def run_projection_docs(
         "scripts": {
             script.name: {
                 "path": script.relative_to(repository).as_posix(),
-                "sha256": _sha256(script),
+                "sha256": file_sha256(script),
             }
             for script in (
                 readme_script,

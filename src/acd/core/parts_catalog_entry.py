@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import read_json
 from acd.core.library_assets import (
     LibraryAsset,
     LibraryAssetError,
@@ -69,7 +70,7 @@ def _read_entry_input(
     if isinstance(value, Path):
         source = str(value)
         try:
-            payload = json.loads(value.read_text(encoding="utf-8"))
+            payload = read_json(value)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
             raise PartsCatalogEntryError(
                 f"parts catalog entry is invalid: {source}: {exc}"

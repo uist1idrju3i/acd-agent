@@ -8,11 +8,11 @@ must rerun the deterministic gates afterwards.
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from typing import Any
 
+from acd.core.fileio import write_json
 from acd.core.rationale import RationaleRefreshError, refresh_rationale_document
 from acd.schema import RationaleDocument
 from acd.schema.design_graph import DesignGraph
@@ -23,11 +23,7 @@ class CandidateCommitError(ValueError):
 
 
 def _write_json(path: Path, body: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(path, body)
 
 
 def commit_candidate_graph(

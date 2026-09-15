@@ -8,7 +8,6 @@ authority for accepting a design.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import math
 import shutil
@@ -28,6 +27,7 @@ from acd.core.decoupling_placement import (
 from acd.core.design_freedom import load_design_freedom_declaration
 from acd.core.design_predicates import evaluate_design_predicates, evaluate_strapping_pin
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.fileio import file_sha256, read_json, write_json
 from acd.core.rationale import (
     RationaleDocument,
     RationaleRefreshError,
@@ -94,7 +94,7 @@ PipelineRunner = Callable[[Path, Path], object]
 
 def _sha256(path: Path) -> str:
     try:
-        return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+        return file_sha256(path)
     except OSError as exc:
         raise ExplorationError(f"cannot hash exploration input: {path}: {exc}") from exc
 
@@ -116,11 +116,7 @@ def load_exploration_rationale(path: Path) -> RationaleDocument:
 
 
 def _write_json(path: Path, body: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(path, body)
 
 
 def _report_with_hash(body: dict[str, Any]) -> dict[str, Any]:
@@ -249,7 +245,7 @@ def _placement_candidates(
                 + (completed.stderr.strip() or f"exit {completed.returncode}")
             )
         try:
-            payload = json.loads(skill_output.read_text(encoding="utf-8"))
+            payload = read_json(skill_output)
         except (OSError, json.JSONDecodeError) as exc:
             raise ExplorationError(f"placement skill output is invalid: {exc}") from exc
         if not isinstance(payload, list):
@@ -468,7 +464,7 @@ def _validated_evidence_payload(
 ) -> dict[str, Any]:
     """Read hashed structured gate evidence, rejecting unverifiable payloads."""
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
     except (OSError, json.JSONDecodeError) as exc:
         raise ExplorationError(f"structured gate evidence is unreadable: {exc}") from exc
     if not isinstance(payload, dict):
@@ -725,7 +721,7 @@ def _diagnostic_dimensions(
     if not path.is_file():
         return (), None
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
     except (OSError, json.JSONDecodeError) as exc:
         return (), f"structured gate evidence is malformed: {exc}"
     if not isinstance(payload, dict):

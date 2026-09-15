@@ -9,6 +9,7 @@ from typing import cast
 
 from acd.adapters.kicad.library import LibraryPinError, verify_pinned_file
 from acd.core.fab import FabProfile
+from acd.core.fileio import read_json
 from acd.core.sexpr import SExpr, dumps, find_all
 
 
@@ -32,7 +33,7 @@ def apply_overlay(
 ) -> tuple[list[SExpr], dict[str, str]]:
     if _hash_bytes(overlay_path.read_bytes()) != expected_overlay_hash:
         raise LibraryPinError(f"overlay hash mismatch: {overlay_path}")
-    data = cast(dict[str, object], json.loads(overlay_path.read_text(encoding="utf-8")))
+    data = cast(dict[str, object], read_json(overlay_path))
     if data.get("source_footprint_file") != str(source_path):
         raise LibraryPinError("overlay source footprint path mismatch")
     source_hash = data.get("source_footprint_sha256")

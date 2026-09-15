@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.schema.common import canonical_json_sha256, canonical_sha256
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 from acd.schema.rework_diff import (
@@ -43,7 +44,7 @@ class DerivedGraph:
 def load_rework_diff(path: Path) -> LoadedReworkDiff:
     try:
         diff = ReworkDiff.model_validate(
-            json.loads(path.read_text(encoding="utf-8"))
+            read_json(path)
         )
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise ReworkDiffError(f"rework diff is invalid: {path}: {exc}") from exc

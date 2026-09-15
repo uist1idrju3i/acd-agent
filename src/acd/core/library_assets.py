@@ -10,12 +10,12 @@ producing a fixture whose declarations cannot be resolved.
 
 from __future__ import annotations
 
-import hashlib
 import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import file_sha256
 from acd.pipeline.repository import repository_root
 from acd.schema.design_graph import DesignGraph
 
@@ -44,7 +44,7 @@ class LibraryAsset:
 
 def sha256_of_asset(path: Path) -> str:
     try:
-        return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+        return file_sha256(path)
     except OSError as exc:
         raise LibraryAssetError(
             f"library asset is unavailable: {path}: {exc}"

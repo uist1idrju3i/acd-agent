@@ -11,6 +11,8 @@ from typing import Final
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
+from acd.core.fileio import read_json
+
 _DIGEST_PATTERN: Final = re.compile(r"^sha256:[0-9a-f]{64}$")
 _PLACEHOLDER_VALUES: Final = {"", "unknown", "tbd", "placeholder", "none", "null"}
 
@@ -114,7 +116,7 @@ def load_image_lock(path: Path | None = None) -> ImageDigestLock:
     if path is None:
         return _load_packaged_lock()
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"invalid image lock: {path}: {exc}") from exc
     return _validate_lock_payload(payload, str(path))

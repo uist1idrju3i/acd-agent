@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from acd.adapters.svg.graph_diff import generate_graph_diff_visual_projection
+from acd.core.fileio import read_json
 from acd.schema.design_graph import DesignGraph
 
 
@@ -16,7 +17,7 @@ class GraphDiffProjectionError(ValueError):
 
 def _load_graph(path: Path) -> DesignGraph:
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
         return DesignGraph.model_validate(payload)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise GraphDiffProjectionError(

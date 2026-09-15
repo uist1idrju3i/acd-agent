@@ -9,7 +9,6 @@ failure is fail-closed and reported as :class:`FirmwareLaneError`.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import subprocess
 from dataclasses import dataclass
@@ -17,6 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import file_sha256, read_json
 from acd.core.firmware_capability import load_firmware_capability_registry
 from acd.core.firmware_coverage import check_firmware_coverage
 from acd.pipeline.firmware_evidence import write_firmware_evidence
@@ -88,10 +88,6 @@ def firmware_script_path(repository: Path) -> Path:
         repository
         / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"
     )
-
-
-def _file_sha256(path: Path) -> str:
-    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 def run_firmware_lane(
@@ -168,7 +164,7 @@ def run_firmware_lane(
         )
     summary_path = output / "summary.json"
     try:
-        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        summary = read_json(summary_path)
     except (OSError, json.JSONDecodeError) as exc:
         raise FirmwareLaneError(
             f"firmware Skill summary is invalid: {exc}"
@@ -213,7 +209,7 @@ def run_firmware_lane(
                 output_path=output,
             )
         try:
-            gate_result = json.loads(gate_path.read_text(encoding="utf-8"))
+            gate_result = read_json(gate_path)
         except (OSError, json.JSONDecodeError) as exc:
             raise FirmwareLaneError(
                 f"firmware security gate result is invalid: {exc}",
@@ -225,7 +221,7 @@ def run_firmware_lane(
                 f"firmware security gate {gate_result.get('status', 'unknown')}",
                 output_path=output,
             )
-    script_sha256 = _file_sha256(script)
+    script_sha256 = file_sha256(script)
     try:
         graph = DesignGraph.model_validate_json(
             (fixture_dir / "graph.json").read_text(encoding="utf-8")

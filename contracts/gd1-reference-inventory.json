@@ -211,7 +211,7 @@
     {
       "path": "src/acd/pipeline/silkscreen_resolve.py",
       "purpose": "module_name",
-      "reference_lines": 6,
+      "reference_lines": 5,
       "note": "Imports placement and hashing helpers from the historically named GD1 modules."
     },
     {
