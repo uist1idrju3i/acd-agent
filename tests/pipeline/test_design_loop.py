@@ -1875,6 +1875,7 @@ def test_lane_preflight_stops_before_silkscreen_with_concrete_declarations(
     assert preflight["record_class"] == "L3"
     assert preflight["pass_evidence"] is False
     assert preflight["preflight_status"] == "declarations_incomplete"
+    assert isinstance(preflight["producer_gaps"], list)
     (missing,) = preflight["missing_declarations"]
     assert missing["kind"] == "mechanical.silk_text"
     assert missing["spec_path"] == "silk_texts[].attrs"

@@ -14,6 +14,7 @@ from acd.pipeline.fixture_builder import (
     FixtureBuilderError,
     build_design_fixture,
     build_graph,
+    copy_cpl_evidence,
 )
 from acd.schema.design_fixture import (
     DesignFixtureSpec,
@@ -53,6 +54,15 @@ def _spec(**overrides: object) -> DesignFixtureSpec:
     }
     base.update(overrides)
     return DesignFixtureSpec.model_validate(base)
+
+
+def test_supplied_cpl_evidence_is_copied_after_validation(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate_json(
+        (Path("fixtures/golden-design-1") / "graph.json").read_text(encoding="utf-8")
+    )
+    copy_cpl_evidence(graph, Path("evidence/gd1-cpl-orientation"), tmp_path)
+    copied = tmp_path / "evidence" / "gd1-cpl-orientation" / "U1.json"
+    assert copied.read_bytes() == Path("evidence/gd1-cpl-orientation/U1.json").read_bytes()
 
 
 def _mechanical_spec() -> DesignFixtureSpec:

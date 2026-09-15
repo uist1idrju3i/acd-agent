@@ -212,6 +212,7 @@ class DesignLoopConfig:
     max_exploration_rounds: int = 1
     requirement: Path | None = None
     fixture_spec: Path | None = None
+    cpl_evidence_dir: Path | None = None
     quote_records: tuple[Path, ...] = ()
     order_scope: Path | None = None
     design_only: bool = False
@@ -724,14 +725,27 @@ def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
             config.fixture_dir,
             overwrite=config.fixture_overwrite,
             spec_dir=config.fixture_spec.parent,
+            cpl_evidence_dir=config.cpl_evidence_dir,
         )
     except Exception as exc:
         return _failure("fixture-generation", f"{type(exc).__name__}: {exc}")
     # Diagnostic only: the fixture was written, and the loop entry preflight
     # decides whether the lanes may run. Reporting the gaps here lets a design
     # input be completed without waiting for that stop.
-    preflight = run_lane_preflight(graph, _preflight_lanes())
+    preflight = run_lane_preflight(
+        graph,
+        _preflight_lanes(),
+        root=config.repository,
+        evidence_root=(
+            config.fixture_dir
+            if (config.fixture_dir / "evidence").is_dir()
+            else config.repository
+        ),
+    )
     diagnostics: dict[str, Any] = {"lane_preflight_status": preflight.status}
+    diagnostics["producer_gaps"] = [
+        item.model_dump(mode="json") for item in preflight.producer_gaps
+    ]
     diagnostics.update(_firmware_coverage_diagnostics(preflight))
     if preflight.status != "declarations_complete":
         diagnostics["missing_declarations"] = [
@@ -784,7 +798,16 @@ def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
     output_path = config.lane_plan.stage("lane-preflight").output_path
     try:
         graph = _load_graph(config.fixture_dir)
-        report = run_lane_preflight(graph, _preflight_lanes())
+        report = run_lane_preflight(
+            graph,
+            _preflight_lanes(),
+            root=config.repository,
+            evidence_root=(
+                config.fixture_dir
+                if (config.fixture_dir / "evidence").is_dir()
+                else config.repository
+            ),
+        )
         if output_path is not None:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(
@@ -803,6 +826,9 @@ def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
         "revision": graph.revision,
         "preflight_status": report.status,
         "preflight_lanes": list(_preflight_lanes()),
+        "producer_gaps": [
+            item.model_dump(mode="json") for item in report.producer_gaps
+        ],
         "output_path": str(output_path) if output_path is not None else None,
         **_firmware_coverage_diagnostics(report),
     }
@@ -1198,6 +1224,7 @@ def run_design_loop(
     wall_clock_budget_seconds: float | None = None,
     token_budget: int | None = None,
     fixture_spec: Path | None = None,
+    cpl_evidence_dir: Path | None = None,
     quote_records: Sequence[Path] | None = None,
     order_scope: Path | None = None,
     previous_graph_path: Path | None = None,
@@ -1270,6 +1297,8 @@ def run_design_loop(
         result["requirement"] = str(requirement)
     if fixture_spec is not None:
         result["fixture_spec"] = str(fixture_spec)
+    if cpl_evidence_dir is not None:
+        result["cpl_evidence_dir"] = str(cpl_evidence_dir)
     timing_record: Path | None = None
     timing_record_error: str | None = None
     config: DesignLoopConfig | None = None
@@ -1355,6 +1384,7 @@ def run_design_loop(
             max_exploration_rounds=max_exploration_rounds,
             requirement=requirement,
             fixture_spec=fixture_spec,
+            cpl_evidence_dir=cpl_evidence_dir,
             quote_records=tuple(quote_records or ()),
             order_scope=order_scope,
             design_only=design_only,

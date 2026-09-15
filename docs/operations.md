@@ -15,6 +15,26 @@ agent-serverはACDの対象外であり、採用する場合は新規ADRで受�
 `LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
 host経路はprovisional専用であり、authoritative Evidenceを生成しない。
 
+### host側FreeRouting wrapper（provisionalのみ）
+
+hostにFreeRouting実行ファイルがない場合、探索の動作確認に限り、repository外の
+`~/bin/freerouting` wrapperからdigest固定tools imageの`freerouting`を起動できる。
+wrapperはadapterが渡すDSN／SESの絶対パスをcontainer内でも同じ位置で参照できるよう、
+作業ディレクトリを同一パスへbind mountして`-w`を設定する。
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+image='ghcr.io/uist1idrju3i/acd-tools@sha256:f6183da561f22b8c80197af37c700665ed6e9d273b9d1267658e61a36577dc25'
+workdir="$(pwd)"
+exec docker run --rm -v "$workdir:$workdir" -w "$workdir" "$image" freerouting "$@"
+```
+
+`--version`はtools imageのCLIが入力ファイルを要求するため、必要ならwrapper側で
+`Freerouting v2.4.1`を返す分岐を設ける。このwrapperはrepositoryへ追加せず、hostの
+provisional routing観測だけに使う。container内で得た結果でも、locked server imageの
+authoritative lane実行とrevision一致Evidence検証を置き換えず、合格側Evidenceを生成しない。
+
 `run_design_loop`の`projection-docs`段は、3 laneと視覚レビューmanifestの後に
 `out/docs/product-readme.md`、`out/docs/instruction-manual.md`、各provenance、
 flatな`out/docs/hashes.json`を書き出す。続く`manufacturing-submission`段は

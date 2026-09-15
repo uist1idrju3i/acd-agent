@@ -144,6 +144,12 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="optional design fixture specification to generate before the loop",
     )
+    parser.add_argument(
+        "--cpl-evidence-dir",
+        type=Path,
+        default=None,
+        help="directory of measured CPL records to copy into the generated fixture",
+    )
     return parser
 
 
@@ -180,6 +186,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_exploration_rounds=args.max_exploration_rounds,
             requirement=args.requirement,
             fixture_spec=args.fixture_spec,
+            cpl_evidence_dir=args.cpl_evidence_dir,
             previous_graph_path=args.previous_graph,
             document_languages=tuple(args.document_languages or ("ja",)),
         )

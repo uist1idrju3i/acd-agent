@@ -418,6 +418,20 @@ Y-9（decoupling多pad対象の決定論的解決）は本branch
 これでhook matcherを含む全項目解消である。fail-closed境界の堅持に直結するものを先に扱った。詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
 
+14.22の追加provisional測定では、30 x 22 mm・2-layerを28候補×3 roundで評価し、
+全候補が`not_converged`、最終unrouted=21、plateau=5、open net=10となった。
+CC1、CC2、USB_D+、USB_D-、USER_BTNはzero-wire netだった。40 x 30 mm variantでは
+`placement-0003`が0 unrouted、routing connectivity、DRC、independent reloadを通過したが、
+synthetic archiveのparse gapでcandidate評価が`FabOutputError`となりrejectされた。
+30 x 22 mmのoutline／placement geometryが確認済みの設計入力上の壁であり、
+router parameterの問題ではない。30 x 22 mmのloopは約1998.19 s（board約74.33 s、
+exploration約1921.52 s）、40 x 30 mm variantは約305.42 sだった。実CPL recordをproducerで
+取得し、containerで実行すること、variantで観測したenclosure interferenceとFW coverage
+findings（`comp.d2`がtargetされない、`button_pressed` transitionが発火しない）を解消する
+必要が残る。したがって14.22の状態は
+**部分達成（残: 実CPL record取得と container run による end-to-end 合格の実証）**
+であり、達成とは扱わない。
+
 ### 14.23 14.22反映後の同一要件再検証（第9回）で残った関門（Z-*）
 
 第9回実機実測（2026-09-07、

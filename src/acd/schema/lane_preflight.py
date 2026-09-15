@@ -87,6 +87,21 @@ class LanePreflightUnsupportedValue(AcdModel):
     reason: NonEmptyStr
 
 
+class LanePreflightProducerGap(AcdModel):
+    """One missing provenance producer needed before a lane can run."""
+
+    kind: Literal["cpl_orientation", "fab_profile"]
+    refdes: NonEmptyStr | None = None
+    lcsc: NonEmptyStr | None = None
+    profile_source: NonEmptyStr | None = None
+    declared_fetched_at: NonEmptyStr | None = None
+    loaded_sources: list[dict[str, str | None]] = Field(
+        default_factory=list[dict[str, str | None]]
+    )
+    producer: NonEmptyStr
+    detail: NonEmptyStr
+
+
 class LanePreflightLaneReport(AcdModel):
     lane: NonEmptyStr
     status: LanePreflightStatus
@@ -119,6 +134,9 @@ class LanePreflightReport(AcdModel):
     lanes: list[LanePreflightLaneReport] = Field(
         default_factory=list[LanePreflightLaneReport]
     )
+    producer_gaps: list[LanePreflightProducerGap] = Field(
+        default_factory=list[LanePreflightProducerGap]
+    )
 
 
 __all__ = [
@@ -126,6 +144,7 @@ __all__ = [
     "LanePreflightMissingAttr",
     "LanePreflightMissingDeclaration",
     "LanePreflightMissingNode",
+    "LanePreflightProducerGap",
     "LanePreflightReport",
     "LanePreflightStatus",
     "LanePreflightUnsupportedCode",
