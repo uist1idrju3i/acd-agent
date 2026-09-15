@@ -15,6 +15,7 @@ import json
 import shutil
 import sys
 from pathlib import Path
+from typing import cast
 
 _SCHEMA = "acd.kicad-3d-models/2"
 
@@ -29,9 +30,10 @@ def _model_paths(manifest: dict[str, object], key: str) -> list[Path]:
     if not isinstance(items, list):
         raise ValueError(f"{key} must be a list")
     paths: list[Path] = []
-    for item in items:
-        if not isinstance(item, dict):
+    for raw_item in cast(list[object], items):
+        if not isinstance(raw_item, dict):
             raise ValueError(f"{key} items must be objects")
+        item = cast(dict[str, object], raw_item)
         library = item.get("footprint_lib")
         model = item.get("model_rel_path")
         if not isinstance(library, str) or not isinstance(model, str):
@@ -47,9 +49,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dest", type=Path, default=Path("/opt/acd/kicad-3d"))
     args = parser.parse_args(argv)
 
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    if not isinstance(manifest, dict):
+    raw_manifest = cast(object, json.loads(args.manifest.read_text(encoding="utf-8")))
+    if not isinstance(raw_manifest, dict):
         return _fail("manifest must be a JSON object")
+    manifest = cast(dict[str, object], raw_manifest)
     if manifest.get("schema") != _SCHEMA:
         return _fail(f"unsupported schema {manifest.get('schema')!r}; expected {_SCHEMA!r}")
     try:
