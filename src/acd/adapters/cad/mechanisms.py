@@ -52,12 +52,13 @@ def build_hinge(view: MechanismFeatureView) -> Any:
     bd = _bd()
     d = view.dimensions
     width = d["knuckle_width_mm"] * d["knuckle_count"]
-    barrel = bd.Pos(width / 2, 0, 0) * bd.Cylinder(
-        d["pin_diameter_mm"] / 2 + d["clearance_mm"],
+    barrel_radius = d["pin_diameter_mm"] / 2 + d["clearance_mm"]
+    barrel = bd.Pos(width / 2, 0, barrel_radius) * bd.Cylinder(
+        barrel_radius,
         width,
         rotation=bd.Rot(0, 90, 0),
     )
-    pin_cut = bd.Pos(width / 2, 0, 0) * bd.Cylinder(
+    pin_cut = bd.Pos(width / 2, 0, barrel_radius) * bd.Cylinder(
         d["pin_diameter_mm"] / 2,
         width + 0.2,
         rotation=bd.Rot(0, 90, 0),
@@ -69,13 +70,14 @@ def build_button(view: MechanismFeatureView) -> Any:
     """Build a round cap and its declared web."""
     bd = _bd()
     d = view.dimensions
-    cap = bd.Pos(0, 0, d["web_thickness_mm"] + d["stroke_mm"]) * bd.Cylinder(
+    web_length = d["web_thickness_mm"] + d["stroke_mm"]
+    cap = bd.Pos(0, 0, web_length + d["web_thickness_mm"] / 2) * bd.Cylinder(
         d["cap_diameter_mm"] / 2,
         d["web_thickness_mm"],
     )
-    web = bd.Pos(0, 0, d["web_thickness_mm"] / 2) * bd.Cylinder(
+    web = bd.Pos(0, 0, web_length / 2) * bd.Cylinder(
         d["cap_diameter_mm"] / 2,
-        d["web_thickness_mm"],
+        web_length,
     )
     return _place(cap + web, view)
 
@@ -88,7 +90,7 @@ def _button_opening(view: MechanismFeatureView) -> Any:
         0,
         d["web_thickness_mm"] / 2,
     ) * bd.Cylinder(
-        d["cap_diameter_mm"] / 2 + 0.2,
+        max(d["cap_diameter_mm"] / 2 - 0.05, 0.01),
         d["web_thickness_mm"] + 2.0,
     )
     return _place(opening, view)
@@ -122,9 +124,15 @@ def build_rib(view: MechanismFeatureView) -> Any:
     """Build a tapered rectangular reinforcing rib."""
     bd = _bd()
     d = view.dimensions
+    draft = max(0.5, min(89.0, d["draft_deg"]))
+    profile = bd.Trapezoid(
+        d["length_mm"],
+        d["thickness_mm"],
+        left_side_angle=90.0 - draft,
+    )
     return _place(
-        bd.Pos(d["length_mm"] / 2, 0, d["height_mm"] / 2)
-        * bd.Box(d["length_mm"], d["thickness_mm"], d["height_mm"]),
+        bd.Pos(d["length_mm"] / 2, 0, 0)
+        * bd.extrude(profile, amount=d["height_mm"]),
         view,
     )
 

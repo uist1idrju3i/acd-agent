@@ -369,11 +369,15 @@ def build_board_edge_overhang_shape(
 
 def _measured_wall_thickness(shape: Any, tolerance_mm: float) -> float:
     """Measure the closest opposing planar faces of the reloaded shell."""
-    faces = [
+    planar_faces = [
         face
         for face in shape.faces()
         if str(face.geom_type).endswith("PLANE")
     ]
+    if not planar_faces:
+        raise MechanicalGateError("reloaded STEP has no measurable opposing wall faces")
+    primary_area = max(face.area for face in planar_faces) * 0.05
+    faces = [face for face in planar_faces if face.area >= primary_area]
     distances: list[float] = []
     for index, face in enumerate(faces):
         normal = face.normal_at(face.center())
