@@ -31,7 +31,7 @@ always emitted verbatim.
 
 | Script | Purpose |
 | --- | --- |
-| `doc_inputs.py` | Loads graph, projection sets and images fail-closed, and writes the provenance record. |
+| `doc_inputs.py` | Stable import facade over `product_doc_inputs/` (common, analysis, firmware, figures, quality): loads graph, projection sets and images fail-closed, and writes the provenance record. |
 | `generate_product_readme.py` | Renders the product description README with an overview, evidence-relation note, requirements, specifications, firmware behavior, BOM, grouped figures, an optional theme-song projection and attribution. |
 | `generate_instruction_manual.py` | Renders the instruction manual from the graph and the `acd_pins.h` pin projection. |
 | `generate_interface_spec.py` | Projects the device interface contract (GPIO table, I2C address table, UART log lines, command list) as `interface-spec.md` and `interface-spec.json` from the graph, `acd_pins.h`, and `firmware-config-report.json`. Undeclared aspects are marked `unknown`. |
