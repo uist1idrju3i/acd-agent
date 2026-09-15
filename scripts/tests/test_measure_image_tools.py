@@ -22,6 +22,7 @@ def _outputs() -> dict[tuple[str, ...], str]:
             '. "${IDF_PATH}/export.sh" >/dev/null 2>&1 && idf.py --version',
         ): "ESP-IDF v6.1\n",
         ("freerouting", "--version"): "INFO Freerouting v2.4.1 (build-date: 2026-09-03)\n",
+        ("gcovr", "--version"): "gcovr 8.4\n",
         ("git", "--version"): "git version 2.53.0\n",
         (
             "java",
@@ -67,6 +68,7 @@ def test_measurement_extracts_expected_versions(tmp_path: Path) -> None:
         "cmake": "cmake version 4.2.3",
         "esp-idf": "ESP-IDF v6.1",
         "freerouting": "2.4.1",
+        "gcovr": "8.4",
         "git": "git version 2.53.0",
         "java": (
             "openjdk 26.0.2.1 2026-08-18 "

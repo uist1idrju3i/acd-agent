@@ -1,0 +1,76 @@
+{
+  "channels": [
+    {
+      "channel_id": "uart",
+      "expected": {
+        "expected_max": 1.0,
+        "expected_min": 1.0,
+        "name": "uart_log_match",
+        "tolerance": 0.0,
+        "unit": "bool"
+      },
+      "instrument": {
+        "fixture_id": "gd1-hil-synthetic-v1",
+        "instrument_name": "synthetic-hil-instrument",
+        "instrument_version": "0.1",
+        "operator": "synthetic-fixture"
+      },
+      "kind": "uart_log"
+    },
+    {
+      "channel_id": "rail_3v3",
+      "expected": {
+        "expected_max": 3.6,
+        "expected_min": 3.0,
+        "name": "3v3_rail_voltage",
+        "tolerance": 0.05,
+        "unit": "V"
+      },
+      "instrument": {
+        "fixture_id": "gd1-hil-synthetic-v1",
+        "instrument_name": "synthetic-hil-instrument",
+        "instrument_version": "0.1",
+        "operator": "synthetic-fixture"
+      },
+      "kind": "analog_voltage"
+    },
+    {
+      "channel_id": "led_current",
+      "expected": {
+        "expected_max": 20.0,
+        "expected_min": 1.0,
+        "name": "led_current",
+        "tolerance": 0.5,
+        "unit": "mA"
+      },
+      "instrument": {
+        "fixture_id": "gd1-hil-synthetic-v1",
+        "instrument_name": "synthetic-hil-instrument",
+        "instrument_version": "0.1",
+        "operator": "synthetic-fixture"
+      },
+      "kind": "current_ma"
+    },
+    {
+      "channel_id": "sht40_i2c",
+      "expected": {
+        "expected_max": 1.0,
+        "expected_min": 1.0,
+        "name": "sht40_i2c_transaction",
+        "tolerance": 0.0,
+        "unit": "transaction"
+      },
+      "instrument": {
+        "fixture_id": "gd1-hil-synthetic-v1",
+        "instrument_name": "synthetic-hil-instrument",
+        "instrument_version": "0.1",
+        "operator": "synthetic-fixture"
+      },
+      "kind": "i2c_transaction"
+    }
+  ],
+  "fixture_id": "gd1-hil-synthetic-v1",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "virtual_reference": "sha256:a488709c04f69bbaddb1cf5403c4f54d9d2bf89c9ba47faf29dae6037a748f48"
+}

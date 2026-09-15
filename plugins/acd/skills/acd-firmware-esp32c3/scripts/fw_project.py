@@ -144,6 +144,7 @@ def _render_main_source(
     inspection_sequence: FirmwareInspectionSequence | None = None,
     *,
     sim_peripherals: bool = False,
+    coverage: bool = False,
 ) -> str:
     capability_ids = {step.capability_id for step in plan.steps}
     unsupported = capability_ids - _CAPABILITY_PROVIDERS
@@ -184,6 +185,8 @@ def _render_main_source(
         includes.add('"acd_sim_sht40.h"')
     if capability_ids & {"led_blink", "i2c_sensor_init", "i2c_sensor_read"}:
         includes.update({'"freertos/FreeRTOS.h"', '"freertos/task.h"'})
+    if coverage:
+        includes.add('"esp_gcov.h"')
     include_order = {
         "<stdio.h>": 0,
         '"acd_pins.h"': 1,
@@ -191,12 +194,24 @@ def _render_main_source(
         '"acd_sim_sht40.h"': 3,
         '"driver/gpio.h"': 4,
         '"driver/i2c_master.h"': 5,
-        '"esp_log.h"': 6,
-        '"freertos/FreeRTOS.h"': 7,
-        '"freertos/task.h"': 8,
+        '"esp_gcov.h"': 6,
+        '"esp_log.h"': 7,
+        '"freertos/FreeRTOS.h"': 8,
+        '"freertos/task.h"': 9,
     }
     include_lines = [f"#include {item}" for item in sorted(includes, key=include_order.__getitem__)]
     statics = ['static const char *TAG = "__ACD_LOG_TAG__";']
+    if coverage:
+        statics.extend(
+            [
+                "#ifdef ACD_COVERAGE",
+                "static void acd_coverage_dump(void)",
+                "{",
+                "    esp_gcov_dump();",
+                "}",
+                "#endif",
+            ]
+        )
     init_devices = [
         step.device
         for step in plan.steps
@@ -465,6 +480,16 @@ def _render_main_source(
             "        vTaskDelay(pdMS_TO_TICKS(100));",
             "    }",
         ]
+    if coverage:
+        app_body.extend(
+            [
+                "",
+                '    printf("ACD_VIRTUAL_RUN_END\\n");',
+                "    acd_coverage_dump();",
+            ]
+        )
+        if loop:
+            app_body.append("")
     app_body.extend(loop)
     app_body.append("}")
     section_blocks = [
@@ -639,6 +664,7 @@ def write_firmware_project(
     sim_peripherals: bool = False,
     sim_scenario: list[dict[str, float]] | None = None,
     security_declaration: FirmwareSecurityDeclaration | None = None,
+    coverage: bool = False,
 ) -> FirmwareProject:
     if settings is None:
         settings = FirmwareSettings(
@@ -674,6 +700,13 @@ def write_firmware_project(
     cmake = f"idf_component_register(SRCS {' '.join(sources)} INCLUDE_DIRS \".\")\n"
     if stack_usage:
         cmake += 'idf_build_set_property(COMPILE_OPTIONS "-fstack-usage" APPEND)\n'
+    if coverage:
+        cmake += (
+            'target_compile_options(${COMPONENT_LIB} PRIVATE "--coverage" '
+            '"-fprofile-arcs" "-ftest-coverage")\n'
+            'target_link_options(${COMPONENT_LIB} PRIVATE "--coverage")\n'
+        )
+        cmake += "target_compile_definitions(${COMPONENT_LIB} PRIVATE ACD_COVERAGE=1)\n"
     if sim_peripherals:
         cmake += "target_compile_definitions(${COMPONENT_LIB} PRIVATE ACD_SIM_SHT40=1)\n"
     (main_dir / "CMakeLists.txt").write_text(cmake, encoding="utf-8")
@@ -696,6 +729,7 @@ def write_firmware_project(
         graph_id,
         inspection_sequence=inspection_sequence,
         sim_peripherals=sim_peripherals,
+        coverage=coverage,
     )
     main_source.write_text(source, encoding="utf-8")
     if inspection_sequence is not None:

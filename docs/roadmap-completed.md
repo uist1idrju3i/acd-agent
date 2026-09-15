@@ -751,7 +751,7 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 | B. 部品ライブラリ統治SKILL | 17.1 |
 | B. EOL・セカンドソース管理契約 | 17.2 |
 | C. secure boot・flash暗号化・OTA設計対応（達成） | 19.1 |
-| C. QEMUコードカバレッジと実機HIL接続 | 19.2 |
+| C. QEMUコードカバレッジと実機HIL接続（達成） | 19.2 |
 | D. `acd init`ウィザード | 14.8 |
 | D. GitHub Actions統合 | 20.3 |
 | D. 視覚投影の自動品質検査 | 20.4 |

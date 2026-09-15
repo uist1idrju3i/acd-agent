@@ -12,7 +12,7 @@ from typing import cast
 
 from pydantic import ValidationError
 
-from acd.schema import DesignGraph, FirmwareAnalysisResult
+from acd.schema import CoverageFloor, DesignGraph, FirmwareAnalysisResult
 
 _SKILL_SCRIPTS = (
     Path(__file__).resolve().parents[1]
@@ -20,6 +20,7 @@ _SKILL_SCRIPTS = (
 )
 sys.path.insert(0, str(_SKILL_SCRIPTS))
 
+from fw_coverage import evaluate_coverage, parse_gcovr_json  # noqa: E402
 from fw_qemu import (  # noqa: E402
     VirtualRunCheckError,
     assert_sensor_log_matches_scenario,
@@ -58,6 +59,8 @@ def main() -> int:
     parser.add_argument("--stack-budget", type=Path)
     parser.add_argument("--sim-scenario", type=Path)
     parser.add_argument("--virtual-log", type=Path)
+    parser.add_argument("--coverage", type=Path)
+    parser.add_argument("--coverage-floor", type=Path)
     args = parser.parse_args()
     try:
         graph = DesignGraph.model_validate(_read(args.fixture / "graph.json"))
@@ -156,6 +159,22 @@ def main() -> int:
             input_hashes["sim_scenario"] = _sha256(args.sim_scenario)
             input_hashes["virtual_log"] = _sha256(args.virtual_log)
 
+        coverage_result = None
+        if args.coverage is not None or args.coverage_floor is not None:
+            if args.coverage is None or args.coverage_floor is None:
+                raise ValueError("--coverage and --coverage-floor are a pair")
+            floor = CoverageFloor.model_validate(_read(args.coverage_floor))
+            report = (
+                None
+                if not args.coverage.is_file()
+                else parse_gcovr_json(args.coverage.read_text(encoding="utf-8"))
+            )
+            coverage_result = evaluate_coverage(report, floor)
+            statuses.append(coverage_result.status)
+            input_hashes["coverage_floor"] = _sha256(args.coverage_floor)
+            if args.coverage.is_file():
+                input_hashes["coverage"] = _sha256(args.coverage)
+
         if not statuses:
             raise ValueError("at least one analysis option is required")
         result = FirmwareAnalysisResult.model_validate(
@@ -166,6 +185,7 @@ def main() -> int:
                 "static_analysis": static_result,
                 "stack_usage": stack_result,
                 "peripheral_sim": peripheral_result,
+                "coverage": coverage_result,
                 "tool_versions": tool_versions,
                 "input_hashes": input_hashes,
             }
@@ -174,9 +194,12 @@ def main() -> int:
         print(f"input error: {exc}", file=sys.stderr)
         return 2
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    payload = result.model_dump(mode="json")
+    if coverage_result is None:
+        payload.pop("coverage", None)
     args.out.write_text(
         json.dumps(
-            result.model_dump(mode="json"),
+            payload,
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),

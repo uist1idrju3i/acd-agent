@@ -176,6 +176,13 @@ from acd.schema.firmware_inspection import (
     FirmwareInspectionItem,
     FirmwareInspectionSequence,
 )
+from acd.schema.fw_coverage import (
+    CoverageFile,
+    CoverageFloor,
+    CoverageReport,
+    CoverageResult,
+    CoverageStatus,
+)
 from acd.schema.functional_block import (
     FunctionalBlockContract,
     FunctionalBlockRegistryDocument,
@@ -218,6 +225,14 @@ from acd.schema.harness import (
     HarnessWireType,
     TemperatureDeratingPoint,
     WireShield,
+)
+from acd.schema.hil import (
+    HilExpectedRange,
+    HilMeasurementChannel,
+    HilMeasurementPlan,
+    HilRunRecord,
+    HilSample,
+    build_physical_evidence_from_hil,
 )
 from acd.schema.host_resources import (
     HostResourceCode,
@@ -676,6 +691,11 @@ __all__ = [
     "FemStaticLoad",
     "FemStatus",
     "FemThermalLoad",
+    "CoverageFile",
+    "CoverageFloor",
+    "CoverageReport",
+    "CoverageResult",
+    "CoverageStatus",
     "FirmwareAnalysisResult",
     "FirmwareCapabilityContract",
     "FirmwareCapabilityRegistryDocument",
@@ -732,6 +752,12 @@ __all__ = [
     "HarnessServiceExpectation",
     "HarnessStatus",
     "HarnessWire",
+    "HilExpectedRange",
+    "HilMeasurementChannel",
+    "HilMeasurementPlan",
+    "HilRunRecord",
+    "HilSample",
+    "build_physical_evidence_from_hil",
     "HarnessWireType",
     "HorizontalCriterion",
     "HorizontalDisposition",

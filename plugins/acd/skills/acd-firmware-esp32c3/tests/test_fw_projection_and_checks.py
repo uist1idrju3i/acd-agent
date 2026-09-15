@@ -118,6 +118,31 @@ def test_security_declaration_is_opt_in_and_writes_partition_files(
     assert fw_lane.gpio_for_net("net.usb_dn") == 18
     assert fw_lane.gpio_for_net("net.usb_dp") == 19
     assert fw_lane.gpio_for_net("net.uart_rx") == 20
+
+
+def test_coverage_projection_is_opt_in_for_app_only(
+    tmp_path: Path,
+    graph: DesignGraph,
+    fw_lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
+) -> None:
+    project = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path / "coverage",
+        graph.graph_id,
+        plan=plan,
+        coverage=True,
+    )
+    cmake = (project.root / "main/CMakeLists.txt").read_text(encoding="utf-8")
+    source = project.main_source.read_text(encoding="utf-8")
+    assert "--coverage" in cmake
+    assert "-fprofile-arcs" in cmake
+    assert "-ftest-coverage" in cmake
+    assert "ACD_COVERAGE=1" in cmake
+    assert '#include "esp_gcov.h"' in source
+    assert "esp_gcov_dump();" in source
+    assert "ACD_VIRTUAL_RUN_END" in source
     assert fw_lane.gpio_for_net("net.uart_tx") == 21
 
 

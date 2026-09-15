@@ -1120,6 +1120,23 @@ compile commands、target、GCC toolchainの出所を解析入力に含める。
 malformed diagnostics、tool/version不一致はpassへ変換しない。結果はstatic-analysis
 estimateであり、authoritative Evidenceではない。
 
+#### gcovrのtools image運用
+
+FW coverageのhost-side parserは`gcovr --json`の出力だけをsubprocess境界で
+読み取り、gcovr自体をACDへimportしない。tools imageでは`GCOVR_VERSION`を固定した
+PyPI packageを`uv pip install --system`で導入し、`measure_image_tools.py`が
+`gcovr --version`を測定する。image lockに新しい測定値が無い間は
+`docker/image-digests.json`へ推測値を追記せず、次回publishで記録する。
+依存checkerはDocker ARGをPyPIのgcovr versionと照合する。
+
+ESP-IDF/QEMUの実run dumpは`esp_gcov_dump()`をgenerated virtual-run end markerから
+呼び出す方式を選択した。hostにESP-IDF/QEMUが無い場合はreal runをpassへ変換せず
+unknownとし、synthetic gcovr JSON parser fixtureだけを検証する。
+
+HILのGD1 plan/run/logはsynthetic fixtureであり、実機計測値ではない。ingest結果は
+既存のmeasured PhysicalEvidence消費経路へ渡せるが、authoritative pass Evidenceには
+昇格しない。feedback proposalの既存意味論は変更しない。
+
 `libraries/README.md`のgit pinは、EspressifとCERNを含む全sourceを確認する。
 
 [`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新major、`src/acd/adapters/cad/viewer_assets/three/`のvendored three.jsである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。

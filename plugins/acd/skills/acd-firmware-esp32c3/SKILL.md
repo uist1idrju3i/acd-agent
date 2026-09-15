@@ -33,7 +33,9 @@ Reference implementations in `scripts/`, reusable as-is or as a starting point:
 | `run_fw_pipeline.py` | Runs the graph-driven firmware sequence for a design fixture, including registry provenance. |
 | `fw_static_analysis.py` | Runs the opt-in clang-tidy estimate over generated compile commands. |
 | `fw_stack_usage.py` | Parses opt-in GCC stack-usage and firmware-size reports. |
+| `fw_coverage.py` | Parses host-side gcovr JSON and evaluates an observation-only coverage floor. |
 | `../../../../scripts/analyze_firmware.py` | Aggregates opt-in static, stack, and virtual-peripheral observations. |
+| `../../../../scripts/analyze_fw_coverage.py` | Evaluates a gcovr report against a declared floor; coverage never becomes Evidence. |
 
 ## Usage
 
@@ -93,6 +95,20 @@ Stack analysis reports the maximum frame per translation unit and has no call
 graph. The SHT40 model uses a deterministic scenario, command `0xFD`, CRC-8
 polynomial `0x31` with initial value `0xff`, and the documented conversion
 formula; it is not a hardware measurement.
+
+Coverage is an L3 observation with `authority="observation"`; it never creates
+pass Evidence. A floor failure is a stop-side finding only. The coverage build
+adds `--coverage`, `-fprofile-arcs`, `-ftest-coverage`, and `ACD_COVERAGE=1`
+to the app component only. Its generated end marker calls the ESP-IDF
+`esp_gcov_dump()` API (`esp_gcov.h`). This path is pinned to real ESP-IDF/QEMU
+availability; without that toolchain, the run is unknown and host-side
+`gcovr --json` parsing is the tested synthetic path.
+
+HIL plans and run records are converted by `scripts/ingest_hil_run.py` into
+measured `PhysicalEvidence`. The GD1 HIL files are synthetic and are not real
+device data. HIL Evidence may support measured claims, but
+`supports_authoritative_pass()` remains false. Existing feedback proposal
+semantics are unchanged.
 
 ## Rules that still apply
 

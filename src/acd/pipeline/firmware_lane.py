@@ -101,6 +101,7 @@ def run_firmware_lane(
     *,
     run_seconds: int,
     security_declaration: Path | None = None,
+    coverage: bool = False,
 ) -> FirmwareLaneResult:
     """Run the firmware Skill and write ``evidence-firmware.json``.
 
@@ -148,6 +149,8 @@ def run_firmware_lane(
         ]
     if security_declaration is not None:
         command.extend(["--security-declaration", str(security_declaration)])
+    if coverage:
+        command.append("--coverage")
     completed = subprocess.run(
         command,
         cwd=repository,

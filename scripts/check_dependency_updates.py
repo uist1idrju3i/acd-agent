@@ -85,6 +85,7 @@ class DockerArgSpec:
     arg: str
     repo: str
     tag_pattern: str
+    kind: str = "github-tags"
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,7 @@ class ToolUpstreamSpec:
 DOCKER_ARG_SPECS = (
     DockerArgSpec("FREEROUTING_VERSION", "freerouting/freerouting", r"^v(\d+)\.(\d+)\.(\d+)$"),
     DockerArgSpec("UV_VERSION", "astral-sh/uv", r"^(\d+)\.(\d+)\.(\d+)$"),
+    DockerArgSpec("GCOVR_VERSION", "gcovr", r"^(\d+)\.(\d+)(?:\.(\d+))?$", "pypi"),
     DockerArgSpec(
         "ESP_IDF_VERSION",
         "espressif/esp-idf",
@@ -637,6 +639,7 @@ def check_docker_args(
     repo_root: Path,
     *,
     list_remote_tags: ListRemoteTags = _default_list_remote_tags,
+    fetch_json: FetchJson = _default_fetch_json,
 ) -> list[DependencyStatus]:
     path = repo_root / "docker" / "acd-tools.Dockerfile"
     values = {
@@ -659,10 +662,22 @@ def check_docker_args(
             raise ValueError(f"Docker ARG {spec.arg} has invalid value: {current}")
         current_values = tuple(int(group or "0") for group in current_match.groups())
         repo = spec.repo.format(major=current_values[0]) if "{major}" in spec.repo else spec.repo
-        latest, latest_values = _highest_stable_tag(
-            list_remote_tags(f"https://github.com/{repo}"),
-            pattern,
-        )
+        if spec.kind == "pypi":
+            payload = _dict(
+                fetch_json(f"https://pypi.org/pypi/{repo}/json"),
+                f"PyPI response is invalid for {repo}",
+            )
+            info = _dict(payload.get("info"), f"PyPI response has no info for {repo}")
+            latest_raw = info.get("version")
+            if not isinstance(latest_raw, str):
+                raise ValueError(f"PyPI response has no version for {repo}")
+            latest = latest_raw
+            latest_values = _numeric_version(latest)
+        else:
+            latest, latest_values = _highest_stable_tag(
+                list_remote_tags(f"https://github.com/{repo}"),
+                pattern,
+            )
         statuses.append(
             DependencyStatus(
                 "docker-arg",

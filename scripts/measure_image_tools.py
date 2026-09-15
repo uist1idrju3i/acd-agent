@@ -24,6 +24,7 @@ _COMMANDS: dict[str, list[str]] = {
         '. "${IDF_PATH}/export.sh" >/dev/null 2>&1 && idf.py --version',
     ],
     "freerouting": ["freerouting", "--version"],
+    "gcovr": ["gcovr", "--version"],
     "git": ["git", "--version"],
     "java": ["java", "-version"],
     "kicad-cli": ["kicad-cli", "--version"],
@@ -118,6 +119,11 @@ def _measure(key: str, output: str) -> str:
         return f"allowlist_sha256=sha256:{lines[0]};file_count={count}"
     if key == "freerouting":
         match = re.search(r"Freerouting v([0-9]+\.[0-9]+\.[0-9]+)", output)
+        if match is None:
+            raise ValueError(f"{key}: version output is unparsable")
+        return match.group(1)
+    if key == "gcovr":
+        match = re.search(r"gcovr\s+([0-9]+\.[0-9]+(?:\.[0-9]+)?)", output)
         if match is None:
             raise ValueError(f"{key}: version output is unparsable")
         return match.group(1)

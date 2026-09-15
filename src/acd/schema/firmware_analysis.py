@@ -14,6 +14,7 @@ from acd.schema.common import (
     SchemaVersion,
     Sha256,
 )
+from acd.schema.fw_coverage import CoverageResult
 
 AnalysisStatus = Literal["pass", "fail", "unknown"]
 
@@ -101,6 +102,7 @@ class FirmwareAnalysisResult(AcdModel):
     static_analysis: StaticAnalysisResult | None = None
     stack_usage: StackUsageResult | None = None
     peripheral_sim: PeripheralSimulationResult | None = None
+    coverage: CoverageResult | None = None
     tool_versions: dict[str, NonEmptyStr | Literal["unknown"]] = Field(
         default_factory=dict[str, NonEmptyStr | Literal["unknown"]]
     )

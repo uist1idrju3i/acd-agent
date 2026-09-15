@@ -116,6 +116,7 @@ def run_pipeline(
     stack_usage: bool = False,
     sim_peripherals: bool = False,
     security_declaration: Path | None = None,
+    coverage: bool = False,
 ) -> dict[str, object]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -175,6 +176,7 @@ def run_pipeline(
         sim_peripherals=sim_peripherals,
         sim_scenario=scenario,
         security_declaration=security,
+        coverage=coverage,
     )
     mcu_refdes = resolve_mcu_refdes(graph)
     config_report = {
@@ -265,7 +267,7 @@ def run_pipeline(
     print("[5/5] virtual log check passed")
     print("NOTE: real-device flashing/LED measurement unavailable (no debug probe attached)")
 
-    return {
+    summary: dict[str, object] = {
         "target_revision": revision,
         "toolchain_version": build.toolchain_version,
         "source_hash": build.source_hash,
@@ -287,6 +289,9 @@ def run_pipeline(
             else None
         ),
     }
+    if coverage:
+        summary["coverage_enabled"] = True
+    return summary
 
 
 def main() -> int:
@@ -304,6 +309,7 @@ def main() -> int:
     parser.add_argument("--stack-usage", action="store_true")
     parser.add_argument("--sim-peripherals", action="store_true")
     parser.add_argument("--security-declaration", type=Path)
+    parser.add_argument("--coverage", action="store_true")
     for legacy, replacement in (
         ("--graph", "--fixture"),
         ("--graph-dir", "--fixture"),
@@ -327,6 +333,7 @@ def main() -> int:
             stack_usage=args.stack_usage,
             sim_peripherals=args.sim_peripherals,
             security_declaration=args.security_declaration,
+            coverage=args.coverage,
         )
     except Exception as exc:
         print(f"PIPELINE FAILED: {exc}", file=sys.stderr)

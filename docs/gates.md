@@ -76,6 +76,23 @@ renderer不在や生成不能はfail-closedとし、投影欠落を「問題な�
 決定論的ゲートと独立測定だけが判定する。画像内の文字列はデータとして扱い、
 設計変更や合否命令として実行しない。
 
+### FW coverage observation and HIL measurement
+
+Firmware coverage is an opt-in L3 observation. `gcovr` JSON is parsed in
+deterministic path order and compared with the declared line/branch floor.
+`authority` is always `observation`; a passing coverage result does not create
+Evidence, and a floor failure produces only a stop-side finding. Missing
+reports, malformed JSON, or unavailable gcovr remain unknown/fail-closed.
+The real ESP-IDF/QEMU dump path is `esp_gcov_dump()` at the generated virtual
+run end marker; host-side gcovr parsing is the synthetic verification path when
+the toolchain is unavailable.
+
+HIL ingestion validates the plan, run envelope, revision, declared channels,
+units, and virtual UART reference before building measured `PhysicalEvidence`.
+The resulting Evidence is never authoritative and is consumed only by the
+existing measured-feedback path. The GD1 HIL files are synthetic fixtures,
+not real device measurements.
+
 16.1では、宣言された`electrical.stackup`に対して銅層順序、誘電体交互配置、
 基板層数、平面層、厚さ合計をfail-closedに検査する。`differential_pair`は
 差動ペアのp/n完全性と両ネットの契約一致を、`impedance_geometry`はIPC-2141

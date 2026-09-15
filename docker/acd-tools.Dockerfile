@@ -6,6 +6,7 @@ ARG SEMERU_JRE_VERSION=26.0.2.10
 ARG SEMERU_JRE_SHA256=0de86d8ed8d1a764cfa5839bef0283c562f30fd902a01ec406f01143e5bec1aa
 ARG UV_VERSION=0.12.13
 ARG UV_SHA256=745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd
+ARG GCOVR_VERSION=8.4
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
 ARG QEMU_ESP_ARCHIVE=qemu-riscv32-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz
 ARG QEMU_ESP_SHA256=547f03e04701a92cbb699f7f7d015adc1f5b5ef93cbb94c0dd9b7107e2d84e77
@@ -101,6 +102,8 @@ RUN apt-get update \
     && tar -xzf /tmp/uv.tar.gz -C /tmp \
     && install -m 0755 "/tmp/uv-x86_64-unknown-linux-gnu/uv" /usr/local/bin/uv \
     && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
+    && uv pip install --system "gcovr==${GCOVR_VERSION}" \
+    && gcovr --version \
     && rm -rf /var/lib/apt/lists/*
 
 FROM tools-build AS final

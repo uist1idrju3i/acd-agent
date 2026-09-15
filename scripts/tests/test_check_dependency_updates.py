@@ -102,6 +102,7 @@ def test_docker_args_check_semeru_and_qemu_ordering(tmp_path: Path) -> None:
         """\
 ARG FREEROUTING_VERSION=2.4.1
 ARG UV_VERSION=0.12.10
+ARG GCOVR_VERSION=8.4
 ARG ESP_IDF_VERSION=v6.1
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
 ARG SEMERU_JRE_VERSION=26.0.2.10
@@ -121,7 +122,15 @@ ARG SEMERU_JRE_VERSION=26.0.2.10
             "https://github.com/ibmruntimes/semeru26-binaries": ["jdk-26.0.2.10"],
         }[url]
 
-    statuses = check_docker_args(tmp_path, list_remote_tags=tags)
+    def fetch_json(url: str) -> object:
+        assert url == "https://pypi.org/pypi/gcovr/json"
+        return {"info": {"version": "8.4"}}
+
+    statuses = check_docker_args(
+        tmp_path,
+        list_remote_tags=tags,
+        fetch_json=fetch_json,
+    )
     qemu = next(status for status in statuses if status.name == "QEMU_ESP_TAG")
     assert qemu.latest.endswith("20260418")
     assert qemu.outdated

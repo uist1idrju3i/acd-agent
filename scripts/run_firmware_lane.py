@@ -38,6 +38,7 @@ def _parser() -> argparse.ArgumentParser:
         help="repository root that contains the firmware Skill script",
     )
     parser.add_argument("--security-declaration", type=Path)
+    parser.add_argument("--coverage", action="store_true")
     return parser
 
 
@@ -51,6 +52,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.out,
             run_seconds=args.run_seconds,
             security_declaration=args.security_declaration,
+            coverage=args.coverage,
         )
     except FirmwareLaneError as exc:
         print(
