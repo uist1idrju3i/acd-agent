@@ -49,6 +49,7 @@ uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_security.py
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_coverage.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_inspection.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_static_analysis.py
 
