@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from scripts import check_visual_quality
 from scripts.tests.cli_runner import run_main
 
