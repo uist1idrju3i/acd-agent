@@ -102,7 +102,7 @@ RUN apt-get update \
     && tar -xzf /tmp/uv.tar.gz -C /tmp \
     && install -m 0755 "/tmp/uv-x86_64-unknown-linux-gnu/uv" /usr/local/bin/uv \
     && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
-    && uv pip install --system "gcovr==${GCOVR_VERSION}" \
+    && uv pip install --system --break-system-packages "gcovr==${GCOVR_VERSION}" \
     && gcovr --version \
     && rm -rf /var/lib/apt/lists/*
 
