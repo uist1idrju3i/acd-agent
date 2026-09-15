@@ -16,6 +16,7 @@ _Runner = Callable[[list[str]], str]
 _COMMANDS: dict[str, list[str]] = {
     "ccache": ["ccache", "--version"],
     "ccx": ["ccx", "-v"],
+    "clang-tidy": ["clang-tidy", "--version"],
     "cmake": ["cmake", "--version"],
     "esp-idf": [
         "bash",
@@ -109,6 +110,11 @@ def _measure(key: str, output: str) -> str:
         return match.group(1)
     if key == "ccx":
         match = re.search(r"(?:CalculiX|ccx)[^\d]*([0-9]+\.[0-9]+)", output, re.IGNORECASE)
+        if match is None:
+            raise ValueError(f"{key}: version output is unparsable")
+        return match.group(1)
+    if key == "clang-tidy":
+        match = re.search(r"LLVM version\s+([0-9]+(?:\.[0-9]+)*)", output)
         if match is None:
             raise ValueError(f"{key}: version output is unparsable")
         return match.group(1)

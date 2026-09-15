@@ -32,6 +32,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -52,6 +53,7 @@ from fw_inspection import derive_inspection_sequence
 from fw_project import write_firmware_project
 from fw_qemu import (
     QemuRunner,
+    assert_sensor_log_matches_scenario,
     assert_virtual_log_ok,
     measurement_conditions_for_plan,
 )
@@ -106,7 +108,12 @@ def resolve_mcu_refdes(graph: DesignGraph) -> str:
 
 
 def run_pipeline(
-    fixture_dir: Path, out_dir: Path, run_seconds: int
+    fixture_dir: Path,
+    out_dir: Path,
+    run_seconds: int,
+    *,
+    stack_usage: bool = False,
+    sim_peripherals: bool = False,
 ) -> dict[str, object]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -118,6 +125,31 @@ def run_pipeline(
     inspection_sequence = derive_inspection_sequence(
         graph, fw_lane, plan, fw_settings
     )
+    scenario: list[dict[str, float]] | None = None
+    if sim_peripherals:
+        scenario_path = fixture_dir / "sht40-scenario.json"
+        raw_scenario: object = json.loads(
+            scenario_path.read_text(encoding="utf-8")
+        )
+        if not isinstance(raw_scenario, list) or not raw_scenario:
+            raise ValueError("sht40-scenario.json is malformed")
+        scenario_data: list[dict[str, object]] = []
+        for raw_item in cast(list[object], raw_scenario):
+            if not isinstance(raw_item, dict):
+                raise ValueError("sht40-scenario.json is malformed")
+            item = cast(dict[str, object], raw_item)
+            if not isinstance(item.get("t_c"), (int, float)) or not isinstance(
+                item.get("rh_pct"), (int, float)
+            ):
+                raise ValueError("sht40-scenario.json is malformed")
+            scenario_data.append(item)
+        scenario = [
+            {
+                "t_c": float(cast(int | float, item["t_c"])),
+                "rh_pct": float(cast(int | float, item["rh_pct"])),
+            }
+            for item in scenario_data
+        ]
     electrical = extract_electrical_lane(graph)
 
     project = write_firmware_project(
@@ -128,6 +160,9 @@ def run_pipeline(
         fw_settings,
         plan=plan,
         inspection_sequence=inspection_sequence,
+        stack_usage=stack_usage,
+        sim_peripherals=sim_peripherals,
+        sim_scenario=scenario,
     )
     mcu_refdes = resolve_mcu_refdes(graph)
     config_report = {
@@ -213,6 +248,8 @@ def run_pipeline(
         plan=plan,
         inspection_sequence=inspection_sequence,
     )
+    if sim_peripherals and scenario is not None:
+        assert_sensor_log_matches_scenario(log, scenario)
     print("[5/5] virtual log check passed")
     print("NOTE: real-device flashing/LED measurement unavailable (no debug probe attached)")
 
@@ -252,6 +289,8 @@ def main() -> int:
     )
     parser.add_argument("--out", type=Path, default=Path("out/gd1-fw"))
     parser.add_argument("--run-seconds", type=int, default=15)
+    parser.add_argument("--stack-usage", action="store_true")
+    parser.add_argument("--sim-peripherals", action="store_true")
     for legacy, replacement in (
         ("--graph", "--fixture"),
         ("--graph-dir", "--fixture"),
@@ -268,7 +307,13 @@ def main() -> int:
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     try:
-        summary = run_pipeline(args.fixture, args.out, args.run_seconds)
+        summary = run_pipeline(
+            args.fixture,
+            args.out,
+            args.run_seconds,
+            stack_usage=args.stack_usage,
+            sim_peripherals=args.sim_peripherals,
+        )
     except Exception as exc:
         print(f"PIPELINE FAILED: {exc}", file=sys.stderr)
         return 1

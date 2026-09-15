@@ -14,6 +14,7 @@ def _outputs() -> dict[tuple[str, ...], str]:
     return {
         ("ccache", "--version"): "ccache version 4.12.3\n",
         ("ccx", "-v"): "CalculiX Version 2.21\n",
+        ("clang-tidy", "--version"): "LLVM version 20.1.8\n",
         ("cmake", "--version"): "cmake version 4.2.3\n",
         (
             "bash",
@@ -55,6 +56,7 @@ def test_measurement_extracts_expected_versions(tmp_path: Path) -> None:
     assert json.loads(out.read_text(encoding="utf-8")) == {
         "ccache": "ccache version 4.12.3",
         "ccx": "2.21",
+        "clang-tidy": "20.1.8",
         "cmake": "cmake version 4.2.3",
         "esp-idf": "ESP-IDF v6.1",
         "freerouting": "2.4.1",

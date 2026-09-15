@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "bugprone-*",
+    "clang-analyzer-*",
+    "cert-*"
+  ],
+  "exclusions": [
+    "cert-err58-cpp"
+  ],
+  "version_pin": "20"
+}

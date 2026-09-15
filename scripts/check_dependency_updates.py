@@ -206,6 +206,14 @@ TOOL_UPSTREAM_SPECS = (
         r"(\d+\.\d+)",
         apt_package="calculix-ccx",
     ),
+    ToolUpstreamSpec(
+        "clang-tidy",
+        r"(\d+)(?:\.(\d+))?",
+        "launchpad-apt",
+        "https://launchpad.net/ubuntu/+source/llvm-toolchain",
+        r"(\d+(?:\.\d+)?)",
+        apt_package="clang-tidy",
+    ),
 )
 
 

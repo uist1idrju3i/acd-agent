@@ -1,0 +1,2 @@
+main/acd_main.c:12:3: warning: test warning [bugprone-suspicious-memset-usage]
+main/acd_main.c:18:4: error: test error [clang-analyzer-core.NullDereference]

@@ -84,6 +84,8 @@ def render_pins_header(
     target_revision: str,
     settings: FirmwareSettings,
     plan: FirmwareCapabilityPlan,
+    *,
+    sim_peripherals: bool = False,
 ) -> str:
     lines = [
         "/* Generated from the design graph. Do not edit: the graph is canonical. */",
@@ -102,6 +104,8 @@ def render_pins_header(
         ),
     )
     lines.extend(f"#define {_macro_name(pin.net_id)} {pin.gpio}" for pin in ordered)
+    if sim_peripherals:
+        lines.extend(["", "#define ACD_SIM_SHT40 1"])
     devices = {
         (step.device.driver_id, step.device.i2c_address): step.device
         for step in plan.steps
@@ -136,6 +140,8 @@ def _render_main_source(
     plan: FirmwareCapabilityPlan,
     graph_id: str,
     inspection_sequence: FirmwareInspectionSequence | None = None,
+    *,
+    sim_peripherals: bool = False,
 ) -> str:
     capability_ids = {step.capability_id for step in plan.steps}
     unsupported = capability_ids - _CAPABILITY_PROVIDERS
@@ -170,19 +176,22 @@ def _render_main_source(
         includes.add('"acd_inspection.h"')
     if capability_ids & {"led_blink", "led2_blink", "button_input"}:
         includes.add('"driver/gpio.h"')
-    if {"i2c_sensor_init", "i2c_sensor_read"} & capability_ids:
+    if {"i2c_sensor_init", "i2c_sensor_read"} & capability_ids and not sim_peripherals:
         includes.add('"driver/i2c_master.h"')
+    if sim_peripherals and "i2c_sensor_read" in capability_ids:
+        includes.add('"acd_sim_sht40.h"')
     if capability_ids & {"led_blink", "i2c_sensor_init", "i2c_sensor_read"}:
         includes.update({'"freertos/FreeRTOS.h"', '"freertos/task.h"'})
     include_order = {
         "<stdio.h>": 0,
         '"acd_pins.h"': 1,
         '"acd_inspection.h"': 2,
-        '"driver/gpio.h"': 3,
-        '"driver/i2c_master.h"': 4,
-        '"esp_log.h"': 5,
-        '"freertos/FreeRTOS.h"': 6,
-        '"freertos/task.h"': 7,
+        '"acd_sim_sht40.h"': 3,
+        '"driver/gpio.h"': 4,
+        '"driver/i2c_master.h"': 5,
+        '"esp_log.h"': 6,
+        '"freertos/FreeRTOS.h"': 7,
+        '"freertos/task.h"': 8,
     }
     include_lines = [f"#include {item}" for item in sorted(includes, key=include_order.__getitem__)]
     statics = ['static const char *TAG = "__ACD_LOG_TAG__";']
@@ -196,9 +205,10 @@ def _render_main_source(
             raise FirmwareProjectionError(
                 "i2c sensor initialization has no resolved device"
             )
-        statics.append(f"static i2c_master_dev_handle_t s_{init_devices[0].driver_id};")
-        if inspection_sequence is not None:
-            statics.append("i2c_master_bus_handle_t s_i2c_bus;")
+        if not sim_peripherals:
+            statics.append(f"static i2c_master_dev_handle_t s_{init_devices[0].driver_id};")
+            if inspection_sequence is not None:
+                statics.append("i2c_master_bus_handle_t s_i2c_bus;")
     helpers: list[str] = []
     if "i2c_sensor_read" in capability_ids:
         device = next(
@@ -207,8 +217,26 @@ def _render_main_source(
             if step.capability_id == "i2c_sensor_read" and step.device is not None
         )
         device_handle = f"s_{init_devices[0].driver_id}"
-        helpers.append(
-            f"""static void {device.driver_id}_log_once(void)
+        if sim_peripherals:
+            helpers.append(
+                f"""static void {device.driver_id}_log_once(void)
+{{
+    uint8_t raw[6] = {{0}};
+    esp_err_t err = acd_sim_sht40_read(raw, sizeof(raw));
+    if (err != ESP_OK) {{
+        ESP_LOGW(TAG, "{device.driver_id.upper()} read failed: %s", esp_err_to_name(err));
+        return;
+    }}
+    int t_ticks = (raw[0] << 8) | raw[1];
+    int rh_ticks = (raw[3] << 8) | raw[4];
+    float temp_c = -45.0f + 175.0f * (float)t_ticks / 65535.0f;
+    float rh = -6.0f + 125.0f * (float)rh_ticks / 65535.0f;
+    ESP_LOGI(TAG, "{device.driver_id.upper()} temp_c=%.2f rh=%.2f", (double)temp_c, (double)rh);
+}}"""
+            )
+        else:
+            helpers.append(
+                f"""static void {device.driver_id}_log_once(void)
 {{
     const uint8_t measure_cmd = 0x{device.measurement_command:02X};
     uint8_t raw[6] = {{0}};
@@ -227,7 +255,7 @@ def _render_main_source(
     float rh = -6.0f + 125.0f * (float)rh_ticks / 65535.0f;
     ESP_LOGI(TAG, "{device.driver_id.upper()} temp_c=%.2f rh=%.2f", (double)temp_c, (double)rh);
 }}"""
-        )
+            )
     pins_by_role = {pin.role: pin for pin in lane.pins}
     log_pins = [
         pins_by_role[role]
@@ -275,6 +303,8 @@ def _render_main_source(
                     "    ESP_ERROR_CHECK(gpio_config(&button_cfg));",
                 ]
             )
+        elif step.capability_id == "i2c_sensor_init" and sim_peripherals:
+            continue
         elif step.capability_id == "i2c_sensor_init":
             device = step.device
             if device is None:
@@ -603,6 +633,9 @@ def write_firmware_project(
     *,
     plan: FirmwareCapabilityPlan,
     inspection_sequence: FirmwareInspectionSequence | None = None,
+    stack_usage: bool = False,
+    sim_peripherals: bool = False,
+    sim_scenario: list[dict[str, float]] | None = None,
 ) -> FirmwareProject:
     if settings is None:
         settings = FirmwareSettings(
@@ -621,15 +654,28 @@ def write_firmware_project(
         _ROOT_CMAKE.format(name=name), encoding="utf-8"
     )
     (root / "sdkconfig.defaults").write_text(_SDKCONFIG_DEFAULTS, encoding="utf-8")
-    cmake = (
-        'idf_component_register(SRCS "acd_main.c" "acd_inspection.c" INCLUDE_DIRS ".")\n'
-        if inspection_sequence is not None
-        else _MAIN_CMAKE
-    )
+    sources = ['"acd_main.c"']
+    if inspection_sequence is not None:
+        sources.append('"acd_inspection.c"')
+    if sim_peripherals:
+        if sim_scenario is None or not sim_scenario:
+            raise FirmwareProjectionError("SHT40 simulation requires a non-empty scenario")
+        sources.append('"acd_sim_sht40.c"')
+    cmake = f"idf_component_register(SRCS {' '.join(sources)} INCLUDE_DIRS \".\")\n"
+    if stack_usage:
+        cmake += 'idf_build_set_property(COMPILE_OPTIONS "-fstack-usage" APPEND)\n'
+    if sim_peripherals:
+        cmake += "target_compile_definitions(${COMPONENT_LIB} PRIVATE ACD_SIM_SHT40=1)\n"
     (main_dir / "CMakeLists.txt").write_text(cmake, encoding="utf-8")
     pins_header = main_dir / "acd_pins.h"
     pins_header.write_text(
-        render_pins_header(lane, target_revision, settings, plan),
+        render_pins_header(
+            lane,
+            target_revision,
+            settings,
+            plan,
+            sim_peripherals=sim_peripherals,
+        ),
         encoding="utf-8",
     )
     main_source = main_dir / "acd_main.c"
@@ -639,6 +685,7 @@ def write_firmware_project(
         plan,
         graph_id,
         inspection_sequence=inspection_sequence,
+        sim_peripherals=sim_peripherals,
     )
     main_source.write_text(source, encoding="utf-8")
     if inspection_sequence is not None:
@@ -649,6 +696,69 @@ def write_firmware_project(
         )
         (main_dir / "acd_inspection.c").write_text(
             _render_inspection_source(inspection_sequence, lane, plan),
+            encoding="utf-8",
+        )
+    if sim_peripherals:
+        (main_dir / "acd_sim_sht40.h").write_text(
+            (
+                '#pragma once\n#include "esp_err.h"\n'
+                "esp_err_t acd_sim_sht40_read(unsigned char *out, "
+                "unsigned int length);\n"
+            ),
+            encoding="utf-8",
+        )
+        rows: list[str] = []
+        for item in sim_scenario or []:
+            temperature = float(item["t_c"])
+            humidity = float(item["rh_pct"])
+            t_raw = max(0, min(65535, round((temperature + 45.0) * 65535.0 / 175.0)))
+            rh_raw = max(0, min(65535, round((humidity + 6.0) * 65535.0 / 125.0)))
+            rows.append(f"    {{{t_raw}, {rh_raw}}},")
+        (main_dir / "acd_sim_sht40.c").write_text(
+            """#include "acd_sim_sht40.h"
+#include <stddef.h>
+
+typedef struct {
+    unsigned short temperature;
+    unsigned short humidity;
+} acd_sht40_sample_t;
+
+static const acd_sht40_sample_t s_samples[] = {
+"""
+            + "\n".join(rows)
+            + """
+};
+static unsigned int s_index;
+
+static unsigned char acd_crc(const unsigned char *data)
+{
+    unsigned char crc = 0xff;
+    for (unsigned int i = 0; i < 2; ++i) {
+        crc ^= data[i];
+        for (unsigned int bit = 0; bit < 8; ++bit) {
+            crc = (crc & 0x80) ? (unsigned char)((crc << 1) ^ 0x31) : (unsigned char)(crc << 1);
+        }
+    }
+    return crc;
+}
+
+esp_err_t acd_sim_sht40_read(unsigned char *out, unsigned int length)
+{
+    if (out == NULL || length < 6) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    const acd_sht40_sample_t sample = s_samples[
+        s_index++ % (sizeof(s_samples) / sizeof(s_samples[0]))
+    ];
+    out[0] = (unsigned char)(sample.temperature >> 8);
+    out[1] = (unsigned char)sample.temperature;
+    out[2] = acd_crc(out);
+    out[3] = (unsigned char)(sample.humidity >> 8);
+    out[4] = (unsigned char)sample.humidity;
+    out[5] = acd_crc(out + 3);
+    return ESP_OK;
+}
+""",
             encoding="utf-8",
         )
     return FirmwareProject(

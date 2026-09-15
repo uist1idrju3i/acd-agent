@@ -115,6 +115,7 @@ executionEnvironments = [
     { root = "scripts", extraPaths = [
         ".",
         "src",
+        "plugins/acd/skills/acd-firmware-esp32c3/scripts",
         "vendor/software-agent-sdk/openhands-workspace",
     ] },
     { root = ".", extraPaths = [

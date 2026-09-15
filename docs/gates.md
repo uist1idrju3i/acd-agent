@@ -344,6 +344,31 @@ authoritative EvidenceやGD1 default gateへ接続しない。解析はopt-inで
 既存出力を変更しない。ホストにCalculiXがない環境ではreal-run testをskipし、
 parser回帰にはsynthetic fixtureを使うが、synthetic結果を証拠へ昇格させない。
 
+### 10.4 FW解析（opt-in estimate／observation）
+
+FW解析は既存のESP-IDF build、QEMU、`evidence-firmware.json`を変更せず、明示的な
+optionを指定した場合だけ実行する。clang-tidyは生成buildの
+`compile_commands.json`と固定checks listを使い、`warning`／`error`はestimateの
+fail、ツール不在、版不一致、malformed診断、compile commands欠落はunknownとする。
+ESP-IDF toolchain、clang-tidy、QEMUはすべてsubprocess境界で実行し、GPLコードを
+importしない。
+
+`--stack-usage`は生成CMakeへ`-fstack-usage`だけを追加し、GCC `.su`の最大static
+frameをtranslation unit単位で比較する。call graphを持たない近似であり、unbounded
+`dynamic`、`.su`／size JSON欠落、予算不明はunknown、stack／flash／DRAM予算超過は
+failとする。既定生成物のbytesはgoldenで固定し、optionなしのFW pipelineには影響しない。
+
+`--sim-peripherals`はSHT40の`0xFD`測定、CRC-8（poly `0x31`、初期値`0xff`）、
+温湿度変換を生成C stubへ投影し、宣言scenarioをcyclingして既存ログ形式へ出力する。
+仮想ログがscenarioの全sampleと±0.01で一致しない場合、または行が不足する場合は
+fail-closedとなる。stub由来の結果は`authority="observation"`であり、実機測定や
+authoritative Evidenceではない。
+
+集約CLI `scripts/analyze_firmware.py`のaggregateは`fail > unknown > pass`で、
+aggregate authorityは`estimate`、nested peripheral resultは`observation`として境界を
+保持する。synthetic／recorded fixtureはparser回帰専用であり、解析結果をEvidenceへ
+昇格させない。
+
 ### 10.6 ワーストケース解析（WCA、opt-in estimate）
 
 `WcaRequest`を明示した場合だけ、10.1の`SpiceResult`公称値または宣言公称値へ、

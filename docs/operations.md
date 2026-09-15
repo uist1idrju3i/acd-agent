@@ -1092,6 +1092,34 @@ FEMのdropは`v=sqrt(2gh)`と`a=v²/(2*crush_distance)`による等価静的近�
 完全な過渡衝撃解析ではない。`fixtures/fem/gd1-drop.dat`はreal ccxが利用できない
 host向けのsynthetic parser fixtureで、CalculiX結果やauthoritative Evidenceではない。
 
+#### clang-tidyのtools image運用
+
+FWのopt-in静的解析で使用する`clang-tidy`はGPL境界を越えてimportせず、
+subprocessとして起動する。tools imageのapt package、`clang-tidy --version`測定、
+LaunchpadのLLVM toolchain apt sourceを`measure_image_tools.py`と
+`check_dependency_updates.py`で管理する。image lockへ実測値が無い場合は、値を推測して
+追加せず`未計測（次回publishで記録）`として扱う。
+
+clang-tidyのchecks listは
+`plugins/acd/skills/acd-firmware-esp32c3/rules/clang_tidy_checks.json`に固定し、
+compile commands、target、GCC toolchainの出所を解析入力に含める。warning、error、
+malformed diagnostics、tool/version不一致はpassへ変換しない。結果はstatic-analysis
+estimateであり、authoritative Evidenceではない。
+
+#### clang-tidyのtools image運用
+
+FWのopt-in静的解析で使用する`clang-tidy`はGPL境界を越えてimportせず、
+subprocessとして起動する。tools imageのapt package、`clang-tidy --version`測定、
+LaunchpadのLLVM toolchain apt sourceを`measure_image_tools.py`と
+`check_dependency_updates.py`で管理する。image lockへ実測値が無い場合は、値を推測して
+追加せず`未計測（次回publishで記録）`として扱う。
+
+clang-tidyのchecks listは
+`plugins/acd/skills/acd-firmware-esp32c3/rules/clang_tidy_checks.json`に固定し、
+compile commands、target、GCC toolchainの出所を解析入力に含める。warning、error、
+malformed diagnostics、tool/version不一致はpassへ変換しない。結果はstatic-analysis
+estimateであり、authoritative Evidenceではない。
+
 `libraries/README.md`のgit pinは、EspressifとCERNを含む全sourceを確認する。
 
 [`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新major、`src/acd/adapters/cad/viewer_assets/three/`のvendored three.jsである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。

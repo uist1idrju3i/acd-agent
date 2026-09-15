@@ -43,6 +43,7 @@ RUN apt-get update \
         software-properties-common \
         ngspice \
         calculix-ccx \
+        clang-tidy \
         python3.14 \
         python3.14-venv \
     && add-apt-repository ppa:kicad/kicad-10.0-releases \
@@ -88,6 +89,7 @@ RUN apt-get update \
     && chmod 0755 /usr/local/bin/freerouting \
     && ngspice --version \
     && (ccx -v 2>&1 || true) \
+    && clang-tidy --version \
     && git --version \
     && python3.14 --version | grep -E '^Python 3\.14\.' \
     && curl --fail --location --silent --show-error \

@@ -1773,3 +1773,22 @@ parser fixtureはsyntheticとして明記した。
 
 結果の`authority`は`estimate`固定で、熱・FEMともL2 stop-sideに留まり、GD1 default
 gateやauthoritative Evidenceを変更しない。
+
+### 10.4 FW解析（clang-tidy・stack usage・SHT40 virtual observation）の実装記録
+
+`fw_static_analysis.py`は固定checks listと生成`compile_commands.json`を入力に、
+clang-tidy診断を相対path・行・列・severity・check・messageへ正規化する。warning／
+errorは`fail`、tool missing、version mismatch、malformed output、入力欠落は`unknown`
+へ集約する。clang-tidyはtools imageへapt導入し、版測定とLaunchpad依存確認の対象へ
+追加した。
+
+`--stack-usage`はoption有効時だけCMakeへ`-fstack-usage`を追加する。`.su`の
+unbounded dynamicはunknown、translation unitごとの最大static frameをdeclared budget
+と比較し、flash／DRAM size JSONも予算判定する。call graphを使わない近似であり、
+default FW生成とgolden `acd_main.c` bytesは変更しない。
+
+`--sim-peripherals`はSHT40 response modelを生成し、CRC-8 test vector `0xBEEF -> 0x92`
+とPython referenceを共有する。fixture scenarioとQEMU virtual logを±0.01で照合し、
+結果は`authority="observation"`とする。aggregate schemaのauthorityは`estimate`だが、
+nested observation境界を保持し、既存FW evidenceやL1 gateへ接続しない。hostにESP-IDF、
+QEMU、clang-tidyが無い場合は実行をunknownとして、synthetic fixtureでparserを検証する。
