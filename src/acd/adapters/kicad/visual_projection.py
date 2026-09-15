@@ -231,8 +231,7 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
     )
     body.append(
         svg_text(
-            f"displayed at ×{format_svg_number(zoom)} "
-            "(dimensions and scale bar are true board mm)",
+            f"displayed at ×{zoom:.2f}; dimension labels and scale bar read true board mm",
             x=layer_x,
             y=display_scale_note_y,
             font_size=font_size,
