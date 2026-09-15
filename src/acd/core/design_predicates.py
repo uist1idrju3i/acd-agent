@@ -18,6 +18,7 @@ from acd.core.declaration_vocabulary import (
     SAFETY_BOUNDARY_INTENDED_USE,
     SAFETY_BOUNDARY_MODULE_CERTIFIED,
 )
+from acd.core.design_predicate_profile import default_design_predicate_profile
 from acd.core.electrical import ComponentView, ElectricalLane, NetView
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
@@ -84,31 +85,29 @@ def validate_predicate_stage_coverage(
         )
 
 
-CC_EXPECTED_KOHM = "5.1k"
-I2C_EXPECTED_KOHM = "4.7k"
-STRAPPING_GPIOS = frozenset({2, 8, 9})
-LDO_INPUT_V = 5.0
-LDO_OUTPUT_V = 3.3
-LARGE_DECOUPLING_UF = 10.0
-SMALL_DECOUPLING_UF = 0.1
+# Expected values come from the tracked, versioned profile so evidence can name the
+# applied expectations by hash. Module constants remain for callers and tests.
+DESIGN_PREDICATE_PROFILE = default_design_predicate_profile()
+_PROFILE = DESIGN_PREDICATE_PROFILE.document
+CC_EXPECTED_KOHM = _PROFILE.usb_cc_expected_kohm
+I2C_EXPECTED_KOHM = _PROFILE.i2c_pullup_expected_kohm
+STRAPPING_GPIOS = frozenset(_PROFILE.strapping_gpios)
+LDO_INPUT_V = _PROFILE.ldo_input_v
+LDO_OUTPUT_V = _PROFILE.ldo_output_v
+LARGE_DECOUPLING_UF = _PROFILE.large_decoupling_uf
+SMALL_DECOUPLING_UF = _PROFILE.small_decoupling_uf
 # Small decoupling capacitors serve high-frequency transients, so they must be
-# close to the target power pads; the maximum distance is 3.0 mm at or below 1 uF.
-SMALL_CAP_DISTANCE_MM = 3.0
-# Bulk capacitors provide rail energy storage and can be placed farther along
-# the rail; the maximum distance is 8.0 mm above 1 uF.
-LARGE_CAP_DISTANCE_MM = 8.0
-# 0.02 uF represents the +/-20% range used to classify 100 nF-class capacitors.
-SMALL_DECOUPLING_TOLERANCE_UF = 0.02
+# close to the target power pads (at or below 1 uF); bulk capacitors may sit
+# farther along the rail.
+SMALL_CAP_DISTANCE_MM = _PROFILE.small_cap_distance_mm
+LARGE_CAP_DISTANCE_MM = _PROFILE.large_cap_distance_mm
+# Tolerance used to classify 100 nF-class capacitors.
+SMALL_DECOUPLING_TOLERANCE_UF = _PROFILE.small_decoupling_tolerance_uf
 
 # IPC-2141 closed-form approximations; these are not field-solver results.
 IMPEDANCE_FORMULA_CONSTANTS = {
-    "microstrip": {"z0_factor": 87.0, "denominator_factor": 0.8, "log_factor": 5.98},
-    "stripline": {
-        "z0_factor": 60.0,
-        "denominator_factor": 0.8,
-        "log_factor": 4.0,
-        "pi_factor": 0.67,
-    },
+    mode: constants.model_dump(exclude_none=True)
+    for mode, constants in _PROFILE.impedance_formula_constants.items()
 }
 
 

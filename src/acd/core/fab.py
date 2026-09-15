@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from acd.core.electrical import GraphExtractionError
+from acd.core.fileio import read_json
 from acd.pipeline.repository import repository_root
 from acd.schema import (
     DesignGraph,
@@ -66,7 +67,7 @@ class FabProfileRegistry:
 def load_fab_profile_registry(path: Path | None = None) -> FabProfileRegistry:
     registry_path = path or repository_root() / "profiles" / "fab-profile-registry.json"
     try:
-        data = json.loads(registry_path.read_text(encoding="utf-8"))
+        data = read_json(registry_path)
         document = FabProfileRegistryDocument.model_validate(data)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise ValueError(f"fab profile registry is invalid: {registry_path}: {exc}") from exc
@@ -184,7 +185,7 @@ def extract_fab_intent(
 
 def load_fab_profile(path: Path) -> FabProfile:
     """Load and validate a tracked fab profile, including provenance invariants."""
-    profile = json.loads(path.read_text(encoding="utf-8"))
+    profile = read_json(path)
     FabProfileDocument.model_validate(profile)
     source_count = len(profile["sources"])
     for item in profile["capabilities"].values():

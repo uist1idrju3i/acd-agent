@@ -22,6 +22,7 @@ from acd.core.fab import (
     load_fab_profile_registry,
     resolve_fab_profile_path,
 )
+from acd.core.fileio import read_json
 from acd.core.lcsc_record import check_declared_mpn, extract_lcsc_identity
 from acd.core.naming import artifact_prefix
 from acd.pipeline.repository import repository_root
@@ -66,7 +67,7 @@ def check_cpl_rotation_record(
     if not path.is_file():
         return f"record file is missing: {path}"
     try:
-        document = json.loads(path.read_text(encoding="utf-8"))
+        document = read_json(path)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return f"record is unreadable or not JSON: {exc}"
     if not isinstance(document, dict):
@@ -141,7 +142,7 @@ def _cpl_rotation_findings(
             declared_mpn = node.attrs.get("mpn")
             if isinstance(declared_mpn, str) and declared_mpn:
                 try:
-                    record = json.loads(record_path.read_text(encoding="utf-8"))
+                    record = read_json(record_path)
                 except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                     record = None
                 if isinstance(record, Mapping):

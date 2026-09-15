@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from acd.core.fileio import read_json
 from acd.schema.salvage import GateRun
 
 GateStatus = Literal["pass", "fail", "unknown", "not_applicable"]
@@ -23,7 +24,7 @@ def external_gate_run(
             detail=f"{gate} evidence is missing",
         )
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return GateRun(
             gate=gate,

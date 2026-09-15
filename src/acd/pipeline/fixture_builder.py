@@ -19,6 +19,7 @@ from acd.core.decoupling_placement import (
 )
 from acd.core.electrical import GraphExtractionError
 from acd.core.evidence_declarations import check_cpl_rotation_record
+from acd.core.fileio import read_json
 from acd.core.firmware_capability import (
     FirmwareCapabilityContractError,
     load_firmware_capability_registry,
@@ -740,7 +741,7 @@ def copy_cpl_evidence(
     records: dict[str, Path] = {}
     for source in sorted(source_dir.glob("*.json")):
         try:
-            document = json.loads(source.read_text(encoding="utf-8"))
+            document = read_json(source)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise FixtureBuilderError(
                 f"CPL evidence record is unreadable: {source}: {exc}"

@@ -8,6 +8,8 @@ triggers:
   - Pydantic
   - design graph
   - schema validation
+  - 契約
+  - スキーマ
 ---
 
 # ACD contracts

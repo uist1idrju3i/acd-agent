@@ -48,14 +48,19 @@ from acd.schema.bringup_plan import (
 )
 from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
+    SUPPORTED_SCHEMA_VERSIONS,
     UNKNOWN,
     AcdModel,
+    SchemaVersionError,
+    VersionedAcdModel,
     WorkaroundId,
     base_revision,
     canonical_json_sha256,
     canonical_sha256,
     contains_unknown,
     is_unknown,
+    migrate_schema_document,
+    register_schema_migration,
 )
 from acd.schema.context import (
     ContextSource,
@@ -474,6 +479,12 @@ from acd.schema.spice import (
     SpiceSources,
     SpiceStatus,
 )
+from acd.schema.stage_result import (
+    StageResultCore,
+    failed_stage_result,
+    normalize_stage_result,
+    successful_stage_result,
+)
 from acd.schema.thermal import (
     ThermalEnclosure,
     ThermalMaterial,
@@ -584,6 +595,7 @@ __all__ = [
     "RECOVERY_LANE_IDS",
     "REPLACEABLE_ATTRS",
     "REWORK_ADD_KINDS",
+    "SUPPORTED_SCHEMA_VERSIONS",
     "UNKNOWN",
     "AcdCredentialReference",
     "AcdModel",
@@ -954,6 +966,7 @@ __all__ = [
     "SafetyApproval",
     "SalvageGateResult",
     "SalvageVerdict",
+    "SchemaVersionError",
     "ScopeFeeTreatment",
     "SecureBootDeclaration",
     "SecurityStatus",
@@ -979,6 +992,7 @@ __all__ = [
     "StackFunctionUsage",
     "StackTaskUsage",
     "StackUsageResult",
+    "StageResultCore",
     "StaticAnalysisCounts",
     "StaticAnalysisFinding",
     "StaticAnalysisResult",
@@ -1003,6 +1017,7 @@ __all__ = [
     "UnitStatus",
     "UnknownFunction",
     "UseEnvironment",
+    "VersionedAcdModel",
     "Vibration",
     "VisualCrosscheckItem",
     "VisualCrosscheckReport",
@@ -1058,8 +1073,13 @@ __all__ = [
     "canonical_sha256",
     "contains_unknown",
     "dry_run_payload_hash",
+    "failed_stage_result",
     "is_unknown",
+    "migrate_schema_document",
+    "normalize_stage_result",
+    "register_schema_migration",
     "required_order_evidence_ids",
     "resolve_required_evidence_ids",
+    "successful_stage_result",
     "validate_order_policy_for_graph",
 ]

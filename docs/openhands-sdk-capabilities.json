@@ -874,7 +874,6 @@
       "modules": [
         "sdk.tool.builtins",
         "sdk.tool.builtins.finish",
-        "sdk.tool.builtins.invoke_skill",
         "sdk.tool.builtins.switch_llm",
         "sdk.tool.builtins.think"
       ],
@@ -883,6 +882,23 @@
       "adoption": "不採用",
       "rationale": "ACDの明示的`ToolDefinition`集合を単一化する",
       "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.tool.builtins.invoke_skill",
+      "modules": ["sdk.tool.builtins.invoke_skill"],
+      "representative_apis": ["InvokeSkillTool"],
+      "use": "AgentSkills形式Skillのprogressive disclosure入口",
+      "adoption": "採用",
+      "rationale": "SDKはmodel-invocableなAgentSkills形式Skillがあると`InvokeSkillTool`を自動attachする。ACDのSkill契約（`validate_acd_skill_contract`）は`disable-model-invocation: true`を拒否するため、明示経路では常に登録される。Skill本文の取得手段に限り、Skill結果は非Evidence",
+      "verification": "Skill契約テスト（tests/openhands/distribution/test_skills.py）、bootstrap tool_map検査、vibebb standalone検証の登録tool一覧",
+      "references": [
+        {
+          "kind": "test_direct_import",
+          "path": "tests/openhands/session/test_bootstrap.py",
+          "symbol": "InvokeSkillTool",
+          "note": "ACD Skill契約を満たすSkillがあるとSDKが自動attachすることを固定する"
+        }
+      ]
     },
     {
       "domain": "sdk.tool.builtins.vision_inspect",

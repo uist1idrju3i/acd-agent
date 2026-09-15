@@ -48,7 +48,7 @@ output.write_text(
     + extra + '</svg>'
 )
 if os.getenv("FAKE_MULTIPLE_SHEETS") and sys.argv[1:4] == ["sch", "export", "svg"]:
-    output.with_name("sheet-2.svg").write_text(output.read_text())
+    output.with_name("sheet-2.svg").write_text(output.read_text(encoding="utf-8"), encoding="utf-8")
 """
 
 

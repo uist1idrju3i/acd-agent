@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
@@ -37,7 +38,7 @@ class FunctionalBlockRegistry:
 def load_functional_block_registry(path: Path | None = None) -> FunctionalBlockRegistry:
     registry_path = path or repository_root() / "contracts" / "functional-block-registry.json"
     try:
-        value = json.loads(registry_path.read_text(encoding="utf-8"))
+        value = read_json(registry_path)
         document = FunctionalBlockRegistryDocument.model_validate(value)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise FunctionalBlockContractError(

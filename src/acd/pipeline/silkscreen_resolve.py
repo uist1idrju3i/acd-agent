@@ -26,6 +26,7 @@ from acd.core.fab import (
     load_fab_profile_registry,
     resolve_fab_profile_path,
 )
+from acd.core.fileio import file_sha256, read_json, write_json
 from acd.core.naming import output_prefix
 from acd.core.rationale import subject_hash_for
 from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
@@ -38,7 +39,6 @@ from acd.schema.rationale import (
 )
 
 from .gd1_board import placements_from_graph
-from .gd1_fixture.components import sha256_of
 from .placement_evidence import summarize_placement_evidence
 from .repository import repository_root, resolve_repository_file
 
@@ -66,7 +66,7 @@ def measure_silkscreen(
     if routed_board is not None and not routed_board.is_file():
         raise ValueError(f"routed board is missing (fail-closed): {routed_board}")
     graph = DesignGraph.model_validate(
-        json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+        read_json(fixture_dir / "graph.json")
     )
     lane = extract_electrical_lane(graph)
     silkscreen = extract_silkscreen_lane(graph)
@@ -227,8 +227,8 @@ def _run_placement_skill(
             text=True,
             encoding="utf-8",
         )
-        skill_result = cast(dict[str, Any], json.loads(output_path.read_text(encoding="utf-8")))
-        skill_input_sha256 = sha256_of(input_path)
+        skill_result = cast(dict[str, Any], read_json(output_path))
+        skill_input_sha256 = file_sha256(input_path)
     return skill_result, skill_input_sha256
 
 
@@ -296,13 +296,13 @@ def _apply_accepted_candidates(
                     "placement_source": "acd-silkscreen-placement",
                     "placement_source_ref": (
                         "plugins/acd/skills/acd-silkscreen-placement/scripts/"
-                        f"silkscreen_search.py:{sha256_of(silk_skill)}"
+                        f"silkscreen_search.py:{file_sha256(silk_skill)}"
                     ),
                     "placement_evidence": json.dumps(
                         evidence_summary, ensure_ascii=False, sort_keys=True
                     ),
                     "placement_evidence_input_sha256": skill_input_sha256,
-                    "placement_evidence_output_sha256": sha256_of(full_evidence_path),
+                    "placement_evidence_output_sha256": file_sha256(full_evidence_path),
                 }
             )
             updated_nodes.append(node.model_copy(update={"attrs": attrs}))
@@ -340,7 +340,7 @@ def resolve_silkscreen(
             raise ValueError("silkscreen context is malformed")
         context = cast(dict[str, Any], context_value)
         status = context.get("status")
-        graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
+        graph = DesignGraph.model_validate(read_json(graph_path))
         lane = extract_silkscreen_lane(graph)
         unresolved = [
             text.node_id for text in lane.texts if text.x_mm is None or text.y_mm is None
@@ -356,10 +356,7 @@ def resolve_silkscreen(
             context, lane, silk_skill, root
         )
         full_evidence_path = out_dir / f"iteration-{iteration}" / "silkscreen-skill-result.json"
-        full_evidence_path.write_text(
-            json.dumps(skill_result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        write_json(full_evidence_path, skill_result, mkdir=False)
         accepted, failures = _split_candidates(skill_result)
         iteration_record: dict[str, object] = {
             "iteration": iteration,
@@ -389,7 +386,7 @@ def resolve_silkscreen(
         )
         if rationale_path.is_file():
             _record_silkscreen_rationale(
-                updated_graph, rationale_path, accepted, sha256_of(silk_skill)
+                updated_graph, rationale_path, accepted, file_sha256(silk_skill)
             )
     return {"status": "max_iterations_exceeded", "iterations": iterations}
 
@@ -417,15 +414,15 @@ def reresolve_routed_silkscreen(
     if not routed_board.is_file():
         raise ValueError(f"routed board is missing (fail-closed): {routed_board}")
     graph_path = fixture_dir / "graph.json"
-    graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
+    graph = DesignGraph.model_validate(read_json(graph_path))
     lane = extract_silkscreen_lane(graph)
     root = repository_root()
     silk_skill = (
         root
         / "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
     )
-    skill_sha256 = sha256_of(silk_skill)
-    routed_board_sha256 = sha256_of(routed_board)
+    skill_sha256 = file_sha256(silk_skill)
+    routed_board_sha256 = file_sha256(routed_board)
     input_sha256 = canonical_json_sha256(
         {
             "routed_board_sha256": routed_board_sha256,
@@ -461,7 +458,7 @@ def reresolve_routed_silkscreen(
     if record_path.is_file():
         recorded_raw: Any = None
         try:
-            recorded_raw = json.loads(record_path.read_text(encoding="utf-8"))
+            recorded_raw = read_json(record_path)
         except (OSError, json.JSONDecodeError):
             recorded_raw = None
         recorded = (
@@ -529,12 +526,9 @@ def reresolve_routed_silkscreen(
             context, lane, silk_skill, root
         )
         full_evidence_path = out_dir / "round-1" / "silkscreen-skill-result.json"
-        full_evidence_path.write_text(
-            json.dumps(skill_result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        write_json(full_evidence_path, skill_result, mkdir=False)
         record["skill_input_sha256"] = skill_input_sha256
-        record["skill_output_sha256"] = sha256_of(full_evidence_path)
+        record["skill_output_sha256"] = file_sha256(full_evidence_path)
         accepted, failures = _split_candidates(skill_result)
         record["candidate_failures"] = failures
         record["accepted"] = accepted
@@ -585,7 +579,7 @@ def _record_silkscreen_rationale(
     with the Skill name and script hash as provenance.
     """
     document = RationaleDocument.model_validate(
-        json.loads(rationale_path.read_text(encoding="utf-8"))
+        read_json(rationale_path)
     )
     resolved = set(accepted)
     records: list[RationaleRecord] = []

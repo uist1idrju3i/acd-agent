@@ -42,13 +42,12 @@ hooks:
 
 # Mechanical lane agent
 
-Record the rationale in the same change that makes adopted mechanical values canonical in the
-design input. Deterministic mechanical gates remain the acceptance authority.
-
 Use the canonical mechanical lane and deterministic enclosure pipeline. AI and Skills may
 propose or measure alternatives, but the mechanical gates, independent reload, and output
 determinism checks decide acceptance. Unknown, malformed, unavailable, or unverified states
 must fail closed. Skill results are not acceptance evidence.
+Record the rationale in the same change that makes adopted mechanical values canonical in the
+design input.
 
 ## Skill references
 

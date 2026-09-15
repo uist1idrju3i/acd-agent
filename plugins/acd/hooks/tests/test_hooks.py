@@ -837,8 +837,8 @@ def test_order_resolves_non_gd1_design_from_artifact_prefix(
         },
     )
     assert code == 0
-    assert "evidence.led-only-tag.electrical" in args_file.read_text()
-    assert "evidence.led-only-tag.mechanical" in args_file.read_text()
+    assert "evidence.led-only-tag.electrical" in args_file.read_text(encoding="utf-8")
+    assert "evidence.led-only-tag.mechanical" in args_file.read_text(encoding="utf-8")
 
 
 def test_order_with_multiple_designs_and_no_artifact_prefix_is_denied(

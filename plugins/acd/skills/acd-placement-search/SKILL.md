@@ -10,6 +10,8 @@ triggers:
   - rotation
   - ERC
   - DRC
+  - 部品配置
+  - 配置探索
 ---
 
 # 基板の配置探索とスコアリング

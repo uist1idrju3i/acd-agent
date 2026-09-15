@@ -9,6 +9,7 @@ triggers:
   - ESP-IDF
   - QEMU
   - GPIO
+  - ファームウェア
 ---
 
 # ACD firmware (ESP32-C3 / ESP-IDF)

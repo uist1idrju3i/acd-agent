@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.core.rationale import (
     check_rationale_coverage,
     summarize_rationale_coverage,
@@ -27,7 +27,7 @@ def validate_and_project_rationale(
     if not rationale_path.is_file():
         raise FileNotFoundError(f"rationale does not exist: {rationale_path}")
     document = RationaleDocument.model_validate(
-        json.loads(rationale_path.read_text(encoding="utf-8"))
+        read_json(rationale_path)
     )
     report = check_rationale_coverage(graph, document)
     out_dir.mkdir(parents=True, exist_ok=True)

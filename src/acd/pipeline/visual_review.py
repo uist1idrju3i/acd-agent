@@ -19,6 +19,7 @@ from typing import Literal, cast
 from pydantic import Field
 
 from acd.adapters.raster import CairoSvgRasterizer
+from acd.core.fileio import read_json
 from acd.core.process import sha256_bytes
 from acd.core.vision_tool_events import response_sha256
 from acd.core.visual_quality import analyze_svg_readability
@@ -90,7 +91,7 @@ def collect_visual_projection_sets(out_root: Path) -> list[Path]:
 
 def _load_projection_set(path: Path) -> VisualProjectionSet:
     try:
-        document = json.loads(path.read_text(encoding="utf-8"))
+        document = read_json(path)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise VisualReviewError(
             f"visual projection set could not be read: {path}"
@@ -106,7 +107,7 @@ def _load_projection_set(path: Path) -> VisualProjectionSet:
 def _load_manifest(out_root: Path) -> VisualReviewManifest:
     path = out_root / VISUAL_REVIEW_MANIFEST_NAME
     try:
-        document = json.loads(path.read_text(encoding="utf-8"))
+        document = read_json(path)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise VisualReviewError(
             f"visual review manifest could not be read: {path}"
@@ -431,7 +432,7 @@ def _readability_hint(out_root: Path, projection_id: str) -> list[str] | None:
 
 def _observation_for(path: Path) -> VisualVisionObservation | None:
     try:
-        document = json.loads(path.read_text(encoding="utf-8"))
+        document = read_json(path)
         return VisualVisionObservation.model_validate(document)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
         return None

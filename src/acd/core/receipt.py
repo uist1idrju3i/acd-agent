@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Mapping
 from pathlib import Path
@@ -10,6 +9,7 @@ from typing import Any, cast
 
 from pydantic import TypeAdapter, ValidationError
 
+from acd.core.fileio import read_json
 from acd.core.process import source_provenance_fields
 from acd.schema.common import Revision, Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, MeasurementInstrument, PhysicalEvidence
@@ -41,7 +41,7 @@ def _parse_revision(value: object) -> Revision:
 
 def _load_json(path: Path) -> object:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return read_json(path)
     except Exception as exc:
         raise ReceiptReconciliationError(f"could not parse JSON: {path}") from exc
 

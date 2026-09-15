@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import ValidationError
 
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.fileio import read_json
 from acd.core.mechanical import (
     REQUIRED_MECHANICAL_ATTRS,
     SUPPORTED_OPENING_FACES,
@@ -95,7 +96,7 @@ def _rationale_findings(
         ]
     try:
         document = RationaleDocument.model_validate(
-            json.loads(rationale_path.read_text(encoding="utf-8"))
+            read_json(rationale_path)
         )
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValidationError) as exc:
         return [

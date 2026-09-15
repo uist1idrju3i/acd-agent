@@ -13,7 +13,6 @@ as :class:`ThemeSongProjectionError`.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import subprocess
@@ -21,6 +20,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
+from acd.core.fileio import file_sha256, read_json
 from acd.core.projection_format_check import ProjectionFormatError, check_projection
 from acd.schema.theme_song import (
     ThemeSongArtifact,
@@ -57,7 +57,7 @@ def theme_song_proposal_path(graph_path: Path) -> Path | None:
 
 def _file_sha256(path: Path) -> str:
     try:
-        return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+        return file_sha256(path)
     except OSError as exc:
         raise ThemeSongProjectionError(f"cannot read {path}: {exc}") from exc
 
@@ -97,7 +97,7 @@ def _run_skill(
 
 def _load_provenance(path: Path) -> dict[str, object]:
     try:
-        loaded: object = json.loads(path.read_text(encoding="utf-8"))
+        loaded: object = read_json(path)
     except (OSError, json.JSONDecodeError) as exc:
         raise ThemeSongProjectionError(f"theme-song provenance is invalid: {exc}") from exc
     if not isinstance(loaded, dict):

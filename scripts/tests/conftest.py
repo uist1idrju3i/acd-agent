@@ -31,7 +31,7 @@ def load_fixture(kind: str, name: str) -> dict[str, Any]:
     """Load a contract fixture for tests collected with script tests."""
     value = cast(
         dict[str, Any],
-        json.loads((REPO_ROOT / "fixtures/contracts" / kind / name).read_text()),
+        json.loads((REPO_ROOT / "fixtures/contracts" / kind / name).read_text(encoding="utf-8")),
     )
     assert isinstance(value, dict)
     return value

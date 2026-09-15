@@ -67,4 +67,4 @@ def test_feedback_apply_dry_run_preserves_input_and_writes_l3_record(tmp_path: P
     assert graph_path.read_bytes() == before
     assert record["record_class"] == "L3"
     assert record["pass_evidence"] is False
-    assert json.loads((tmp_path / "record.json").read_text())["dry_run"] is True
+    assert json.loads((tmp_path / "record.json").read_text(encoding="utf-8"))["dry_run"] is True

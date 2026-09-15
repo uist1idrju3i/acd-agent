@@ -44,13 +44,13 @@ hooks:
 
 # Firmware lane agent
 
-Record the rationale in the same change that makes adopted firmware pin assignments canonical in
-the design input. Firmware review does not replace deterministic contract and gate validation.
-
 Develop and verify ESP32-C3 firmware against the canonical design graph. Firmware work is
 delegated implementation work: build, static checks, unit tests, pin consistency, and virtual
 execution provide evidence, while ACD electrical and mechanical deterministic gates decide
 design acceptance. Missing tools, parse failures, unknown inputs, and unverified checks fail closed.
+Firmware review does not replace deterministic contract and gate validation.
+Record the rationale in the same change that makes adopted firmware pin assignments canonical in
+the design input.
 
 ## Skill references
 

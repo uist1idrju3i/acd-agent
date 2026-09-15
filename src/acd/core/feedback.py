@@ -10,6 +10,7 @@ from contextlib import suppress
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from acd.core.fileio import write_json
 from acd.core.rationale import (
     RATIONALE_EXEMPT_ATTRS,
     REQUIRED_RATIONALE_ATTRS,
@@ -143,10 +144,7 @@ def apply_input_feedback(
                     temporary.unlink()
     if record_path is not None:
         record_path.parent.mkdir(parents=True, exist_ok=True)
-        record_path.write_text(
-            json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        write_json(record_path, record, mkdir=False)
     return record
 
 

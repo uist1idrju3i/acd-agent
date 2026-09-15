@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.core.functional_blocks import (
     FunctionalBlockRegistry,
     load_functional_block_registry,
@@ -42,7 +43,7 @@ def load_design_freedom_declaration(
 ) -> DesignFreedomDeclaration:
     declaration_path = path or repository_root() / "contracts" / "design-freedom-declaration.json"
     try:
-        value = json.loads(declaration_path.read_text(encoding="utf-8"))
+        value = read_json(declaration_path)
         document = DesignFreedomDeclarationDocument.model_validate(value)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise DesignFreedomDeclarationError(

@@ -28,6 +28,7 @@ from typing import cast
 
 from acd.core.board_model import RoutedDesign, RoutedVia, RoutedWire
 from acd.core.electrical import ElectricalLane
+from acd.core.fileio import read_json
 
 CANDIDATE_ARTIFACT_KIND = "vision_route_candidates"
 COPPER_LAYERS = frozenset({"F.Cu", "B.Cu"})
@@ -265,7 +266,7 @@ def load_route_candidates(
 ) -> tuple[RoutedDesign, RouteCandidateProvenance]:
     """Load a candidate report written by a skill run outside ACD."""
     try:
-        document = cast(object, json.loads(path.read_text(encoding="utf-8")))
+        document = cast(object, read_json(path))
     except (OSError, json.JSONDecodeError) as error:
         raise RouteCandidateError(f"candidate report {path} is unreadable: {error}") from error
     if not isinstance(document, dict):

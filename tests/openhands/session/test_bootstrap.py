@@ -32,6 +32,7 @@ from openhands.sdk.tool import (
     ToolExecutor,
 )
 from openhands.sdk.tool import registry as tool_registry
+from openhands.sdk.tool.builtins import InvokeSkillTool
 from openhands.sdk.tool.registry import (
     register_tool,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -573,6 +574,26 @@ def test_browser_tools_are_disabled_by_default(tmp_path: Path) -> None:
         persistence_dir=tmp_path / "sessions",
     )
     assert all(tool.name != BrowserToolSet.name for tool in conversation.agent.tools)
+
+
+def test_model_invocable_skills_attach_the_sdk_invoke_skill_tool(tmp_path: Path) -> None:
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+    )
+    conversation.agent._initialize(conversation.state)  # pyright: ignore[reportPrivateUsage]
+    assert InvokeSkillTool.__name__ not in conversation.agent.include_default_tools
+    tool_names: list[str] = sorted(
+        conversation.agent.tools_map  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+    )
+    assert "invoke_skill" in tool_names
 
 
 def test_browser_tools_require_a_usable_chromium(

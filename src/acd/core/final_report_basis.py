@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import read_json
 from acd.schema.design_fixture import DesignFixtureSpec
 from acd.schema.design_graph import DesignGraph
 from acd.schema.final_report_basis import (
@@ -54,7 +55,7 @@ def _bootstrap_revision(
     if candidate.is_file():
         used_record = str(candidate)
         try:
-            payload: object = json.loads(candidate.read_text(encoding="utf-8"))
+            payload: object = read_json(candidate)
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
             return None, used_record, f"bootstrap record is unreadable: {exc}"
         value = (
@@ -374,7 +375,7 @@ def _graph_values(path: Path, graph: DesignGraph) -> DesignValueSection:
 
 def collect_design_values(path: Path) -> DesignValueSection:
     """Extract the component/net value table from a spec or graph file."""
-    document: object = json.loads(path.read_text(encoding="utf-8"))
+    document: object = read_json(path)
     if not isinstance(document, dict):
         raise ValueError(f"design input is not a JSON object: {path}")
     if "design_name" in cast(dict[str, Any], document):

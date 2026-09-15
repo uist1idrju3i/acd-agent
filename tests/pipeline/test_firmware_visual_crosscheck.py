@@ -10,7 +10,6 @@ from pathlib import Path
 
 import pytest
 
-import acd.pipeline.gd1_board as gd1_board
 from acd.adapters.svg import generate_firmware_visual_projections
 from acd.core.electrical import extract_electrical_lane
 from acd.core.firmware_lane import (
@@ -21,6 +20,7 @@ from acd.core.firmware_lane import (
 )
 from acd.core.naming import output_prefix
 from acd.core.process import sha256_bytes
+from acd.pipeline.gd1_board.visual_stages import stage_firmware_visual_projections
 from acd.pipeline.repository import repository_root
 from acd.pipeline.visual_projection import crosscheck_firmware_visual_projections
 from acd.schema.design_graph import DesignGraph
@@ -95,7 +95,7 @@ def test_gd1_firmware_stage_uses_electrical_component_captions(
         json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
     )
     electrical_lane = extract_electrical_lane(graph)
-    gd1_board._stage_firmware_visual_projections(  # pyright: ignore[reportPrivateUsage]
+    stage_firmware_visual_projections(
         project_name="gd1",
         out_dir=tmp_path,
         source_revision=graph.revision,

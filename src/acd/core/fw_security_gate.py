@@ -11,6 +11,7 @@ from typing import Literal, cast
 
 from pydantic import ValidationError
 
+from acd.core.fileio import read_json
 from acd.schema.fw_security import (
     FirmwareSecurityDeclaration,
     FirmwareSecurityFinding,
@@ -165,7 +166,7 @@ def check_build_config_consistency(
                     )
                 )
         if size_json_path is not None:
-            size_data = json.loads(size_json_path.read_text(encoding="utf-8"))
+            size_data = read_json(size_json_path)
             if not isinstance(size_data, dict):
                 raise ValueError("size report must be an object")
             size_values = cast(dict[str, object], size_data)

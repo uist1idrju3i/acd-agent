@@ -1,6 +1,6 @@
 ---
 name: acd-design-rationale
-description: Record and validate typed design rationale for adopted ACD values.
+description: Record and validate typed design rationale for adopted ACD values. Use when a component, placement, routing, or silkscreen value becomes canonical in the design input, or when rationale coverage fails.
 version: 0.1.0
 license: BSD-3-Clause
 triggers:
@@ -8,6 +8,8 @@ triggers:
   - design decision
   - justification
   - provenance
+  - 設計判断
+  - 判断理由
 ---
 
 # ACD design rationale

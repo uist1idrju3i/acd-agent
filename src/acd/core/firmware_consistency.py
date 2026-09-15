@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import read_json
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 
@@ -90,7 +91,7 @@ def check_firmware_graph_consistency(
 ) -> FirmwareConsistencyReport:
     """Compare a Skill-produced report to graph declarations, fail closed."""
     try:
-        loaded: Any = json.loads(report_path.read_text(encoding="utf-8"))
+        loaded: Any = read_json(report_path)
         if not isinstance(loaded, dict):
             raise ValueError("firmware report root must be an object")
         raw = cast(dict[str, object], loaded)

@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.fileio import read_json
+
 OPEN_NET_LIMIT = 10
 
 _ROUTER_PROGRESS_PATH = Path("l3") / "router-pass-progress.json"
@@ -49,7 +51,7 @@ class RouterDiagnostics:
 
 def _read_json(path: Path, errors: list[str]) -> object | None:
     try:
-        payload: object = json.loads(path.read_text(encoding="utf-8"))
+        payload: object = read_json(path)
     except FileNotFoundError:
         errors.append(f"{path.name}: missing")
         return None

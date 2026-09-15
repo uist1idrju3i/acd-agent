@@ -32,6 +32,15 @@ L3非権威観測であり、Design Graph、rationale、gate status、Evidence�
 ペリフェラル設定表とメモリマップは機械可読宣言がないため対象外であり、宣言を追加する
 場合は対応する8.5検査も追加する。実provider送信と実発注は引き続きスコープ外である。
 
+契約文書の`schema_version`は`acd.schema.common`の`SUPPORTED_SCHEMA_VERSIONS`
+（現在は`0.1`のみ）で受理範囲を定義する。文書rootの契約は`VersionedAcdModel`を継承し、
+検証前に`migrate_schema_document`が版を検査する。未知の版、文字列でない版、登録のない
+移行段はfail-closedで拒否し、旧版は`register_schema_migration(from, to, fn)`で登録した
+1段ずつの移行を`schema_version`が受理範囲へ入るまで適用する（入力documentは変更しない）。
+版の受理範囲が文書種別ごとに異なる場合はsubclassの`supported_schema_versions`で
+上書きする。`DesignGraph`が最初の適用先であり、他の契約rootは版分岐が必要になった時点で
+同じ基底へ移行する。
+
 ```text
 入力ファイル / profiles
         ↓
@@ -98,8 +107,10 @@ GD1筐体pipelineは、rationale検証、lane抽出、筐体投影を依存順�
 rationale／lane抽出／筐体投影の逐次区間とimportを重ねる。機械ゲート内のprobeと判定、
 artifact測定helperのshell／lid／assembly再読込は同じrunnerへsubmitし、nested poolを作らない。
 ゲート完了後の断面投影と干渉投影も同じrunnerの独立stageとしてsubmitし、結果はprojection ID順に
-reduceする。基板pipelineの`run_ordered_stages`は既定context（Linuxではfork）を維持し、
-spawn化はOCP/build123dを使う筐体経路に限定する。warm-upはworker数分のjobを
+reduceする。基板pipelineの`run_ordered_stages`は`forkserver` contextを使う。stage callableは
+start methodに関係なくpickleされるため結果は不変であり、OpenHands tool executorのような
+マルチスレッド親からforkする危険（Python 3.12のDeprecationWarning、3.14で既定変更）を避ける。
+warm-up付きspawn runnerはOCP/build123dを使う筐体経路に限定する。warm-upはworker数分のjobを
 Manager由来のBarrierで待ち合わせ、import失敗やtimeoutは最適化の失敗として警告し、
 判定を変えずに通常経路を続行する。`--pipeline-workers 1`はpoolを作らず同じ依存境界を
 逐次実行する。2コアVMではCAD stageの実処理よりspawnとOCP importのコストが大きかったため、
@@ -186,8 +197,15 @@ capabilityを観測する。これはL3観測であり、合否権限やauthorit
 
 Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 `disable_model_invocation=True`を強制し、`inputs:`はTaskTriggerになるため、現在の
-自然言語起点の任意利用には採用しない。Skill結果、AgentDefinitionの所見、reviewerの
-出力は合否Evidenceではない。
+自然言語起点の任意利用には採用しない。明示経路のSkill loader
+（`acd.openhands.distribution.skills.validate_acd_skill_contract`）はこの契約を
+fail-closedで検査し、AgentSkills形式でない資材、`description`欠落またはSDKが1024字で
+切り詰めた`description`、`license`欠落、`KeywordTrigger`以外のtrigger（trigger無し・
+`paths:`・`inputs:`）、空または重複するkeyword、`disable-model-invocation: true`を
+持つSkillがあれば会話構築を停止する。SDKのkeyword照合は英数字境界だけを見るため、
+日本語keywordは文中の部分一致で発火する。各Skillは英語keywordに加えて日本語keywordを
+持ち、`description`には「何をするか」と「いつ使うか」を含める。Skill結果、
+AgentDefinitionの所見、reviewerの出力は合否Evidenceではない。
 
 role promptは`PromptSection`へ変換するL2操舵資材であり、資材bytesと抽出本文を
 `prompt-manifest.json`で固定する。prompt sectionとmanifestはEvidenceではなく、
@@ -224,7 +242,11 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 
 `src/acd/openhands/tools/definitions.py`はOpenHands SDKの
 `ToolDefinition`、`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を
-使い、`register_acd_tools()`から次の既存入口を明示的に登録する。
+使い、`register_acd_tools()`から次の既存入口を明示的に登録する。tool本体は
+tool族ごとに`_base.py`（共通Observationと経路ヘルパ）、`pipeline_tools.py`
+（probe・graph検証・3 lane pipeline・bootstrap）、`registry_tools.py`（登録系）、
+`design_loop_tools.py`（要求変更・fixture・探索・診断・design loop）へ分割し、
+`definitions.py`はimport面と登録順の正だけを保持する。
 
 - `acd_probe_tools`
 - `acd_validate_design_graph`
@@ -239,6 +261,21 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 - `acd_explore_enclosure_candidates`
 - `acd_diagnose_gate_failure`
 - `acd_check_order_readiness`
+
+## GD1基板pipeline package
+
+基板pipelineは`src/acd/pipeline/gd1_board/`packageであり、
+`acd.pipeline.gd1_board`のimport面（`run_pipeline`、`main`、
+`placements_from_graph`、`build_electrical_evidence`）は`__init__.py`が維持する。
+`pipeline.py`は12 stageの順序、timing記録、fail-closed停止だけを担う
+orchestratorとCLIで、stage本体は`routing.py`（DSN出力、FreeRouting実行と
+cache、SES取り込み、stitch via整理）、`width_control.py`（幅制御の順序付きarm実行と
+KiCad netclass正制御）、`measurement.py`（silkscreen・net幅・抵抗・pad中心・
+ground plane Gerberの独立再測定）、`fabrication.py`（CPL/BOM、DFM report、
+製造package、order-readiness）、`visual_stages.py`（電気・FW視覚投影と
+cross-check）、`evidence.py`（電気Evidence）、`manifest.py`（投影形式検査と
+`hashes.json`）へ分ける。stage順、成果物名、Evidence・provenance、cache hashは
+分割前と同一である。
 
 機械系laneの入口は`src/acd/pipeline/enclosure.py`と
 `scripts/run_enclosure_pipeline.py`である。`--fixture`と`--out`は必須で、GD1を
@@ -323,6 +360,31 @@ USB-Cを宣言しない設計と電池給電設計は、既存の機能block・p
 fixtureへ宣言して到達できる。電池については`power_boundary`等の既存範囲だけを扱い、
 充電・保護回路の規範的契約やpredicateは出荷しない。これはロードマップ16.2／16.3の
 依存である。
+
+## design loop package
+
+design loopは`src/acd/pipeline/design_loop/`packageであり、
+`acd.pipeline.design_loop`のimport面（`run_design_loop`、`DesignLoopConfig`、
+`DEFAULT_STAGE_RUNNERS`、stage ID群）は`__init__.py`が維持する。
+`config.py`は`DesignLoopConfig`とstage record helper（`stage_success`／`stage_failure`、
+`pass_evidence=False`固定）、`stages.py`はstage runnerと`DEFAULT_STAGE_RUNNERS`、
+`recovery.py`はlane recovery宣言の解決・候補探索・候補pipelineのtiming記録、
+`summary.py`はloop結果へ載せるL3要約、`loop.py`は`run_design_loop`本体を担う。
+1回分の実行順は`loop.EXECUTE_ONCE_PLAN`（`ExecuteOnceStep`の宣言順tuple）が
+単一の正であり、各stepは停止条件（既定は`ok`でないか`fail_closed`、
+graph-diff-projectionは`fail_closed`のみ）、有効条件（order-total-aggregationは
+`quote_records`指定時）、runner差し替え（design-onlyのorder-readiness）を宣言する。
+lane群は1 stepとして`DESIGN_LOOP_LANE_IDS`へ展開し、並列実行時も宣言順でreduceする。
+テストでの依存差し替えはfacadeではなく所有module（`design_loop.loop`、
+`design_loop.stages`、`design_loop.recovery`）の名前へ行う。
+
+stage結果の共通核は`schema/stage_result.py`の`StageResultCore`
+（`stage_id`、`ok`、`fail_closed`、`pass_evidence=False`固定、`failure_reason`）が契約であり、
+`stage_success`／`stage_failure`はその生成helperの別名である。`loop.run_stage`は
+runnerの返り値を`normalize_stage_result`で検査し、非object、真偽値でないflag、
+`ok`と`fail_closed`の同時成立、理由のない失敗、真の`pass_evidence`をすべて
+fail-closedの失敗recordへ書き換える。`stage_id`はorchestratorが付与した値を正とし、
+runner側の申告で上書きしない。stage固有のpayload keyはそのまま保持される。
 
 ## 生成と判定の分離
 

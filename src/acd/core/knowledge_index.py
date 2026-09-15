@@ -15,6 +15,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.knowledge_index import (
@@ -56,7 +57,7 @@ def _relative(path: Path, base_dir: Path) -> str:
 def load_indexed_graph(path: Path) -> DesignGraph:
     """Load the design graph the index is anchored to, failing closed."""
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
     except OSError as exc:
         raise KnowledgeIndexError(f"cannot read design graph {path}: {exc}") from exc
     except json.JSONDecodeError as exc:

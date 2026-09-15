@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from acd.core.fileio import read_json
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.firmware_capability import (
@@ -39,7 +40,7 @@ def load_firmware_capability_registry(
 ) -> FirmwareCapabilityRegistry:
     registry_path = path or repository_root() / "contracts" / "firmware-capability-registry.json"
     try:
-        value = json.loads(registry_path.read_text(encoding="utf-8"))
+        value = read_json(registry_path)
         document = FirmwareCapabilityRegistryDocument.model_validate(value)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise FirmwareCapabilityContractError(

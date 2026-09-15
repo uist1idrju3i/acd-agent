@@ -14,6 +14,7 @@ from typing import Literal, cast
 
 from pydantic import Field
 
+from acd.core.fileio import read_json
 from acd.schema.common import (
     AcdModel,
     NodeId,
@@ -44,7 +45,7 @@ def load_defect_document(path: Path) -> LoadedDefectDocument:
     """Load and validate a defect record document."""
     try:
         document = DefectDocument.model_validate(
-            json.loads(path.read_text(encoding="utf-8"))
+            read_json(path)
         )
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise DefectRecordError(

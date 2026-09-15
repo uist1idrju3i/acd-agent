@@ -58,7 +58,7 @@ def test_cli_valid_output_and_input_hash_stability(tmp_path: Path) -> None:
     first, proposal = invoke(tmp_path / "first")
     _, second_proposal = invoke(tmp_path / "second")
     assert first.returncode == 0
-    assert json.loads(proposal.read_text())["status"] == "pass"
+    assert json.loads(proposal.read_text(encoding="utf-8"))["status"] == "pass"
     assert proposal.read_bytes() == second_proposal.read_bytes()
     assert {
         path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked
@@ -75,7 +75,7 @@ def test_cli_stale_evidence_is_unknown_without_traceback(tmp_path: Path) -> None
     )
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
-    value = json.loads(proposal.read_text())
+    value = json.loads(proposal.read_text(encoding="utf-8"))
     assert value["status"] == "unknown"
     assert "evidence" in value["error"]
 
@@ -98,6 +98,6 @@ def test_cli_unclassified_attribute_is_unknown(tmp_path: Path) -> None:
     )
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
-    value = json.loads(proposal.read_text())
+    value = json.loads(proposal.read_text(encoding="utf-8"))
     assert value["status"] == "unknown"
     assert "unclassified" in value["error"]

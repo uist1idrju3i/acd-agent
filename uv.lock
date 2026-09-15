@@ -31,9 +31,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "openhands-sdk" },
-    { name = "openhands-tools" },
-    { name = "openhands-workspace" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-xdist" },
@@ -55,9 +52,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "openhands-sdk", editable = "vendor/software-agent-sdk/openhands-sdk" },
-    { name = "openhands-tools", editable = "vendor/software-agent-sdk/openhands-tools" },
-    { name = "openhands-workspace", editable = "vendor/software-agent-sdk/openhands-workspace" },
     { name = "pyright", specifier = ">=1.1.414" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },

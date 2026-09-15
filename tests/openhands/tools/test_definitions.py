@@ -12,7 +12,7 @@ import pytest
 from openhands.sdk.agent.parallel_executor import ResourceLockManager
 from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
-import acd.openhands.tools.definitions as sdk_tools
+import acd.openhands.tools.pipeline_tools as pipeline_tools
 from acd.openhands.tools.definitions import (
     AcdAggregateOrderTotal,
     AcdAggregateOrderTotalAction,
@@ -77,7 +77,7 @@ def test_bootstrap_workspace_propagates_record_and_provenance(
             "script_sha256": "sha256:" + "a" * 64,
         }
 
-    monkeypatch.setattr(sdk_tools, "run_bootstrap", fake_bootstrap)
+    monkeypatch.setattr(pipeline_tools, "run_bootstrap", fake_bootstrap)
     tool = AcdBootstrapWorkspace.create()[0]
     result = _execute(
         tool,
@@ -601,8 +601,8 @@ def test_pipeline_executors_use_graph_derived_output_paths(
         del args
         return {"status": "pass"}
 
-    monkeypatch.setattr(sdk_tools, "run_board", fake_run_board)
-    monkeypatch.setattr(sdk_tools, "run_enclosure", fake_run_enclosure)
+    monkeypatch.setattr(pipeline_tools, "run_board", fake_run_board)
+    monkeypatch.setattr(pipeline_tools, "run_enclosure", fake_run_enclosure)
 
     board = _execute(
         AcdRunBoardPipeline.create()[0],
@@ -756,7 +756,7 @@ def test_pipeline_exception_does_not_fabricate_output_or_envelopes(
         encoding="utf-8",
     )
     fixture = Path("fixtures/golden-design-1")
-    monkeypatch.setattr(sdk_tools, "run_enclosure", _raise_pipeline)
+    monkeypatch.setattr(pipeline_tools, "run_enclosure", _raise_pipeline)
     result = _execute(
         AcdRunEnclosurePipeline.create()[0],
         AcdRunEnclosurePipelineAction(fixture=str(fixture), out=str(out)),

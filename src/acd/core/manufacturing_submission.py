@@ -28,6 +28,7 @@ from acd.adapters.kicad.reload import (
 )
 from acd.core.cad_normalize import normalize_3mf, normalize_step, normalize_stl
 from acd.core.fab import resolve_fab_profile_path
+from acd.core.fileio import read_json
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence
@@ -121,7 +122,7 @@ def _board_role(path: Path) -> str:
 
 def _load_json(path: Path) -> dict[str, Any]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        value = read_json(path)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ManufacturingSubmissionError(f"{path}: invalid JSON") from exc
     if not isinstance(value, dict):

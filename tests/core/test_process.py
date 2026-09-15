@@ -91,7 +91,7 @@ def test_run_tool_forwards_explicit_environment(tmp_path: Path) -> None:
         measurement_conditions="test",
         env={"ACD_TEST_ENV": "forwarded"},
     )
-    assert output.read_text() == "forwarded"
+    assert output.read_text(encoding="utf-8") == "forwarded"
 
 
 def test_run_tool_omits_environment_override_when_unspecified(
@@ -197,7 +197,7 @@ def test_run_tool_timeout_records_envelope_and_partial_output(tmp_path: Path) ->
     assert "partial stdout" in error.stdout
     assert "partial stderr" in error.stderr
     assert not (tmp_path / "partial-output.txt").exists()
-    envelope = ToolEnvelope.model_validate_json(envelope_path.read_text())
+    envelope = ToolEnvelope.model_validate_json(envelope_path.read_text(encoding="utf-8"))
     assert envelope.convergence_state == "timed_out"
     assert envelope.output_hash == "unknown"
     assert envelope.exit_code is None

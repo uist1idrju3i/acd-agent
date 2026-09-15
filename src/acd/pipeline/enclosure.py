@@ -29,6 +29,7 @@ from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.adapters.kicad.step_export import export_board_step
 from acd.core.electrical import extract_electrical_lane
+from acd.core.fileio import read_json
 from acd.core.lane_cli import add_lane_io_arguments
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.mechanical_preflight import check_mechanical_preflight
@@ -111,7 +112,7 @@ def _run_pipeline(
     runner.warm_up(("build123d",))
     graph_path = fixture_dir / "graph.json"
     graph = DesignGraph.model_validate(
-        json.loads(graph_path.read_text(encoding="utf-8"))
+        read_json(graph_path)
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     stage_number = 0

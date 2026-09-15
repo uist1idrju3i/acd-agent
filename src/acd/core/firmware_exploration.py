@@ -30,6 +30,7 @@ from acd.core.exploration import (
     load_exploration_rationale,
     run_candidate_search,
 )
+from acd.core.fileio import read_json
 from acd.core.firmware_coverage import FirmwareCoverageCode, FirmwareCoverageFinding
 
 FIRMWARE_SEARCHABLE_DIMENSIONS: frozenset[str] = frozenset({"gpio_assignment"})
@@ -58,7 +59,7 @@ def load_firmware_coverage_findings(
 ) -> tuple[FirmwareCoverageFinding, ...]:
     """Parse a firmware coverage report into typed findings (fail-closed)."""
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path)
     except (OSError, json.JSONDecodeError) as exc:
         raise ExplorationError(
             f"firmware coverage report is unreadable: {path}: {exc}"

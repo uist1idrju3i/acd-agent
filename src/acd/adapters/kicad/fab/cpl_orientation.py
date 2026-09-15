@@ -33,6 +33,7 @@ from gerbonara.graphic_objects import (  # pyright: ignore[reportMissingTypeStub
 )
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
+from acd.core.fileio import read_json
 from acd.adapters.kicad.library import SymbolLibrary
 from acd.adapters.kicad.placement import rotate_point
 from acd.core.board_model import BoardModel, RoutedDesign, RoutedVia
@@ -183,7 +184,7 @@ def _parse_lcsc_pin_shape(shape: str) -> tuple[str, str, float, float] | None:
 def _load_lcsc_shapes(path: Path) -> tuple[object, ...]:
     """Load package shapes while normalizing archived-response structure errors."""
     try:
-        document = cast(Mapping[str, object], json.loads(path.read_text(encoding="utf-8")))
+        document = cast(Mapping[str, object], read_json(path))
         response = cast(Mapping[str, object], document["response"])
         result = cast(Mapping[str, object], response["result"])
         package_detail = cast(Mapping[str, object], result["packageDetail"])
@@ -202,7 +203,7 @@ def _load_lcsc_shapes(path: Path) -> tuple[object, ...]:
 
 def _load_lcsc_fallback_shapes(path: Path) -> tuple[object, ...]:
     try:
-        document = cast(Mapping[str, object], json.loads(path.read_text(encoding="utf-8")))
+        document = cast(Mapping[str, object], read_json(path))
         response = cast(Mapping[str, object], document["response"])
         result = cast(Mapping[str, object], response["result"])
         data_str = cast(Mapping[str, object], result["dataStr"])
@@ -446,7 +447,7 @@ def verify_lcsc_rotation_evidence(
             unknowns.append(component.refdes)
             notes[component.refdes] = "unknown; LCSC rotation Evidence file is missing"
             continue
-        document = json.loads(path.read_text(encoding="utf-8"))
+        document = read_json(path)
         response = document["response"]
         canonical = json.dumps(
             response, ensure_ascii=False, sort_keys=True, separators=(",", ":")

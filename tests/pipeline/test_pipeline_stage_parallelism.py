@@ -8,6 +8,8 @@ import argparse
 import json
 import os
 import shutil
+import threading
+import warnings
 from concurrent.futures import Future
 from functools import partial
 from pathlib import Path
@@ -19,14 +21,14 @@ from acd.core.parallel import (
     DEFAULT_CAD_STAGE_WORKERS,
     PipelineStageRunner,
     _warm_up_worker,
+    run_ordered_stages,
 )
 from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
-from acd.pipeline.gd1_board import (
-    _parse_cached_router_record,
-    _positive_int,
-    _run_ordered_stages,
-    _write_router_pass_progression,
-    run_pipeline,
+from acd.pipeline.gd1_board import run_pipeline
+from acd.pipeline.gd1_board.pipeline import positive_int
+from acd.pipeline.gd1_board.routing import (
+    parse_cached_router_record,
+    write_router_pass_progression,
 )
 
 
@@ -44,12 +46,12 @@ def _stage_failure() -> None:
 
 def test_cached_timed_out_router_record_is_ignored() -> None:
     record = json.dumps({"ses": "(session)", "convergence_state": "timed_out"}).encode()
-    assert _parse_cached_router_record(record) is None
+    assert parse_cached_router_record(record) is None
 
 
 def test_router_pass_progression_is_l3_only(tmp_path: Path) -> None:
-    _write_router_pass_progression(tmp_path, "r1", "timed_out", (8, 3))
-    report = json.loads((tmp_path / "l3" / "router-pass-progress.json").read_text())
+    write_router_pass_progression(tmp_path, "r1", "timed_out", (8, 3))
+    report = json.loads((tmp_path / "l3" / "router-pass-progress.json").read_text(encoding="utf-8"))
     assert report == {
         "authority": "L3 observation; not gate authority",
         "convergence_state": "timed_out",
@@ -66,8 +68,31 @@ def test_ordered_stages_keep_declared_order() -> None:
         ("second", partial(_stage_value, "second")),
         ("third", partial(_stage_value, "third")),
     )
-    assert _run_ordered_stages(stages, 1) == _run_ordered_stages(stages, 3)
-    assert _run_ordered_stages(stages, 3) == ["first", "second", "third"]
+    assert run_ordered_stages(stages, 1) == run_ordered_stages(stages, 3)
+    assert run_ordered_stages(stages, 3) == ["first", "second", "third"]
+
+
+def test_ordered_stages_do_not_fork_multithreaded_parent() -> None:
+    stop = threading.Event()
+    thread = threading.Thread(target=stop.wait)
+    thread.start()
+    stages = (
+        ("first", partial(_stage_value, "first")),
+        ("second", partial(_stage_value, "second")),
+    )
+    try:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert run_ordered_stages(stages, 2) == ["first", "second"]
+    finally:
+        stop.set()
+        thread.join()
+    fork_warnings = [
+        str(item.message)
+        for item in caught
+        if issubclass(item.category, DeprecationWarning) and "fork()" in str(item.message)
+    ]
+    assert fork_warnings == []
 
 
 def test_ordered_stage_failure_is_not_suppressed() -> None:
@@ -76,15 +101,15 @@ def test_ordered_stage_failure_is_not_suppressed() -> None:
         ("failing", _stage_failure),
     )
     with pytest.raises(ValueError, match="stage failed"):
-        _run_ordered_stages(stages, 2)
+        run_ordered_stages(stages, 2)
 
 
 def test_freerouting_threads_argument_requires_positive_integer() -> None:
-    assert _positive_int("1") == 1
+    assert positive_int("1") == 1
     with pytest.raises(argparse.ArgumentTypeError, match="positive"):
-        _positive_int("0")
+        positive_int("0")
     with pytest.raises(argparse.ArgumentTypeError, match="integer"):
-        _positive_int("not-an-integer")
+        positive_int("not-an-integer")
 
 
 def test_pipeline_stage_runner_reuses_spawn_pool() -> None:
@@ -151,7 +176,7 @@ def test_cad_stage_workers_default_to_serial() -> None:
 
 def test_pipeline_worker_count_must_be_positive() -> None:
     with pytest.raises(ValueError, match="worker count must be at least 1"):
-        _run_ordered_stages((), 0)
+        run_ordered_stages((), 0)
 
 
 def test_enclosure_pipeline_outputs_are_stable_across_worker_counts(
@@ -248,7 +273,7 @@ def test_ordered_stages_run_in_child_processes() -> None:
         ("second", _stage_pid),
     )
     parent_pid = os.getpid()
-    child_pids = _run_ordered_stages(stages, 2)
+    child_pids = run_ordered_stages(stages, 2)
     assert all(pid != parent_pid for pid in child_pids)
 
 
@@ -288,7 +313,7 @@ def test_pipeline_parallel_hashes_match_sequential(tmp_path: Path) -> None:
     )
 
     def read_hashes(out_dir: Path) -> dict[str, str]:
-        manifest = json.loads((out_dir / "hashes.json").read_text())
+        manifest = json.loads((out_dir / "hashes.json").read_text(encoding="utf-8"))
         return {str(key): str(value) for key, value in manifest.items()}
 
     hashes_a = read_hashes(tmp_path / "sequential-a")

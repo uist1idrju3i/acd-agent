@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 from typing import Final
 
@@ -14,6 +13,7 @@ from openhands.sdk.subagent import AgentDefinition
 from pydantic import ValidationError
 from yaml import YAMLError
 
+from acd.core.fileio import write_json
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.prompt_manifest import (
     PromptDriftReport,
@@ -231,8 +231,5 @@ def write_prompt_manifest(
     """Generate and persist a deterministic role prompt manifest."""
     manifest = generate_prompt_manifest(agent_dir, root=root)
     value = manifest.model_dump(mode="json")
-    manifest_path.write_text(
-        json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json(manifest_path, value, mkdir=False)
     return manifest
