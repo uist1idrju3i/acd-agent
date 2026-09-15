@@ -53,7 +53,7 @@ ADR-0035はclone不要のSDK標準配布（pip git install＋`Plugin.fetch()`）
 - ambient経路では、明示pluginの`validate_pinned_ref()`検査、SKILL.md事前検証、
   ロード数照合、hook資材の事前検証を行わない。SDK標準の
   warn-and-continue意味論に従う。
-- ACDの`ToolDefinition`はpluginの`.mcp.json`からstdio MCP serverとして配布する。
+- ADR-0026のMCP不採用記述を改訂し、ACDの`ToolDefinition`はpluginの`.mcp.json`からstdio MCP serverとして配布する。
   `plugins/acd/mcp/acd_mcp_server.py`は17個の`acd_*` toolを同名で公開し、ambient会話は
   SDKのMCP merge経路から取得する。SDKのtool listing timeoutは30秒のため、install doctorが
   `--list-tools`でuv cacheを事前warmする。tool call timeoutは固定300秒であり、長時間の

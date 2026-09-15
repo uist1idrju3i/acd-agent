@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from openhands.sdk.mcp import MCPClient
 from openhands.sdk.plugin import Plugin
 
 from acd.openhands.tools.ambient import check_ambient_tool_availability
@@ -38,6 +39,7 @@ def test_mcp_tools_match_acd_definitions() -> None:
 
 
 def test_plugin_mcp_config_points_to_server_script() -> None:
+    assert MCPClient.__name__ == "MCPClient"
     plugin = Plugin.load(ROOT / "plugins" / "acd")
     server = plugin.mcp_config["acd"]
     assert server.command == "uv"

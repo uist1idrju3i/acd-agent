@@ -85,7 +85,8 @@ role別promptの`PromptSection`化と資材manifest drift検査、role別LLM rou
 settings/profile資材のcanonical hash固定とcredential参照名だけの保持、
 永続memoryの明示有効化と表示専用event view projectionも実装済みである。
 `ToolDefinition`、現行の`DockerWorkspace`、決定論的gateの責務境界は変更しない。
-MCP、Canvas、remote API、cloud、agent-serverは採用しない。
+汎用MCP互換層、Canvas、remote API、cloud、agent-serverは採用しない。ACD tool配布に限る
+pluginの`.mcp.json` stdio serverはADR-0036の改訂により採用する。
 
 - `sdk.context.prompts`: `plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、
   資材hashを固定してpromptとの整合性を確認する。

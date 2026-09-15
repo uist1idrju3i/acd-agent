@@ -96,9 +96,11 @@ agent-serverはACDの対象外とする。将来採用する場合は、認証�
 
 ## 不採用
 
-MCP、marketplace、extensions、Canvas、VSCode、desktop、Apptainer、remote API、cloud、
+marketplace、extensions、Canvas、VSCode、desktop、Apptainer、remote API、cloud、
 Gemini、Tom Consult、Apply Patch、ACP agentは、現行のOpenHands-only scopeとprovenance
 境界に合わないため不採用とする。agent-serverは非対象として別途管理する。
+MCPはADR-0036の改訂により、pluginの`.mcp.json`からACD ToolDefinitionをambient会話へ
+配布する用途に限って採用へ変更した。汎用のMCP互換層やMCPClientの直接利用は引き続き採用しない。
 installed pluginの自動読み込みによるインストール経路はADR-0036で採用へ変更した。
 MarketplaceRegistryは引き続き不採用とする。
 
