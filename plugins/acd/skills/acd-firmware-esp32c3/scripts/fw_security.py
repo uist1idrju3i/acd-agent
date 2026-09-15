@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@d8d54941f48861955c1ea616ee5b31886fdc0abf",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@dde03eda4f8825705ebbb8888a81ce8af5f485b5",
 # ]
 # ///
 """Render and check the opt-in ESP32-C3 firmware security design."""
