@@ -241,13 +241,19 @@
         "acd.core.firmware_lane.extract_firmware_lane",
         "acd.schema.design_graph.DesignGraph",
         "acd.schema.design_graph.GraphNode",
+        "acd.schema.fem.FemResult",
+        "acd.schema.firmware_analysis.FirmwareAnalysisResult",
         "acd.schema.firmware_inspection.FirmwareInspectionSequence",
+        "acd.schema.pdn.PdnResult",
+        "acd.schema.spice.SpiceResult",
         "acd.schema.theme_song.ThemeSongProjection",
+        "acd.schema.thermal.ThermalResult",
         "acd.schema.visual_projection.VisualProjectionRecord",
-        "acd.schema.visual_projection.VisualProjectionSet"
+        "acd.schema.visual_projection.VisualProjectionSet",
+        "acd.schema.wca.WcaResult"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/doc_inputs.py",
-      "sha256": "a7edb59d0b2635dbd77fba728ee20d0dcc7d40b8dfeb5c71d6b31f2b23930bb3"
+      "sha256": "b54c2a1ea50ac879eebaad7b9319e19386e466838b01e27bddb054e0160bff8d"
     },
     {
       "acd_symbols": [
@@ -319,7 +325,7 @@
         "acd.schema.rationale.RationaleRecord"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py",
-      "sha256": "06942bba05e8e69ef127e8a21789256859767c81d4e2432deeac227f0814aed2"
+      "sha256": "658e09226a81e822f51150aeb89de1812780603a8424421c1de45331498d7860"
     },
     {
       "acd_symbols": [
@@ -330,7 +336,7 @@
         "acd.schema.graph_diff.GraphDiff"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py",
-      "sha256": "427d3251b16403ecee0a6c386c59fdf981d7a65fd5c022f3401de4088ffcddbe"
+      "sha256": "88dc9845581615a0486aa8162a880dc2ce48fdf9ba660ecacd0f44d7f91abc7f"
     },
     {
       "acd_symbols": [
