@@ -510,13 +510,6 @@ from acd.schema.visual_crosscheck import (
     VisualReviewChecklistItem,
     VisualReviewObservationReference,
 )
-from acd.schema.visual_quality import (
-    ReadabilityFinding,
-    ReadabilityPolicy,
-    ReadabilityReport,
-    VisualReadabilityDocument,
-    VisualReadabilityObservation,
-)
 from acd.schema.visual_projection import (
     ElectricalVisualProjectionGates,
     ElectricalVisualProjectionPredicate,
@@ -533,6 +526,13 @@ from acd.schema.visual_projection import (
     VisualReviewRequirement,
     VisualVisionObservation,
     VisualVisionToolEvent,
+)
+from acd.schema.visual_quality import (
+    ReadabilityFinding,
+    ReadabilityPolicy,
+    ReadabilityReport,
+    VisualReadabilityDocument,
+    VisualReadabilityObservation,
 )
 from acd.schema.wca import (
     ToleranceTable,
