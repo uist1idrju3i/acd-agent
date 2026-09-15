@@ -37,6 +37,18 @@ def _feature(
         **dimensions,
         **(extra or {}),
     }
+    if feature_type == "hinge":
+        attrs["motion_check"] = {
+            "step_deg": 5.0,
+            "sweep_margin_mm": 0.2,
+            "allowed_contact_ids": [],
+        }
+    elif feature_type == "button":
+        attrs["motion_check"] = {
+            "step_mm": 0.1,
+            "sweep_margin_mm": 0.2,
+            "allowed_contact_ids": [],
+        }
     return GraphNode(
         id=node_id,
         kind="mechanism_feature",
@@ -217,3 +229,34 @@ def test_light_pipe_requires_led_reference() -> None:
                 )
             )
         )
+
+
+def test_movable_feature_requires_motion_check() -> None:
+    graph = _with(
+        _feature(
+            "mechanism.hinge",
+            "hinge",
+            {
+                "pin_diameter_mm": 2.0,
+                "knuckle_width_mm": 3.0,
+                "knuckle_count": 3,
+                "clearance_mm": 0.15,
+                "swing_deg": 120.0,
+            },
+        )
+    )
+    node = graph.node_by_id("mechanism.hinge")
+    attrs = dict(node.attrs)
+    attrs.pop("motion_check")
+    graph = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(update={"attrs": attrs})
+                if item.id == node.id
+                else item
+                for item in graph.nodes
+            ]
+        }
+    )
+    with pytest.raises(GraphExtractionError, match="motion_check"):
+        extract_mechanical_lane(graph)

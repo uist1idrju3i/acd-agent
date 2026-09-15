@@ -220,6 +220,10 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "fillet_mm",
             "thickness_mm",
             "draft_deg",
+            "motion_check",
+            "step_deg",
+            "step_mm",
+            "sweep_margin_mm",
         }
     ),
     "mechanical.silk_graphic": frozenset(
@@ -550,7 +554,13 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "rotation_deg": "Placement rotation is a coordinate-system placement declaration.",
         "led_refdes": "LED reference is an electrical identity used to bind the light pipe.",
             "refdes": "Switch or LED reference is an electrical identity used to bind the button.",
-            "switch_refdes": "Switch reference is an electrical identity used to bind the button.",
+        "switch_refdes": "Switch reference is an electrical identity used to bind the button.",
+        "allowed_contact_ids": (
+            "Allowed contact identities declare the mounting contact excluded from collision."
+        ),
+        "motion_check": (
+            "Motion-check settings declare the deterministic sweep sampling contract."
+        ),
     },
     "mechanical.silk_graphic": {
         "board_edge_margin_source": (

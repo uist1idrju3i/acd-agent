@@ -7,7 +7,7 @@ import math
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from acd.adapters.cad.constants import CAD_LINEAR_DEFLECTION_MM
 from acd.core.cad_normalize import parse_stl
@@ -19,6 +19,9 @@ from acd.core.mechanical import (
 )
 from acd.core.mechanism_rules import MechanismFinding, check_mechanism_features
 from acd.core.parallel import PipelineStageRunner
+
+if TYPE_CHECKING:
+    from acd.adapters.cad.motion_sweep import MotionSweepFinding
 
 
 class MechanicalGateError(ValueError):
@@ -37,6 +40,8 @@ class MechanicalGateReport:
     measured_max_interference_volume_mm3: float
     mechanism_rules: str = "not_applicable"
     mechanism_findings: tuple[MechanismFinding, ...] = ()
+    motion_sweep: str = "not_applicable"
+    motion_findings: tuple[MotionSweepFinding, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -486,6 +491,24 @@ def run_mechanical_gates(
             else "pass"
         )
     )
+    from acd.adapters.cad.motion_sweep import check_motion_sweep
+
+    motion_findings = check_motion_sweep(
+        lane,
+        shell,
+        min(solids, key=lambda solid: solid.volume),
+    )
+    motion_status = (
+        "not_applicable"
+        if not motion_findings
+        else (
+            "fail"
+            if any(item.status == "fail" for item in motion_findings)
+            else "unknown"
+            if any(item.status == "unknown" for item in motion_findings)
+            else "pass"
+        )
+    )
     report = MechanicalGateReport(
         kernel_valid=True,
         interference=interference,
@@ -497,6 +520,8 @@ def run_mechanical_gates(
         measured_max_interference_volume_mm3=measured_max_interference_volume,
         mechanism_rules=mechanism_status,
         mechanism_findings=mechanism_findings,
+        motion_sweep=motion_status,
+        motion_findings=motion_findings,
     )
     failures = [
         name
@@ -505,6 +530,7 @@ def run_mechanical_gates(
             ("clearance", clearance),
             ("wall_thickness", wall_thickness),
             ("mechanism_rules", mechanism_status in {"pass", "not_applicable"}),
+            ("motion_sweep", motion_status in {"pass", "not_applicable"}),
         )
         if not passed
     ]

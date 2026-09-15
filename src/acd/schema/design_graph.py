@@ -46,7 +46,7 @@ NodeKind = Literal[
 ]
 
 AttrScalar = str | float | int | bool | None
-AttrValue = AttrScalar | list[Any]
+AttrValue = AttrScalar | list[Any] | dict[str, Any]
 
 
 class GraphNode(AcdModel):

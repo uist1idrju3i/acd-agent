@@ -206,6 +206,14 @@ class EnclosureView:
 
 
 @dataclass(frozen=True)
+class MotionCheckView:
+    step_deg: float | None
+    step_mm: float | None
+    sweep_margin_mm: float
+    allowed_contact_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class MechanismFeatureView:
     node_id: str
     feature_type: str
@@ -218,6 +226,7 @@ class MechanismFeatureView:
     refdes: str | None = None
     led_refdes: str | None = None
     led_body_size_mm: float | None = None
+    motion_check: MotionCheckView | None = None
 
 
 @dataclass(frozen=True)
@@ -322,6 +331,55 @@ def _placement_float(node: GraphNode, key: str) -> float:
     if not math.isfinite(value):
         raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be finite")
     return value
+
+
+def _motion_check(node: GraphNode, feature_type: str) -> MotionCheckView | None:
+    if feature_type not in {"hinge", "button"}:
+        return None
+    raw = node.attrs.get("motion_check")
+    if not isinstance(raw, dict):
+        raise GraphExtractionError(
+            f"node {node.id!r}: {feature_type} requires a motion_check declaration"
+        )
+    step_key = "step_deg" if feature_type == "hinge" else "step_mm"
+    step_value = raw.get(step_key)
+    margin_value = raw.get("sweep_margin_mm")
+    if (
+        isinstance(step_value, bool)
+        or not isinstance(step_value, int | float)
+        or not math.isfinite(float(step_value))
+        or float(step_value) <= 0
+    ):
+        raise GraphExtractionError(
+            f"node {node.id!r}: motion_check.{step_key} must be finite and positive"
+        )
+    if (
+        isinstance(margin_value, bool)
+        or not isinstance(margin_value, int | float)
+        or not math.isfinite(float(margin_value))
+        or float(margin_value) < 0
+    ):
+        raise GraphExtractionError(
+            f"node {node.id!r}: motion_check.sweep_margin_mm must be finite and non-negative"
+        )
+    allowed_raw = raw.get("allowed_contact_ids")
+    if not isinstance(allowed_raw, list):
+        raise GraphExtractionError(
+            f"node {node.id!r}: motion_check.allowed_contact_ids must be a string list"
+        )
+    allowed_contacts: list[str] = []
+    for item in cast(list[object], allowed_raw):
+        if not isinstance(item, str) or not item:
+            raise GraphExtractionError(
+                f"node {node.id!r}: motion_check.allowed_contact_ids must be a string list"
+            )
+        allowed_contacts.append(item)
+    return MotionCheckView(
+        step_deg=float(step_value) if feature_type == "hinge" else None,
+        step_mm=float(step_value) if feature_type == "button" else None,
+        sweep_margin_mm=float(margin_value),
+        allowed_contact_ids=tuple(sorted(allowed_contacts)),
+    )
 
 
 def _mount_holes(node: GraphNode) -> tuple[MountHoleView, ...]:
@@ -631,6 +689,7 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     refdes=refdes,
                     led_refdes=led_refdes,
                     led_body_size_mm=led_body_size_mm,
+                    motion_check=_motion_check(node, feature_type),
                 )
             )
 

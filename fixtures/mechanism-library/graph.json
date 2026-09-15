@@ -4718,7 +4718,24 @@
         "knuckle_width_mm": 3.0,
         "knuckle_count": 3,
         "clearance_mm": 0.15,
-        "swing_deg": 120.0
+        "swing_deg": 120.0,
+        "motion_check": {
+          "step_deg": 5.0,
+          "sweep_margin_mm": 0.2,
+          "allowed_contact_ids": [
+            "enclosure.shell",
+            "board.outline",
+            "mechanical.component_body.1",
+            "mechanical.component_body.2",
+            "mechanical.component_body.6",
+            "mechanical.component_body.7",
+            "mechanism.boss",
+            "mechanism.button",
+            "mechanism.light_pipe",
+            "mechanism.rib",
+            "mechanism.snap_fit"
+          ]
+        }
       },
       "depends_on": [
         "mechanical.enclosure.gd1"
@@ -4737,7 +4754,20 @@
         "stroke_mm": 0.5,
         "travel_clearance_mm": 1.0,
         "web_thickness_mm": 0.8,
-        "switch_refdes": "SW1"
+        "switch_refdes": "SW1",
+        "motion_check": {
+          "step_mm": 0.1,
+          "sweep_margin_mm": 0.2,
+          "allowed_contact_ids": [
+            "enclosure.shell",
+            "enclosure.lid",
+            "mechanism.boss",
+            "mechanism.hinge",
+            "mechanism.light_pipe",
+            "mechanism.rib",
+            "mechanism.snap_fit"
+          ]
+        }
       },
       "depends_on": [
         "mechanical.enclosure.gd1"

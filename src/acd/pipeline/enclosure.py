@@ -264,6 +264,18 @@ def _run_pipeline(
                 value=gate_report.measured_max_interference_volume_mm3,
                 verified=True,
             ),
+            *(
+                [
+                    EvidenceClaim(
+                        subject_node=subject_node,
+                        property="motion_sweep_status",
+                        value=gate_report.motion_sweep,
+                        verified=True,
+                    )
+                ]
+                if gate_report.motion_sweep != "not_applicable"
+                else []
+            ),
             EvidenceClaim(
                 subject_node=subject_node,
                 property="internal_clearance_passed",
@@ -359,6 +371,24 @@ def _run_pipeline(
         "measured_min_clearance_mm": gate_report.measured_min_clearance_mm,
         "measured_max_interference_volume_mm3": (
             gate_report.measured_max_interference_volume_mm3
+        ),
+        **(
+            {
+                "motion_sweep_status": gate_report.motion_sweep,
+                "motion_sweep_findings": [
+                    {
+                        "feature_id": finding.feature_id,
+                        "poses_checked": finding.poses_checked,
+                        "worst_pose": finding.worst_pose,
+                        "worst_interference_mm3": finding.worst_interference_mm3,
+                        "colliding_ids": list(finding.colliding_ids),
+                        "status": finding.status,
+                    }
+                    for finding in gate_report.motion_findings
+                ],
+            }
+            if gate_report.motion_sweep != "not_applicable"
+            else {}
         ),
         "shell_measured_volume_mm3": artifact_report.shell_volume_mm3,
         "lid_measured_volume_mm3": artifact_report.lid_volume_mm3,

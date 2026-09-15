@@ -164,6 +164,11 @@ def _build_shapes(lane: MechanicalLane) -> tuple[Any, Any]:
     return shell, lid
 
 
+def build_enclosure_shapes(lane: MechanicalLane) -> tuple[Any, Any]:
+    """Build the enclosure solids without writing projection artifacts."""
+    return _build_shapes(lane)
+
+
 def project_enclosure(
     lane: MechanicalLane,
     *,

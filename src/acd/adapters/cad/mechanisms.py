@@ -139,6 +139,11 @@ _BUILDERS = {
 }
 
 
+def build_mechanism_feature(view: MechanismFeatureView) -> Any:
+    """Build the deterministic primitive for a declared mechanism feature."""
+    return _BUILDERS[view.feature_type](view)
+
+
 def apply_mechanism_features(shell: Any, lid: Any, lane: MechanicalLane) -> tuple[Any, Any]:
     """Apply mechanism solids to the declared enclosure target."""
     for feature in lane.mechanism_features:

@@ -134,6 +134,23 @@ fail-closedで拒否する。
 機構部品のCAD投影はbuild123dによるL3投影であり、機構ruleの推定値や視覚観測を
 authoritative Evidenceへ昇格させない。
 
+### 可動干渉スイープ（`motion_sweep`）
+
+hingeまたはbuttonの`mechanism_feature`がある場合、`motion_check`宣言を必須とし、
+hingeは`step_deg`、buttonは`step_mm`、共通で`sweep_margin_mm`と
+`allowed_contact_ids`を指定する。hingeは0度から`swing_deg`まで、buttonは0から
+`stroke_mm`までを端点を含む固定stepでサンプリングし、各poseのmoving solidを
+shell、非可動lid、board outline、component body、他の機構featureと交差させる。
+交差体積が`enclosure.interference_tolerance_mm3`を超えたposeはfailとし、feature、
+pose、交差体積、colliding body idを記録する。boolean失敗、invalid solid、欠落入力は
+unknownとして停止側へ集約する。
+
+離散poseのunionは連続する真のスイープを下近似する。そのため各moving solidへ
+宣言済み`sweep_margin_mm`をoffsetとして適用し、step間の未観測領域を保守的に補う。
+mounting geometryとの接触だけは`allowed_contact_ids`で明示的に除外し、未宣言の接触は
+干渉として扱う。結果の集約順は`fail > unknown > pass`であり、可動featureがない
+既存GD1は`not_applicable`のまま既定の筐体出力とhashを変更しない。
+
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|
 | 機能・構造系 | システム構成表、電源ツリー（構造化データ）、信号経路（構造化データ） | ブロック図、システム構成図、電源ツリー（図）、信号経路図 |

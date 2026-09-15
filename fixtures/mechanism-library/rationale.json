@@ -3163,6 +3163,68 @@
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-mechanism-hinge-motion",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanism.hinge"
+      ],
+      "subject_attrs": [
+        "motion_check"
+      ],
+      "subject_hash": "sha256:4fbeda753ecb3a7544d13b686b16710bc2b1af2e0185d92ca61f1cc8c19e6069",
+      "decision": "Sample the hinge opening sweep at a fixed angular step.",
+      "justification": "Roadmap 11.2 requires deterministic discrete-pose motion checking; the declared margin accounts conservatively for the under-approximation between sampled poses.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "assumptions": [
+        "The declared allowed contacts are limited to the mounting geometry of the moving feature."
+      ],
+      "no_alternatives_reason": "The motion-check contract fixes deterministic sampling and its conservative margin.",
+      "risks": [
+        "The sampled pose union does not prove continuous-sweep clearance without the declared conservative margin."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-mechanism-button-motion",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanism.button"
+      ],
+      "subject_attrs": [
+        "motion_check"
+      ],
+      "subject_hash": "sha256:a72ee65b505e068effcc2646d804f98237581bf597fb948fc26095aee8ea5a43",
+      "decision": "Sample the button press travel at a fixed linear step.",
+      "justification": "Roadmap 11.2 requires deterministic discrete-pose motion checking; the declared margin accounts conservatively for the under-approximation between sampled poses.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "assumptions": [
+        "The declared allowed contacts are limited to the mounting geometry of the moving feature."
+      ],
+      "no_alternatives_reason": "The motion-check contract fixes deterministic sampling and its conservative margin.",
+      "risks": [
+        "The sampled pose union does not prove continuous-sweep clearance without the declared conservative margin."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
     }
   ]
 }

@@ -1825,3 +1825,13 @@ CAD統合は機構nodeが存在する場合だけbuild123d部品をshellまた�
 経路とし、標準のGD1経路には接続しない。`scripts/check_mechanism_rules.py`で単独の
 決定論的ルール検査も実行できる。機構ruleとCAD投影はL2/L3の補助情報であり、
 authoritative EvidenceやL1 success-side判定へ昇格させない。
+
+### 11.2 可動干渉チェックの実装記録
+
+hingeの開閉とbuttonの押下ストロークを、build123dの固定stepによる離散poseで
+決定論的に交差判定する`motion_sweep` gateを追加した。離散pose unionが真の連続
+sweepを下近似するため、宣言済み`sweep_margin_mm`をmoving solidへoffsetし、
+`allowed_contact_ids`でmounting geometryだけを明示的に除外する。交差体積、
+worst pose、colliding body id、pose数をgate reportと機械Evidenceへ記録する。
+boolean失敗・invalid solid・欠落motion_checkはunknownまたは抽出失敗として
+fail-closedに扱い、可動featureがない既存GD1の出力とhashは変更しない。
