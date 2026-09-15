@@ -68,7 +68,7 @@ wall-clock記録、15.21、および計画段階のマイルストーン
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.6実装済み、8.5はFW lane照合まで実装済み。8.4のvision経路はdesign loopの必須段（`visual-review-manifest`）へ接続済み |
 | 9 | 生成文書lane | 設計入力、投影、ゲート結果、Evidenceから再現可能な製品・品質・レビュー文書を生成する | 9.1〜9.7実装済み |
 | 10 | シミュレーション解析lane | 電気・機械・FWのprovisional解析を追加し、決定論的ゲートを置き換えずに結果を文書へ統合する | 計画 |
-| 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.4a・11.5達成（11.1〜11.4は計画） |
+| 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.1〜11.3・11.4a・11.5達成（11.4は計画） |
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
 | 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19・14.25は達成。14.16はR-1・R-2を達成、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証） |
@@ -133,17 +133,19 @@ GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへ�
 |---|---|---|---|
 | 11.1 | 機構要素ライブラリ | スナップフィット、ヒンジ、ボタン・ライトパイプ、ボス・リブをbuild123dのパラメトリック部品として追加し、寸法根拠をrationale必須にする | 達成 |
 | 11.2 | 可動干渉チェック | 可動範囲のスイープ干渉を決定論的ゲートとして追加する（開閉・押下ストローク） | 達成 |
-| 11.3 | 製造性チェック拡張 | 3Dプリント／射出成形向けのDFM（最小肉厚、抜き勾配、オーバーハング）を機械laneゲートへ追加する | 計画 |
+| 11.3 | 製造性チェック拡張 | 3Dプリント／射出成形向けのDFM（最小肉厚、抜き勾配、オーバーハング）を機械laneゲートへ追加する | 達成 |
 | 11.4 | 部品込み3D統合 | KiCad 3Dモデルの選択的同梱と連携し、基板＋部品＋筐体の統合干渉チェックと組立図投影を生成する。選択的同梱にはimageサイズ増加、publish時間の増加、digestの再lock、ADR-0028のprovenance更新が伴う | 計画 |
 | 11.4a | 統合3Dモデル投影（glTF＋HTMLビューア） | 基板（外形・厚さ・取付穴）＋部品（KiCad 3Dモデルが同梱済みならそのSTEP、無ければ`component_bodies`の直方体近似を`approximated`としてノードに明示）＋筐体を1つのアセンブリとして`out/<lane>/3d/assembly.glb`へ出力し、投影はL3として機械ゲートの合否へ作用させない | 完了 |
 | 11.5 | 筐体の干渉解決探索（C-1） | 達成。完了条件と実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある | 達成 |
 
-11.3〜11.4は計画であり、11.1、11.2、11.4aと11.5は達成済みである。11.1は機構feature nodeを
+11.4は計画であり、11.1、11.2、11.3、11.4aと11.5は達成済みである。11.1は機構feature nodeを
 介したbuild123d部品のopt-in投影と`mechanism_rules` gateを実装し、寸法属性をrationaleへ
 必須化した。11.4aは`component_bodies`近似と
 筐体STEPから`3d/assembly.glb`（glTF 2.0）・単独HTMLビューア`3d/assembly.html`・
 独立readerのformat_check付きmanifest `3d/assembly-3d.json`を生成するL3投影として
-実装済みであり、実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。
+実装済みであり、実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。11.3は
+`mechanical_dfm` gateでFDM、SLA、射出成形の肉厚、draft、overhang、drain-holeを
+再読込CADへ適用し、process未宣言のGD1は`not_applicable`として既存出力を維持する。
 
 ## マイルストーン12: 設計ナレッジQA
 

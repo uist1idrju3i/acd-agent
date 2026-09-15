@@ -1835,3 +1835,18 @@ sweepを下近似するため、宣言済み`sweep_margin_mm`をmoving solidへo
 worst pose、colliding body id、pose数をgate reportと機械Evidenceへ記録する。
 boolean失敗・invalid solid・欠落motion_checkはunknownまたは抽出失敗として
 fail-closedに扱い、可動featureがない既存GD1の出力とhashは変更しない。
+
+### 11.3 製造性チェック拡張の実装記録
+
+`mechanical.enclosure`へ任意の`manufacturing_process`と`dfm_profile`を追加し、
+`fdm`、`sla`、`injection_molding`を厳密に抽出する契約を実装した。profileの決定属性は
+rationaleで被覆し、process未宣言の既存GD1は`mechanical_dfm=not_applicable`として
+既存の機械Evidenceと筐体artifactへ影響させない。
+
+`mechanical_dfm` gateはSTEP再読込後のshell／lid実形状を対象に、実測最小肉厚と機構
+featureのrib／snap-fit／button厚を比較する。FDM／SLAでは決定論的face順序でoverhangを
+走査し、SLAのdrain-hole要求も検査する。射出成形では最大肉厚、肉厚比、parting-plane
+に対するdraftを面積閾値付きで検査し、center、角度、面積を小数3桁へ丸めて報告する。
+欠落profile、無効solid、測定／face走査例外は`unknown`、findingは`fail`として
+停止側へ集約する。mechanism fixtureのFDM pass、射出成形draft negative、最小肉厚、
+overhang、SLA drain-hole、入力不備、決定論的二回実行を回帰テストへ固定した。

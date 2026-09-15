@@ -3182,6 +3182,7 @@
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [],
+      "no_alternatives_reason": "The FDM limits are fixed by the selected manufacturing profile.",
       "assumptions": [
         "The declared allowed contacts are limited to the mounting geometry of the moving feature."
       ],
@@ -3219,6 +3220,38 @@
       "no_alternatives_reason": "The motion-check contract fixes deterministic sampling and its conservative margin.",
       "risks": [
         "The sampled pose union does not prove continuous-sweep clearance without the declared conservative margin."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-enclosure-dfm",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.enclosure.gd1"
+      ],
+      "subject_attrs": [
+        "dfm_profile",
+        "manufacturing_process"
+      ],
+      "subject_hash": "sha256:2bf735715fbe58fb3230c2e8cc8c11ffc3d091c621773719f5bdb79dbb9d6d09",
+      "decision": "Use an FDM profile with a 0.7 mm minimum wall, a 180 degree overhang limit, and a 0.5 mm feature filter.",
+      "justification": "The enclosure is manufactured by FDM using a declared process profile; the limits are deterministic inputs to the mechanical DFM gate and do not replace measured geometry evidence.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The FDM limits are fixed by the selected manufacturing profile.",
+      "assumptions": [
+        "The nozzle diameter is 0.4 mm and significant face filtering uses the declared feature threshold."
+      ],
+      "risks": [
+        "The FDM profile is provisional manufacturing input and requires process capability confirmation."
       ],
       "provenance": {
         "source": "human",

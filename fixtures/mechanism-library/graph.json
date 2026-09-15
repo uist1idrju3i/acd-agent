@@ -3951,7 +3951,14 @@
         "tolerance_source": "golden-design-1 mechanical gate declaration",
         "tolerance_source_ref": "docs/golden-design-1.md",
         "unit": "mm",
-        "wall_thickness_mm": 2.0
+        "wall_thickness_mm": 2.0,
+        "manufacturing_process": "fdm",
+        "dfm_profile": {
+            "min_wall_mm": 0.7,
+            "max_overhang_deg": 180.0,
+            "min_feature_mm": 0.5,
+            "nozzle_diameter_mm": 0.4
+        }
       },
       "depends_on": [
         "mechanical.component_body.1",

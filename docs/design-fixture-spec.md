@@ -24,7 +24,7 @@
 | `component_bodies[]` | `mechanical.component_body` | `refdes`参照の3D body |
 | `connector_openings[]` | `mechanical.connector_opening` | `refdes`参照の開口 |
 | `board_edge_overhangs[]` | `mechanical.board_edge_overhang` | `refdes`・`requirement_id`必須 |
-| `enclosure` | `mechanical.enclosure` | 全bodyと開口へ依存する |
+| `enclosure` | `mechanical.enclosure` | 全bodyと開口へ依存する。任意の`manufacturing_process`（`fdm`、`sla`、`injection_molding`）とprocess別`dfm_profile`を宣言すると`mechanical_dfm` gateが有効になる |
 | `mechanism_features[]` | `mechanism_feature` | `feature_type`、enclosure dependency、placement、機構寸法を宣言する。buttonは`refdes`または`switch_refdes`、light-pipeは`led_refdes`を必須とする。hinge/buttonは`motion_check`（step、sweep margin、allowed contacts）を必須とする |
 | `safety_boundary` | `safety.boundary` | SB2 predicateが読む安全境界 |
 | `silk_texts[]`／`silk_graphics[]` | `mechanical.silk_text`／`mechanical.silk_graphic` | `depends_on`は任意 |

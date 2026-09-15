@@ -203,6 +203,8 @@ class EnclosureView:
     interference_tolerance_mm3: float
     tolerance_source: str
     tolerance_source_ref: str
+    manufacturing_process: str | None = None
+    dfm_profile: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -584,6 +586,20 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                 raise GraphExtractionError(
                     f"node {node.id!r}: lid screw hole diameter must be at least the pilot diameter"
                 )
+            manufacturing_process_value = node.attrs.get("manufacturing_process")
+            if manufacturing_process_value is not None and (
+                not isinstance(manufacturing_process_value, str)
+                or manufacturing_process_value
+                not in {"fdm", "sla", "injection_molding"}
+            ):
+                raise GraphExtractionError(
+                    f"node {node.id!r}: unsupported manufacturing_process"
+                )
+            dfm_profile_value = node.attrs.get("dfm_profile")
+            if dfm_profile_value is not None and not isinstance(dfm_profile_value, dict):
+                raise GraphExtractionError(
+                    f"node {node.id!r}: dfm_profile must be an object"
+                )
             enclosures.append(
                 EnclosureView(
                     node_id=node.id,
@@ -604,6 +620,8 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     ),
                     tolerance_source=_str_attr(node, "tolerance_source"),
                     tolerance_source_ref=_str_attr(node, "tolerance_source_ref"),
+                    manufacturing_process=manufacturing_process_value,
+                    dfm_profile=cast(dict[str, object] | None, dfm_profile_value),
                 )
             )
         elif node.kind == "mechanism_feature":

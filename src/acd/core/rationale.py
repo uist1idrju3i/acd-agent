@@ -172,6 +172,8 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "lid_screw_hole_diameter_mm",
             "tolerance_mm",
             "interference_tolerance_mm3",
+            "manufacturing_process",
+            "dfm_profile",
         }
     ),
     "mechanical.outline": frozenset(

@@ -151,6 +151,27 @@ mounting geometryとの接触だけは`allowed_contact_ids`で明示的に除外
 干渉として扱う。結果の集約順は`fail > unknown > pass`であり、可動featureがない
 既存GD1は`not_applicable`のまま既定の筐体出力とhashを変更しない。
 
+### 製造性チェック（`mechanical_dfm`）
+
+`mechanical.enclosure`が`manufacturing_process`と`dfm_profile`を宣言した場合だけ、
+STEP再読込後のshell／lid実形状へ`mechanical_dfm`を適用する。processが無い既存GD1は
+`not_applicable`であり、筐体出力、Evidence、正規化hashを変更しない。processがある
+のにprofileが無い場合、または測定、boolean、face走査、solid検証に失敗した場合は
+`unknown`として停止側へ倒す。
+
+FDMは実測最小肉厚とprofileの`min_wall_mm`を比較し、rib厚、snap-fit hook厚、
+button web厚も同じ下限で検査する。面の法線と部品ごとの既定印刷方向（shellは`+Z`、
+lidはflat side down）からdown-facing overhang角を算出し、`min_feature_mm^2`未満の
+面を除外する。SLAは同じ肉厚／overhang検査に加え、`drain_hole_required`が真なら
+shell床の直径3 mm以上のthrough-holeを要求する。
+
+射出成形は`min_wall_mm`、`max_wall_mm`、`max_thickness_ratio = max_wall / min_wall`
+を検査する。`parting_plane`（`xy_top`または`xy_bottom`）のpull方向に対して、面積が
+`min_feature_mm^2`以上のplanar faceのdraft角を決定論的に走査し、`min_draft_deg`
+未満をfailとする。pull方向に平行なcylindrical faceはdraft 0°として扱う。
+faceは丸めたcenter、areaの順でソートし、報告する角度、面積、centerは小数3桁へ丸める。
+結果は`fail > unknown > pass`で集約し、DFM findingsは機械Evidenceとsummaryへ記録する。
+
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|
 | 機能・構造系 | システム構成表、電源ツリー（構造化データ）、信号経路（構造化データ） | ブロック図、システム構成図、電源ツリー（図）、信号経路図 |

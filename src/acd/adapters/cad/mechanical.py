@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from acd.adapters.cad.constants import CAD_LINEAR_DEFLECTION_MM
+from acd.adapters.cad.mechanical_dfm import MechanicalDfmFinding, check_mechanical_dfm
 from acd.core.cad_normalize import parse_stl
 from acd.core.mechanical import (
     BoardEdgeOverhangView,
@@ -42,6 +43,8 @@ class MechanicalGateReport:
     mechanism_findings: tuple[MechanismFinding, ...] = ()
     motion_sweep: str = "not_applicable"
     motion_findings: tuple[MotionSweepFinding, ...] = ()
+    mechanical_dfm: str = "not_applicable"
+    mechanical_dfm_findings: tuple[MechanicalDfmFinding, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -525,6 +528,18 @@ def run_mechanical_gates(
             else "pass"
         )
     )
+    dfm_findings = check_mechanical_dfm(lane, tuple(solids))
+    dfm_status = (
+        "not_applicable"
+        if not dfm_findings
+        else (
+            "fail"
+            if any(item.status == "fail" for item in dfm_findings)
+            else "unknown"
+            if any(item.status == "unknown" for item in dfm_findings)
+            else "pass"
+        )
+    )
     report = MechanicalGateReport(
         kernel_valid=True,
         interference=interference,
@@ -538,6 +553,8 @@ def run_mechanical_gates(
         mechanism_findings=mechanism_findings,
         motion_sweep=motion_status,
         motion_findings=motion_findings,
+        mechanical_dfm=dfm_status,
+        mechanical_dfm_findings=dfm_findings,
     )
     failures = [
         name
@@ -547,6 +564,7 @@ def run_mechanical_gates(
             ("wall_thickness", wall_thickness),
             ("mechanism_rules", mechanism_status in {"pass", "not_applicable"}),
             ("motion_sweep", motion_status in {"pass", "not_applicable"}),
+            ("mechanical_dfm", dfm_status in {"pass", "not_applicable"}),
         )
         if not passed
     ]

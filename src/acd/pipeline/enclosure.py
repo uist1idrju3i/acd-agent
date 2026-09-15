@@ -276,6 +276,18 @@ def _run_pipeline(
                 if gate_report.motion_sweep != "not_applicable"
                 else []
             ),
+            *(
+                [
+                    EvidenceClaim(
+                        subject_node=subject_node,
+                        property="mechanical_dfm_status",
+                        value=gate_report.mechanical_dfm,
+                        verified=True,
+                    )
+                ]
+                if gate_report.mechanical_dfm != "not_applicable"
+                else []
+            ),
             EvidenceClaim(
                 subject_node=subject_node,
                 property="internal_clearance_passed",
@@ -388,6 +400,25 @@ def _run_pipeline(
                 ],
             }
             if gate_report.motion_sweep != "not_applicable"
+            else {}
+        ),
+        **(
+            {
+                "mechanical_dfm_status": gate_report.mechanical_dfm,
+                "mechanical_dfm_findings": [
+                    {
+                        "rule_id": finding.rule_id,
+                        "status": finding.status,
+                        "message": finding.message,
+                        "measured": finding.measured,
+                        "limit": finding.limit,
+                        "face_center_mm": finding.face_center_mm,
+                        "feature_id": finding.feature_id,
+                    }
+                    for finding in gate_report.mechanical_dfm_findings
+                ],
+            }
+            if gate_report.mechanical_dfm != "not_applicable"
             else {}
         ),
         "shell_measured_volume_mm3": artifact_report.shell_volume_mm3,
