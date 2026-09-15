@@ -32,7 +32,7 @@ from openhands.sdk.tool import (
     ToolExecutor,
 )
 from openhands.sdk.tool import registry as tool_registry
-from openhands.sdk.tool.builtins import InvokeSkillTool
+from openhands.sdk.tool.builtins import FinishTool, InvokeSkillTool, ThinkTool
 from openhands.sdk.tool.registry import (
     register_tool,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -594,6 +594,12 @@ def test_model_invocable_skills_attach_the_sdk_invoke_skill_tool(tmp_path: Path)
         conversation.agent.tools_map  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
     )
     assert "invoke_skill" in tool_names
+    assert conversation.agent.include_default_tools == [
+        FinishTool.__name__,
+        ThinkTool.__name__,
+    ]
+    assert {"finish", "think"} <= set(tool_names)
+    assert "switch_llm" not in tool_names
 
 
 def test_browser_tools_require_a_usable_chromium(
