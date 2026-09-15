@@ -5,7 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import isfinite
 
+from pydantic import ValidationError
+
 from acd.schema.design_graph import DesignGraph
+from acd.schema.node_attrs import PlacementGroupAttrs
 
 
 class PlacementConstraintError(ValueError):
@@ -44,13 +47,14 @@ def load_placement_coupling_constraints(
         (item for item in graph.nodes if item.kind == "electrical.placement_group"),
         key=lambda item: item.id,
     ):
-        primary = node.attrs["primary_refdes"]
-        coupled_value = node.attrs["coupled_refdes"]
-        if not isinstance(primary, str) or not primary or not isinstance(
-            coupled_value, list
-        ):
-            raise PlacementConstraintError(f"group {node.id!r} has malformed members")
-        coupled = tuple(coupled_value)
+        try:
+            declared = node.typed_attrs(PlacementGroupAttrs)
+        except ValidationError as error:
+            raise PlacementConstraintError(
+                f"group {node.id!r} has malformed attrs: {error}"
+            ) from error
+        primary = declared.primary_refdes
+        coupled = tuple(declared.coupled_refdes)
         members = (primary, *coupled)
         if len(set(members)) != len(members):
             raise PlacementConstraintError(f"group {node.id!r} has duplicate members")
@@ -75,28 +79,12 @@ def load_placement_coupling_constraints(
                 f"placement groups overlap in components: {sorted(overlap)}"
             )
         claimed.update(members)
-        distance_value = node.attrs.get("max_distance_mm")
-        if distance_value is None:
-            raise PlacementConstraintError(
-                f"group {node.id!r} requires explicit max_distance_mm"
-            )
-        else:
-            if isinstance(distance_value, bool) or not isinstance(
-                distance_value, (int, float)
-            ):
-                raise PlacementConstraintError(
-                    f"group {node.id!r} max_distance_mm is malformed"
-                )
-            max_distance = float(distance_value)
+        max_distance = float(declared.max_distance_mm)
         if not isfinite(max_distance):
             raise PlacementConstraintError(
                 f"group {node.id!r} max_distance_mm must be finite"
             )
-        move_together = node.attrs.get("move_together", False)
-        if not isinstance(move_together, bool):
-            raise PlacementConstraintError(
-                f"group {node.id!r} move_together is malformed"
-            )
+        move_together = declared.move_together or False
         groups.append(
             PlacementCouplingConstraint(
                 group_id=node.id,
