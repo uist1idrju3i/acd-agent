@@ -12,7 +12,7 @@ from acd.core.electrical import (
     ElectricalLane,
     LibraryPin,
 )
-from acd.pipeline.gd1_board import _check_rotation_offsets
+from acd.pipeline.gd1_board.evidence import check_rotation_offsets
 
 
 def _board() -> BoardView:
@@ -78,7 +78,7 @@ def test_rotation_offset_mismatch_reports_evidence_and_next_step(
         board=_board(),
     )
     with pytest.raises(ValueError) as excinfo:
-        _check_rotation_offsets(
+        check_rotation_offsets(
             lane,
             {"R1": 90.0},
             {"R1": 180.0},
@@ -103,7 +103,7 @@ def test_rotation_offset_within_tolerance_passes(tmp_path: Path) -> None:
         pins=(),
         board=_board(),
     )
-    _check_rotation_offsets(
+    check_rotation_offsets(
         lane,
         {"R1": 0.0},
         {"R1": 0.005},
@@ -116,6 +116,6 @@ def test_rotation_offset_mismatch_without_component_uses_none_defaults(
 ) -> None:
     lane = ElectricalLane(components=(), nets=(), pins=(), board=_board())
     with pytest.raises(ValueError) as excinfo:
-        _check_rotation_offsets(lane, {}, {"J2": 270.0}, tmp_path / "evidence")
+        check_rotation_offsets(lane, {}, {"J2": 270.0}, tmp_path / "evidence")
     assert "declared cpl_rotation_offset_deg=None" in str(excinfo.value)
     assert "effective offset applied to CPL=0.00" in str(excinfo.value)

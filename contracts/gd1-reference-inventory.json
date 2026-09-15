@@ -173,10 +173,22 @@
       "note": "Imports the board pipeline module that keeps its historical gd1_board name."
     },
     {
-      "path": "src/acd/pipeline/gd1_board.py",
+      "path": "src/acd/pipeline/gd1_board/__init__.py",
+      "purpose": "module_name",
+      "reference_lines": 2,
+      "note": "Board pipeline package facade that keeps the historical gd1_board import path."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/evidence.py",
       "purpose": "positive_control",
-      "reference_lines": 4,
-      "note": "Board pipeline module; the historical name and out/gd1 default belong to the positive-control lane."
+      "reference_lines": 1,
+      "note": "Board pipeline Evidence builder; the GD1 label names the positive-control lane."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/pipeline.py",
+      "purpose": "positive_control",
+      "reference_lines": 3,
+      "note": "Board pipeline orchestrator and CLI; the out/gd1 default belongs to the positive-control lane."
     },
     {
       "path": "src/acd/pipeline/gd1_fixture/components.py",

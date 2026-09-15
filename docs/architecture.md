@@ -246,6 +246,21 @@ tool族ごとに`_base.py`（共通Observationと経路ヘルパ）、`pipeline_
 - `acd_diagnose_gate_failure`
 - `acd_check_order_readiness`
 
+## GD1基板pipeline package
+
+基板pipelineは`src/acd/pipeline/gd1_board/`packageであり、
+`acd.pipeline.gd1_board`のimport面（`run_pipeline`、`main`、
+`placements_from_graph`、`build_electrical_evidence`）は`__init__.py`が維持する。
+`pipeline.py`は12 stageの順序、timing記録、fail-closed停止だけを担う
+orchestratorとCLIで、stage本体は`routing.py`（DSN出力、FreeRouting実行と
+cache、SES取り込み、stitch via整理）、`width_control.py`（幅制御の順序付きarm実行と
+KiCad netclass正制御）、`measurement.py`（silkscreen・net幅・抵抗・pad中心・
+ground plane Gerberの独立再測定）、`fabrication.py`（CPL/BOM、DFM report、
+製造package、order-readiness）、`visual_stages.py`（電気・FW視覚投影と
+cross-check）、`evidence.py`（電気Evidence）、`manifest.py`（投影形式検査と
+`hashes.json`）へ分ける。stage順、成果物名、Evidence・provenance、cache hashは
+分割前と同一である。
+
 機械系laneの入口は`src/acd/pipeline/enclosure.py`と
 `scripts/run_enclosure_pipeline.py`である。`--fixture`と`--out`は必須で、GD1を
 暗黙の対象にしない。entrypointは`check_mechanical_preflight()`をrationale投影より

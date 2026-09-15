@@ -394,7 +394,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    を実行する。取得recordの`Manufacturer Part`と宣言mpnを照合し、不一致は
    `evidence.cpl_rotation.mpn_mismatch`として停止側へ記録する。`evidence_basis`を
    `estimated`へ戻す場合もCPLゲートではunknownのままである。
-   L1側では基板pipeline（`src/acd/pipeline/gd1_board.py`）が読み込んだfab profileへ
+   L1側では基板pipeline（`src/acd/pipeline/gd1_board/`）が読み込んだfab profileへ
    解決しない`fab.order_intent` provenanceを`ValueError`で拒否する。CPL側は
    `verify_lcsc_rotation_evidence`が既にrecord欠落をunknownへ倒すため変更不要。
    また`electrical.component`が記録する`parts_catalog_id`／`parts_catalog_sha256`を
@@ -2034,7 +2034,7 @@ bpm 92..140、bars 4..64の4倍数、track 1..8、channel 9はドラム専用、
 楽曲はL3成果物であり、合否権限を持たず、Evidenceにも製造提出用fab packageにも含めない。
 
 採用した提案は設計ディレクトリの`theme-song.json`（`graph.json`の隣）へ置く。
-GD1基板pipeline（`gd1_board.py`）は視覚投影と同じstageで`theme-song-projection`を実行し、
+GD1基板pipeline（`gd1_board/`）は視覚投影と同じstageで`theme-song-projection`を実行し、
 `src/acd/pipeline/theme_song.py`が`theme-song.json`の有無で`--proposal`を渡し分けて
 Skill CLIをsubprocessで2回実行し、MIDIのbyte一致（`regeneration_check=reproduced`）、
 provenanceのrevision・`source`・入力hash（graphと提案）・出力hashを照合した上で、
