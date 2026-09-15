@@ -1980,8 +1980,22 @@ GD1またはfixtureの`.kicad_pcb`にある標準`${KICAD*_3DMODEL_DIR}`参照�
 出所、license、hashを宣言し、欠落をunknownとして扱う。
 
 tools imageはbuild stageで`kicad-packages3d`をPPAから導入し、final stageでは
-allowlistに一致する`.step`／`.stp`／`.wrl`だけを`/opt/acd/kicad-3d`へコピーする。
-`KICAD10_3DMODEL_DIR`はそのディレクトリを指す。追加モデル数に応じてimage sizeと
+`docker/bundle_kicad_3d_models.py`がallowlistに一致する`.step`／`.stp`／`.wrl`
+だけを`/opt/acd/kicad-3d`へコピーする。
+`KICAD10_3DMODEL_DIR`はそのディレクトリを指す。
+
+allowlistの`missing_upstream`は、footprintが参照するが`kicad-packages3d`が
+同梱しないモデルを宣言する例外リストである。現在の対象は
+`Connector_USB.3dshapes/USB_C_Receptacle_HRO_TYPE-C-31-M-12.step`と
+`Sensor_Humidity.3dshapes/Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad.step`
+の2件であり、いずれも上流のfootprintが存在しないモデルを参照している。
+bundle scriptは`missing_upstream`の各項目がsource treeに存在しないことを
+assertし、上流で新たに同梱された場合はbuildを失敗させて`entries`への
+再分類を強制する（fail-closedのままdriftを検出するため）。
+`--with-kicad-3d`実行時、これらのbodyは`import_component_step`で
+`model_missing`のunknownとして記録され、合格側へ倒れない。`missing_upstream`の再生成は
+`select_kicad_3d_models.py`が既存`--out`から宣言を引き継ぐため、再生成で
+例外が失われない。追加モデル数に応じてimage sizeと
 publish時間が増えるため、allowlist変更後は通常のpublish workflowでtools／serverを
 再publishし、実測したdigestを人手で`docker/image-digests.json`へ再lockする。
 publish前に推測値や`pending publish` placeholderをlockへ書かない。image内の

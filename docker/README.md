@@ -23,7 +23,11 @@ Dockerfileでは次を固定または検証する。
 - Ubuntu: `ubuntu:26.04`
 - KiCad CLI: KiCad 10.0 PPAの10系をインストールし、build時に10系であることを検証
 - KiCad 3Dモデル: `docker/kicad-3d-models.json`で選択した標準`.step`／`.wrl`だけを
-  `/opt/acd/kicad-3d`へ同梱し、`KICAD10_3DMODEL_DIR`へ設定
+  `docker/bundle_kicad_3d_models.py`で`/opt/acd/kicad-3d`へ同梱し、
+  `KICAD10_3DMODEL_DIR`へ設定。footprintが参照するが`kicad-packages3d`が
+  同梱しないモデルはmanifestの`missing_upstream`で宣言し、bundle scriptが
+  その不在をassertする（上流で同梱されるようになった場合はbuildが失敗し、
+  `entries`への再分類を強制する）
 - FreeRouting: 2.4.1、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
   wrapperからPATH上で実行できることを検証
 - FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示し、
