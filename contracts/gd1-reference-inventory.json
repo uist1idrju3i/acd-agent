@@ -155,10 +155,16 @@
       "note": "Maps the board pipeline tool to its historical script name."
     },
     {
-      "path": "src/acd/openhands/tools/definitions.py",
+      "path": "src/acd/openhands/tools/design_loop_tools.py",
       "purpose": "default_fallback",
-      "reference_lines": 5,
-      "note": "SDK tool fixture defaults for positive-control runs plus the board pipeline module import."
+      "reference_lines": 1,
+      "note": "SDK build-fixture tool default for positive-control runs."
+    },
+    {
+      "path": "src/acd/openhands/tools/pipeline_tools.py",
+      "purpose": "default_fallback",
+      "reference_lines": 4,
+      "note": "SDK pipeline tool fixture defaults for positive-control runs plus the board pipeline module import."
     },
     {
       "path": "src/acd/pipeline/design_loop.py",

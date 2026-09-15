@@ -224,7 +224,11 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 
 `src/acd/openhands/tools/definitions.py`はOpenHands SDKの
 `ToolDefinition`、`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を
-使い、`register_acd_tools()`から次の既存入口を明示的に登録する。
+使い、`register_acd_tools()`から次の既存入口を明示的に登録する。tool本体は
+tool族ごとに`_base.py`（共通Observationと経路ヘルパ）、`pipeline_tools.py`
+（probe・graph検証・3 lane pipeline・bootstrap）、`registry_tools.py`（登録系）、
+`design_loop_tools.py`（要求変更・fixture・探索・診断・design loop）へ分割し、
+`definitions.py`はimport面と登録順の正だけを保持する。
 
 - `acd_probe_tools`
 - `acd_validate_design_graph`
