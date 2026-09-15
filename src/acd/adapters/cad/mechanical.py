@@ -367,7 +367,12 @@ def build_board_edge_overhang_shape(
     )
 
 
-def _measured_wall_thickness(shape: Any, tolerance_mm: float) -> float:
+def _measured_wall_thickness(
+    shape: Any,
+    tolerance_mm: float,
+    *,
+    exclude_small_feature_faces: bool = False,
+) -> float:
     """Measure the closest opposing planar faces of the reloaded shell."""
     planar_faces = [
         face
@@ -376,8 +381,10 @@ def _measured_wall_thickness(shape: Any, tolerance_mm: float) -> float:
     ]
     if not planar_faces:
         raise MechanicalGateError("reloaded STEP has no measurable opposing wall faces")
-    primary_area = max(face.area for face in planar_faces) * 0.05
-    faces = [face for face in planar_faces if face.area >= primary_area]
+    faces = planar_faces
+    if exclude_small_feature_faces:
+        primary_area = max(face.area for face in planar_faces) * 0.05
+        faces = [face for face in planar_faces if face.area >= primary_area]
     distances: list[float] = []
     for index, face in enumerate(faces):
         normal = face.normal_at(face.center())
@@ -478,7 +485,12 @@ def run_mechanical_gates(
         check_interference(overhang_shape)
 
     measured_wall = min(
-        _measured_wall_thickness(solid, enclosure.tolerance_mm) for solid in solids
+        _measured_wall_thickness(
+            solid,
+            enclosure.tolerance_mm,
+            exclude_small_feature_faces=bool(lane.mechanism_features),
+        )
+        for solid in solids
     )
     if measured_min_clearance == float("inf"):
         raise MechanicalGateError("no solid component body has measurable clearance")

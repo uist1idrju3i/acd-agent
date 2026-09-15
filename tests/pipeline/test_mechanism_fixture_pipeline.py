@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from acd.pipeline.enclosure import run_pipeline
-
 
 FIXTURE = Path("fixtures/mechanism-library")
 EXPECTED_ARTIFACT_HASHES = {
@@ -21,13 +21,15 @@ def test_mechanism_fixture_pipeline_validates_meshes_and_hashes(tmp_path: Path) 
     first = run_pipeline(FIXTURE, tmp_path / "first", pipeline_workers=1)
     second = run_pipeline(FIXTURE, tmp_path / "second", pipeline_workers=1)
 
+    first_artifacts = cast(list[dict[str, object]], first["artifacts"])
+    second_artifacts = cast(list[dict[str, object]], second["artifacts"])
     first_hashes = {
-        str(item["role"]): str(item["normalized_sha256"]) for item in first["artifacts"]
+        str(item["role"]): str(item["normalized_sha256"]) for item in first_artifacts
     }
     second_hashes = {
-        str(item["role"]): str(item["normalized_sha256"]) for item in second["artifacts"]
+        str(item["role"]): str(item["normalized_sha256"]) for item in second_artifacts
     }
     assert first_hashes == second_hashes
     assert first_hashes == EXPECTED_ARTIFACT_HASHES
     assert first["model_part_count"] == 2
-    assert first["stl_triangle_count"] > 0
+    assert cast(int, first["stl_triangle_count"]) > 0
