@@ -17,6 +17,7 @@ from acd.core.mechanical import (
     EnclosureView,
     MechanicalLane,
 )
+from acd.core.mechanism_rules import MechanismFinding, check_mechanism_features
 from acd.core.parallel import PipelineStageRunner
 
 
@@ -34,6 +35,8 @@ class MechanicalGateReport:
     measured_min_wall_mm: float
     measured_min_clearance_mm: float
     measured_max_interference_volume_mm3: float
+    mechanism_rules: str = "not_applicable"
+    mechanism_findings: tuple[MechanismFinding, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -471,6 +474,18 @@ def run_mechanical_gates(
     if measured_min_clearance == float("inf"):
         raise MechanicalGateError("no solid component body has measurable clearance")
     wall_thickness = measured_wall + enclosure.tolerance_mm >= enclosure.min_wall_thickness_mm
+    mechanism_findings = check_mechanism_features(lane)
+    mechanism_status = (
+        "not_applicable"
+        if not mechanism_findings
+        else (
+            "fail"
+            if any(item.status == "fail" for item in mechanism_findings)
+            else "unknown"
+            if any(item.status == "unknown" for item in mechanism_findings)
+            else "pass"
+        )
+    )
     report = MechanicalGateReport(
         kernel_valid=True,
         interference=interference,
@@ -480,6 +495,8 @@ def run_mechanical_gates(
         measured_min_wall_mm=measured_wall,
         measured_min_clearance_mm=measured_min_clearance,
         measured_max_interference_volume_mm3=measured_max_interference_volume,
+        mechanism_rules=mechanism_status,
+        mechanism_findings=mechanism_findings,
     )
     failures = [
         name
@@ -487,6 +504,7 @@ def run_mechanical_gates(
             ("interference", interference),
             ("clearance", clearance),
             ("wall_thickness", wall_thickness),
+            ("mechanism_rules", mechanism_status in {"pass", "not_applicable"}),
         )
         if not passed
     ]

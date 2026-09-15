@@ -195,6 +195,33 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "mount_hole_4_diameter_mm",
         }
     ),
+    "mechanism_feature": frozenset(
+        {
+            "hook_length_mm",
+            "hook_thickness_mm",
+            "undercut_mm",
+            "insertion_angle_deg",
+            "retention_angle_deg",
+            "deflection_mm",
+            "pin_diameter_mm",
+            "knuckle_width_mm",
+            "knuckle_count",
+            "clearance_mm",
+            "swing_deg",
+            "cap_diameter_mm",
+            "stroke_mm",
+            "travel_clearance_mm",
+            "web_thickness_mm",
+            "diameter_mm",
+            "length_mm",
+            "outer_diameter_mm",
+            "hole_diameter_mm",
+            "height_mm",
+            "fillet_mm",
+            "thickness_mm",
+            "draft_deg",
+        }
+    ),
     "mechanical.silk_graphic": frozenset(
         {
             "layer",
@@ -514,6 +541,16 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
         "unit": "Unit is the graph coordinate convention.",
         "y_axis": "The y-axis direction is the graph coordinate convention.",
+    },
+    "mechanism_feature": {
+        "feature_type": "Feature type selects a declared mechanism library primitive.",
+        "face": "Placement face is a coordinate-system placement declaration.",
+        "x_mm": "Placement x coordinate is a coordinate-system placement declaration.",
+        "y_mm": "Placement y coordinate is a coordinate-system placement declaration.",
+        "rotation_deg": "Placement rotation is a coordinate-system placement declaration.",
+        "led_refdes": "LED reference is an electrical identity used to bind the light pipe.",
+            "refdes": "Switch or LED reference is an electrical identity used to bind the button.",
+            "switch_refdes": "Switch reference is an electrical identity used to bind the button.",
     },
     "mechanical.silk_graphic": {
         "board_edge_margin_source": (

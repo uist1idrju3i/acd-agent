@@ -17,6 +17,7 @@ from acd.adapters.cad.mechanical import (
     board_plane_z,
     build_board_edge_overhang_shape,
 )
+from acd.adapters.cad.mechanisms import apply_mechanism_features
 from acd.core.cad_normalize import normalize_3mf, normalize_step, normalize_stl
 from acd.core.mechanical import MechanicalLane
 from acd.core.naming import artifact_prefix
@@ -158,6 +159,8 @@ def _build_shapes(lane: MechanicalLane) -> tuple[Any, Any]:
             enclosure.wall_thickness_mm,
         )
         lid = lid - cutter
+    if lane.mechanism_features:
+        shell, lid = apply_mechanism_features(shell, lid, lane)
     return shell, lid
 
 

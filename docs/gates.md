@@ -109,6 +109,31 @@ interference層を検査し、識別不能または不一致はfail-closedとす
 重なり・非表示による意味欠落、設計意図一致、実機functional run対応はunknownのままとし、
 合格へ倒さない。
 
+### 機構要素ルール（`mechanism_rules`）
+
+`mechanism_feature` nodeが存在する場合だけ、機械laneの事前決定論的ルール
+`mechanism_rules`を実行する。featureが無い既存GD1では`not_applicable`となり、
+既存の機械ゲート列、筐体出力、正規化hashを変更しない。各featureは1つの
+`mechanical.enclosure`へ依存し、寸法属性はrationale recordで根拠を被覆する。
+placementとrefdes identityは座標系または電気部品識別の宣言であり、英語の免除理由を
+契約へ記録する。
+
+snap-fitの一次近似は片持ち梁として
+`epsilon = 1.5 * deflection_mm * hook_thickness_mm / hook_length_mm^2`を使い、
+enclosure materialのPLA（0.012）、ABS（0.03）、PETG（0.02）、PA（0.05）の
+allowable strain表と比較する。未知materialや不足入力は`unknown`であり、合格へ倒さない。
+ribは厚さ`<= 0.6 * wall`かつdraft`>= 0.5°`、bossは環状壁
+`(outer_diameter - hole_diameter) / 2 >= 0.75 * wall`、hingeはclearance
+`>= 0.1 mm`かつswing`<= 180°`、buttonはstroke`<= travel_clearance`、
+light-pipeはLED body寸法`+ 0.4 mm`以上の直径を要求する。結果は
+`fail > unknown > pass`で集約し、`fail`と`unknown`は停止側へ記録する。
+buttonのweb厚は機構nodeで正の宣言値として検査するが、現行の筐体投影では意図した
+button opening周辺の局所壁厚を一意に測定できないため、局所肉厚の合否を捏造しない。
+その測定限界は停止側の補助情報として扱い、web厚の宣言欠落・不正値は抽出時に
+fail-closedで拒否する。
+機構部品のCAD投影はbuild123dによるL3投影であり、機構ruleの推定値や視覚観測を
+authoritative Evidenceへ昇格させない。
+
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|
 | 機能・構造系 | システム構成表、電源ツリー（構造化データ）、信号経路（構造化データ） | ブロック図、システム構成図、電源ツリー（図）、信号経路図 |

@@ -30,6 +30,7 @@ NodeKind = Literal[
     "mechanical.connector_opening",
     "mechanical.board_edge_overhang",
     "mechanical.enclosure",
+    "mechanism_feature",
     "mechanical.silk_text",
     "mechanical.silk_graphic",
     "firmware.module",

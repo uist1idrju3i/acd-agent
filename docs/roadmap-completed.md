@@ -1805,3 +1805,23 @@ duplicate、graph／revision不一致はfail-closedである。
 unchecked／checked checklistを追加し、各文書のprovenanceへ入力hashとartifact kindを
 記録する。すべての解析はL2/L3のprovisional estimate／observationであり、L1 verdictと
 authoritative Evidenceへ昇格しない。
+
+### 11.1 機構要素ライブラリの実装記録
+
+`mechanism_feature` nodeをDesign Graphへ追加し、snap-fit、hinge、button、
+light-pipe、boss、ribの6種類をbuild123d 0.11.1の決定論的なパラメトリック部品として
+実装した。featureはenclosureへのdependency、placement face、寸法属性を持ち、
+buttonとlight-pipeはそれぞれ電気laneのrefdesへfail-closedに束縛する。寸法属性は
+`REQUIRED_RATIONALE_ATTRS`へ追加し、座標系placementとidentityだけは英語の理由付きで
+`RATIONALE_EXEMPT_ATTRS`へ分類した。
+
+`mechanism_rules` gateは、片持ち梁のsnap-fit strain近似、ribのsink-mark制約、boss壁厚、
+hinge clearance／swing、button stroke、LED bodyに対するlight-pipe直径を決定論的に
+評価する。未知material、欠落宣言、参照不整合はunknownまたは抽出エラーとして停止側へ
+集約する。機構nodeが無い場合は`not_applicable`で、既存GD1の筐体STEP／STL／3MF出力と
+normalized hashを変更しない。
+
+CAD統合は機構nodeが存在する場合だけbuild123d部品をshellまたはlidへ適用するopt-in
+経路とし、標準のGD1経路には接続しない。`scripts/check_mechanism_rules.py`で単独の
+決定論的ルール検査も実行できる。機構ruleとCAD投影はL2/L3の補助情報であり、
+authoritative EvidenceやL1 success-side判定へ昇格させない。

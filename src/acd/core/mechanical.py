@@ -80,6 +80,35 @@ REQUIRED_MECHANICAL_ATTRS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+MECHANISM_FEATURE_TYPES: Final[tuple[str, ...]] = (
+    "snap_fit",
+    "hinge",
+    "button",
+    "light_pipe",
+    "boss",
+    "rib",
+)
+MECHANISM_FACES: Final[tuple[str, ...]] = (
+    "top",
+    "bottom",
+    "left",
+    "right",
+    "front",
+    "back",
+    "lid",
+)
+MECHANISM_DIMENSIONS: Final[dict[str, tuple[str, ...]]] = {
+    "snap_fit": (
+        "hook_length_mm", "hook_thickness_mm", "undercut_mm",
+        "insertion_angle_deg", "retention_angle_deg", "deflection_mm",
+    ),
+    "hinge": ("pin_diameter_mm", "knuckle_width_mm", "knuckle_count", "clearance_mm", "swing_deg"),
+    "button": ("cap_diameter_mm", "stroke_mm", "travel_clearance_mm", "web_thickness_mm"),
+    "light_pipe": ("diameter_mm", "length_mm"),
+    "boss": ("outer_diameter_mm", "hole_diameter_mm", "height_mm", "fillet_mm"),
+    "rib": ("length_mm", "height_mm", "thickness_mm", "draft_deg"),
+}
+
 
 @dataclass(frozen=True)
 class MountHoleView:
@@ -177,12 +206,28 @@ class EnclosureView:
 
 
 @dataclass(frozen=True)
+class MechanismFeatureView:
+    node_id: str
+    feature_type: str
+    face: str
+    x_mm: float
+    y_mm: float
+    rotation_deg: float
+    dimensions: dict[str, float]
+    enclosure_node_id: str
+    refdes: str | None = None
+    led_refdes: str | None = None
+    led_body_size_mm: float | None = None
+
+
+@dataclass(frozen=True)
 class MechanicalLane:
     outline: OutlineView
     component_bodies: tuple[ComponentBodyView, ...]
     connector_openings: tuple[ConnectorOpeningView, ...]
     board_edge_overhangs: tuple[BoardEdgeOverhangView, ...]
     enclosure: EnclosureView
+    mechanism_features: tuple[MechanismFeatureView, ...] = ()
 
     def body_for_component(self, component_id: str) -> ComponentBodyView:
         for body in self.component_bodies:
@@ -272,6 +317,13 @@ def _float_attr(node: GraphNode, key: str) -> float:
     return float(value)
 
 
+def _placement_float(node: GraphNode, key: str) -> float:
+    value = _float_attr(node, key)
+    if not math.isfinite(value):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be finite")
+    return value
+
+
 def _mount_holes(node: GraphNode) -> tuple[MountHoleView, ...]:
     count_value = node.attrs.get("mount_hole_count")
     if isinstance(count_value, bool) or not isinstance(count_value, int) or count_value < 1:
@@ -297,6 +349,14 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
     openings: list[ConnectorOpeningView] = []
     overhangs: list[BoardEdgeOverhangView] = []
     enclosures: list[EnclosureView] = []
+    mechanism_features: list[MechanismFeatureView] = []
+    component_by_refdes = {component.refdes: component for component in electrical.components}
+    component_nodes = {node.id: node for node in graph.nodes if node.kind == "electrical.component"}
+    body_by_component = {
+        next(iter(node.depends_on)): node
+        for node in graph.nodes
+        if node.kind == "mechanical.component_body" and len(node.depends_on) == 1
+    }
 
     for node in graph.nodes:
         if node.kind == "mechanical.outline":
@@ -488,6 +548,91 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     tolerance_source_ref=_str_attr(node, "tolerance_source_ref"),
                 )
             )
+        elif node.kind == "mechanism_feature":
+            feature_type = _str_attr(node, "feature_type")
+            if feature_type not in MECHANISM_FEATURE_TYPES:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: unsupported mechanism feature_type {feature_type!r}"
+                )
+            enclosure_ids = [
+                dep for dep in node.depends_on
+                if any(
+                    item.id == dep and item.kind == "mechanical.enclosure"
+                    for item in graph.nodes
+                )
+            ]
+            if len(enclosure_ids) != 1:
+                raise GraphExtractionError(
+                    f"node {node.id!r} must depend on exactly one mechanical.enclosure"
+                )
+            face = _str_attr(node, "face")
+            if face not in MECHANISM_FACES:
+                raise GraphExtractionError(f"node {node.id!r}: unsupported mechanism face {face!r}")
+            dimensions: dict[str, float] = {}
+            for attr in MECHANISM_DIMENSIONS[feature_type]:
+                value = _float_attr(node, attr)
+                if not math.isfinite(value) or value <= 0:
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: {attr} must be finite and positive"
+                    )
+                dimensions[attr] = value
+            if feature_type == "hinge":
+                count = dimensions["knuckle_count"]
+                if count != int(count):
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: knuckle_count must be an integer"
+                    )
+                dimensions["knuckle_count"] = int(count)
+            refdes: str | None = None
+            led_refdes: str | None = None
+            led_body_size_mm: float | None = None
+            if feature_type == "light_pipe":
+                led_refdes = _str_attr(node, "led_refdes")
+                refdes = led_refdes
+            elif feature_type == "button":
+                candidate_refdes = node.attrs.get("refdes") or node.attrs.get("switch_refdes")
+                if not isinstance(candidate_refdes, str) or not candidate_refdes:
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: button requires refdes or switch_refdes"
+                    )
+                refdes = candidate_refdes
+            if refdes is not None:
+                component = component_by_refdes.get(refdes)
+                if component is None:
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: refdes {refdes!r} is not in the electrical lane"
+                    )
+                component_node = component_nodes[component.node_id]
+                symbol = component_node.attrs.get("symbol", "")
+                if feature_type == "light_pipe" and (
+                    not isinstance(symbol, str) or "led" not in symbol.lower()
+                ):
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: led_refdes {refdes!r} does not reference an LED"
+                    )
+                body = body_by_component.get(component.node_id)
+                if body is None:
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: referenced component has no body declaration"
+                    )
+                width = _float_attr(body, "width_mm")
+                depth = _float_attr(body, "depth_mm")
+                led_body_size_mm = max(width, depth)
+            mechanism_features.append(
+                MechanismFeatureView(
+                    node_id=node.id,
+                    feature_type=feature_type,
+                    face=face,
+                    x_mm=_placement_float(node, "x_mm"),
+                    y_mm=_placement_float(node, "y_mm"),
+                    rotation_deg=_placement_float(node, "rotation_deg"),
+                    dimensions=dimensions,
+                    enclosure_node_id=enclosure_ids[0],
+                    refdes=refdes,
+                    led_refdes=led_refdes,
+                    led_body_size_mm=led_body_size_mm,
+                )
+            )
 
     if len(outlines) != 1:
         raise GraphExtractionError(
@@ -534,4 +679,5 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
         connector_openings=tuple(openings),
         board_edge_overhangs=tuple(sorted(overhangs, key=lambda item: item.node_id)),
         enclosure=enclosures[0],
+        mechanism_features=tuple(sorted(mechanism_features, key=lambda item: item.node_id)),
     )
