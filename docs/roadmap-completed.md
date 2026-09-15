@@ -1870,3 +1870,20 @@ internal clearanceを下回る、または宣言envelopeを超える場合は
 assembly projectionは実solidのopt-in時だけ`source="kicad_step"`とモデルhashを
 記録し、既存のbox approximation defaultは変更しない。合否権限を持たないL3投影と
 L1 gateのrevision／container provenance境界をADR-0028へ追記した。
+
+### 20.4 視覚投影の自動品質検査の実装記録
+
+SVGのviewBox、継承font-size、推定glyph box、`translate`／`scale`／対角matrix変換、色、
+WCAG相対輝度を
+決定論的に検査する`visual_quality` schema／core analyzer／CLIを追加した。
+`font_size_missing`、極小表示、過大表示、重なり、viewBox外、低コントラスト、
+unknown color、未解決変換をfail-closedで所見化し、既定policyを
+`profiles/visual-readability-default.json`へ固定した。`0.6`幅係数はmonospace-ish
+上限近似として文書化し、SVG正規化とDesign Graphの権威境界は変更していない。
+
+`derive_visual_review(readability_policy=...)`はprojection setごとの
+`visual-readability.json`をcrosscheckと分離して記録し、vision observationへ
+deterministicなfinding code hintだけを渡す。結果は常にL2 steeringであり、pass
+Evidenceを生成せず、投影を設計入力へ戻さない。GD1の現行SVG generator出力と
+正規化hash不変性を回帰検査し、sensor-node report §4.1の明示font-size欠落を
+再発防止する。

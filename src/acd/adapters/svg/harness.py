@@ -57,7 +57,7 @@ def _harness_svg(contract: HarnessContract, lane: ElectricalLane) -> bytes:
         )
         for connector in connectors
     ))
-    gap = font_size * 8
+    gap = font_size * 25
     left_x = margin
     right_x = left_x + box_width + gap
     top_y = header_height(font_size) + font_size * 2
@@ -137,7 +137,7 @@ def _harness_svg(contract: HarnessContract, lane: ElectricalLane) -> bytes:
             connector_positions[wire.to.connector_id][0],
             cavity_y[wire.to.connector_id][wire.to.cavity],
         )
-        y_offset = (index % 3 - 1) * font_size * 0.35
+        y_offset = (1 - index % 3) * font_size * 0.35
         mid_x = (source[0] + target[0]) / 2
         label = f"{wire.wire_id} / {wire.net_id} / {wire.wire_type_id}"
         body.extend(
@@ -151,7 +151,7 @@ def _harness_svg(contract: HarnessContract, lane: ElectricalLane) -> bytes:
                 svg_text(
                     label,
                     x=mid_x,
-                    y=source[1] + y_offset - font_size * 0.3,
+                    y=top_y + box_height + font_size * (1.5 + index * 1.2),
                     font_size=small,
                     anchor="middle",
                 ),
@@ -164,7 +164,7 @@ def _harness_svg(contract: HarnessContract, lane: ElectricalLane) -> bytes:
         max(x for x, _ in connector_positions.values()) + box_width + margin,
         text_advance(title, font_size * 1.8, bold=True) + margin * 2,
     )
-    height = top_y + box_height + font_size * 4 + footer_height(font_size)
+    height = top_y + box_height + font_size * 7 + footer_height(font_size)
     return svg_document(
         width=width,
         height=height,

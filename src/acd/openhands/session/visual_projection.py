@@ -202,6 +202,7 @@ def write_visual_vision_observation(
     response: str,
     path: Path,
     tool_event: VisualVisionToolEvent | None = None,
+    readability_hint: list[str] | None = None,
 ) -> ObservationLogRecord:
     """Persist a vision response as a non-authoritative observation."""
     if not response.strip():
@@ -213,9 +214,13 @@ def write_visual_vision_observation(
         image_hash=image_hash,
         response=response,
         tool_event=tool_event,
+        readability_hint=readability_hint,
     )
+    payload = observation.model_dump(mode="json")
+    if readability_hint is None:
+        payload.pop("readability_hint", None)
     return write_observation_payload(
-        ObservationPayload.model_validate(observation.model_dump(mode="json")),
+        ObservationPayload.model_validate(payload),
         path,
     )
 

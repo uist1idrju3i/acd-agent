@@ -63,7 +63,7 @@ def test_graph_diff_projection_is_deterministic_and_colored(tmp_path: Path) -> N
     assert first_svg == second_svg
     assert b'fill="#2e7d32"' in first_svg
     assert b'fill="#c62828"' in first_svg
-    assert b'fill="#ef6c00"' in first_svg
+    assert b'fill="#c2410c"' in first_svg
     assert b'id="graph-diff-legend"' in first_svg
     assert b"Graph diff r1 -&gt; r2" in first_svg
     assert b'marker-end="url(#arrow)"' in first_svg

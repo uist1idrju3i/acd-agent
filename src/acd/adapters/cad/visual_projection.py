@@ -573,10 +573,7 @@ def _wrap_cad_svg(raw: bytes, *, annotations: _CadAnnotations) -> bytes:
         y=depth_label_y,
         font_size=font_size,
         element_id="dimension-depth-label",
-        extra=(
-            f'transform="rotate(90 {format_svg_number(depth_label_x)} '
-            f'{format_svg_number(depth_label_y)})"'
-        ),
+        anchor="middle",
     )
     outline_width = outline_right - outline_left
     outline_height = outline_bottom - outline_top

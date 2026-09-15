@@ -510,6 +510,13 @@ from acd.schema.visual_crosscheck import (
     VisualReviewChecklistItem,
     VisualReviewObservationReference,
 )
+from acd.schema.visual_quality import (
+    ReadabilityFinding,
+    ReadabilityPolicy,
+    ReadabilityReport,
+    VisualReadabilityDocument,
+    VisualReadabilityObservation,
+)
 from acd.schema.visual_projection import (
     ElectricalVisualProjectionGates,
     ElectricalVisualProjectionPredicate,
@@ -1012,6 +1019,11 @@ __all__ = [
     "VisualReviewRequirement",
     "VisualVisionObservation",
     "VisualVisionToolEvent",
+    "ReadabilityFinding",
+    "ReadabilityPolicy",
+    "ReadabilityReport",
+    "VisualReadabilityObservation",
+    "VisualReadabilityDocument",
     "WcaAging",
     "WcaComponent",
     "WcaComponentKind",

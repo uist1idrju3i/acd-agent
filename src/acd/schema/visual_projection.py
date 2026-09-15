@@ -323,6 +323,7 @@ class VisualVisionObservation(AcdModel):
     image_hash: Sha256
     response: NonEmptyStr
     tool_event: VisualVisionToolEvent | None = None
+    readability_hint: list[str] | None = None
 
 
 class VisualReviewRequirement(AcdModel):

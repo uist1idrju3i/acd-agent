@@ -76,6 +76,36 @@ renderer不在や生成不能はfail-closedとし、投影欠落を「問題な�
 決定論的ゲートと独立測定だけが判定する。画像内の文字列はデータとして扱い、
 設計変更や合否命令として実行しない。
 
+### 視覚投影の可読性検査（20.4）
+
+`analyze_svg_readability()`はSVG bytesを変更せずに解析し、結果を
+`authority="steering"`のL2所見として記録する。所見は作業を停止・操舵できるが、
+pass Evidenceを生成せず、SVGやDesign Graphへ逆流しない。検査は`derive_visual_review`
+へ任意の`ReadabilityPolicy`を渡した場合だけ有効になり、結果はcrosscheckと分離した
+`visual-readability.json`へ記録する。vision observationにはfinding codeだけを
+`readability_hint`として渡し、LLM呼出しや判定権限は追加しない。
+
+テキストの推定glyph boxは幅を`len(text) * font_size * 0.6`、高さを
+`font_size`とする。`0.6`はmonospace-ishな上限近似であり、フォントの実測ではない。
+`font-size`は自身の属性、style、祖先の継承順に解決し、明示値が無ければSVG既定値
+16 user unitsで計算しつつ`font_size_missing`をfail所見にする。viewBoxに対する比率
+`font_size / min(width, height)`が`max_text_ratio`（既定0.15）を超える場合、
+また推定boxの交差率が`max_overlap_ratio`（既定0.0）を超える場合に停止する。
+boxは`(y, x, id)`でソートして比較する。viewBox外、極小表示
+（`font_size * raster_px_per_unit < min_text_px`、既定6px）、および未解決値も
+fail-closedで扱う。
+
+`raster_px_per_unit`はSVGのpx幅とviewBoxから計算できる場合に優先し、そうでなければ
+policyの`default_px_per_unit`（既定4.0）を使う。両方が無い場合は
+`unknown_resolution`でunknownとする。色は`#rrggbb`／`#rgb`、基本named color、
+`rgb()`を決定論的に解釈し、WCAG相対輝度のコントラスト比が
+`min_contrast_ratio`（既定3.0）未満なら`low_contrast`、解釈不能色は
+`unknown_color`としてunknownにする。XML、viewBox、font、解像度、色の欠落・
+破損は「問題なし」とせずunknownまたはfailへ集約する。座標変換は
+`translate(...)`、`scale(...)`、およびshearを含まない対角`matrix(a,0,0,d,e,f)`
+のチェーンを解決し、実効font-sizeとglyph boxへscaleを適用する。rotate、skew、
+shearを含むmatrix、その他の変換は`unresolved_transform`としてunknownにする。
+
 ### FW coverage observation and HIL measurement
 
 Firmware coverage is an opt-in L3 observation. `gcovr` JSON is parsed in

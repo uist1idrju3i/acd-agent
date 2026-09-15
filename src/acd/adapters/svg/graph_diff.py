@@ -39,7 +39,7 @@ _ROW_GAP = 4.0
 _COLORS = {
     "added": "#2e7d32",
     "removed": "#c62828",
-    "changed": "#ef6c00",
+    "changed": "#c2410c",
     "unchanged": "#9e9e9e",
 }
 
@@ -165,7 +165,7 @@ def _write_graph_diff_svg(
                 y=y + small * 0.35,
                 font_size=small,
                 anchor="middle",
-                fill="#ffffff",
+                fill="#111111",
                 element_id=f"node-{slugify_identifier(node_id)}",
             )
         )
@@ -176,7 +176,7 @@ def _write_graph_diff_svg(
             x=_MARGIN,
             y=height - footer_height(font_size),
             font_size=small,
-            fill=COLOR_EDGE_MUTED,
+            fill="#555555",
         )
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
