@@ -74,6 +74,7 @@ _BLOCK_OMIT_KINDS = frozenset(
         "mechanical.connector_opening",
         "mechanical.board_edge_overhang",
         "mechanical.enclosure",
+        "mechanism_feature",
         "mechanical.silk_text",
         "mechanical.silk_graphic",
         # Firmware pin assignments are not firmware module blocks.
