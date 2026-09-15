@@ -1788,6 +1788,29 @@ enclosure・interference）、筐体の半透明化、断面slider、干渉body�
 format_check、node一覧、入力STEPの正規化hashを記録する。これら3ファイルはL3観測で
 あり、Evidence、fab package、gate verdictへ含めない。
 
+### KiCad 3Dモデルの選択同梱（11.4）
+
+GD1またはfixtureの`.kicad_pcb`にある標準`${KICAD*_3DMODEL_DIR}`参照から、
+`scripts/select_kicad_3d_models.py`を実行して`docker/kicad-3d-models.json`を
+再生成する。生成結果はsort・deduplicateされ、`scripts/tests/test_select_kicad_3d_models.py`
+のdrift testでchecked-in allowlistと一致することを固定する。`${KICAD*_3RD_PARTY}`等の
+外部モデルはKiCad packageの選択同梱対象外であり、実部品連携で必要な場合は別途モデルの
+出所、license、hashを宣言し、欠落をunknownとして扱う。
+
+tools imageはbuild stageで`kicad-packages3d`をPPAから導入し、final stageでは
+allowlistに一致する`.step`／`.stp`／`.wrl`だけを`/opt/acd/kicad-3d`へコピーする。
+`KICAD10_3DMODEL_DIR`はそのディレクトリを指す。追加モデル数に応じてimage sizeと
+publish時間が増えるため、allowlist変更後は通常のpublish workflowでtools／serverを
+再publishし、実測したdigestを人手で`docker/image-digests.json`へ再lockする。
+publish前に推測値や`pending publish` placeholderをlockへ書かない。image内の
+`/opt/acd/docker/kicad-3d-models.json`のsha256とコピー件数は
+`measure_image_tools.py`の`kicad-3d-models` entryで記録する。
+
+KiCad CLIの上流追跡は既存のKiCad PPA／`kicad-source-mirror`管理に従う。
+`kicad-packages3d`は同じPPAの同じKiCad release資材であり、別のupstream version
+surfaceを持たないため、`check_dependency_updates.py`では既存KiCad specの対象範囲に
+含め、個別の推測版は追加しない。
+
 ## 生成文書lane
 
 `acd-product-docs` Skillは、Design Graph、記録済み視覚投影集合、生成済みFWピン投影

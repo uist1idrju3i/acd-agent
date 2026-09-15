@@ -27,6 +27,13 @@ _COMMANDS: dict[str, list[str]] = {
     "git": ["git", "--version"],
     "java": ["java", "-version"],
     "kicad-cli": ["kicad-cli", "--version"],
+    "kicad-3d-models": [
+        "bash",
+        "-lc",
+        "sha256sum /opt/acd/docker/kicad-3d-models.json | cut -d' ' -f1 && "
+        "find /opt/acd/kicad-3d -type f \\( "
+        "-name '*.step' -o -name '*.stp' -o -name '*.wrl' \\) | wc -l",
+    ],
     "libcairo2": ["dpkg-query", "-W", "-f=${Version}", "libcairo2"],
     "ngspice": ["ngspice", "--version"],
     "ninja": ["ninja", "--version"],
@@ -98,6 +105,17 @@ def _java_version(output: str) -> str:
 def _measure(key: str, output: str) -> str:
     if key == "kicad-cli":
         return _single_line(output, key)
+    if key == "kicad-3d-models":
+        lines = [line.strip() for line in output.splitlines() if line.strip()]
+        if len(lines) != 2 or not re.fullmatch(r"[0-9a-f]{64}", lines[0]):
+            raise ValueError(f"{key}: measurement output is unparsable")
+        try:
+            count = int(lines[1])
+        except ValueError as exc:
+            raise ValueError(f"{key}: file count is unparsable") from exc
+        if count < 0:
+            raise ValueError(f"{key}: file count is negative")
+        return f"allowlist_sha256=sha256:{lines[0]};file_count={count}"
     if key == "freerouting":
         match = re.search(r"Freerouting v([0-9]+\.[0-9]+\.[0-9]+)", output)
         if match is None:

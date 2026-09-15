@@ -22,6 +22,8 @@ Dockerfileでは次を固定または検証する。
 
 - Ubuntu: `ubuntu:26.04`
 - KiCad CLI: KiCad 10.0 PPAの10系をインストールし、build時に10系であることを検証
+- KiCad 3Dモデル: `docker/kicad-3d-models.json`で選択した標準`.step`／`.wrl`だけを
+  `/opt/acd/kicad-3d`へ同梱し、`KICAD10_3DMODEL_DIR`へ設定
 - FreeRouting: 2.4.1、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
   wrapperからPATH上で実行できることを検証
 - FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示し、

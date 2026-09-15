@@ -1,4 +1,4 @@
-FROM ubuntu:26.04
+FROM ubuntu:26.04 AS tools-build
 
 ARG FREEROUTING_VERSION=2.4.1
 ARG FREEROUTING_SHA256=251101c3eeac22d7e7dfcf6796603279e5d1000283eb82d8f093780f7afc6aa9
@@ -16,6 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV UV_SYSTEM_PYTHON=1
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
 ENV ACD_HOME=/opt/acd
+ENV KICAD10_3DMODEL_DIR=/opt/acd/kicad-3d
 ENV IDF_PATH=/opt/esp-idf
 ENV IDF_TOOLS_PATH=/opt/esp-idf-tools
 ENV IDF_PYTHON_ENV_PATH=/opt/esp-idf-tools/python_env/acd_idf_env
@@ -50,6 +51,7 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
         kicad \
+        kicad-packages3d \
         kicad-footprints \
         kicad-libraries \
         kicad-symbols \
@@ -101,6 +103,14 @@ RUN apt-get update \
     && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
     && rm -rf /var/lib/apt/lists/*
 
+FROM tools-build AS final
+
+COPY docker/kicad-3d-models.json /tmp/kicad-3d-models.json
+
+RUN mkdir -p "${KICAD10_3DMODEL_DIR}" \
+    && python3.14 -c 'import json, pathlib, shutil; spec=json.loads(pathlib.Path("/tmp/kicad-3d-models.json").read_text(encoding="utf-8")); root=pathlib.Path("/usr/share/kicad/3dmodels"); dest=pathlib.Path("/opt/acd/kicad-3d"); [((dest / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"]).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(root / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"], dest / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"])) for e in spec["entries"]]'
+    && rm -rf /usr/share/kicad/3dmodels
+
 # Espressif QEMU for the firmware lane virtual run (pinned release archive).
 RUN curl --fail --location --silent --show-error \
         --output /tmp/qemu-esp.tar.xz \
@@ -139,6 +149,7 @@ COPY assets ${ACD_HOME}/assets
 COPY evidence ${ACD_HOME}/evidence
 COPY plugins ${ACD_HOME}/plugins
 COPY docker/image-digests.json ${ACD_HOME}/docker/image-digests.json
+COPY docker/kicad-3d-models.json ${ACD_HOME}/docker/kicad-3d-models.json
 COPY vendor/software-agent-sdk ${ACD_HOME}/vendor/software-agent-sdk
 
 COPY examples/sensor-node-20260820/board/gd1.dsn /tmp/scc-warm.dsn

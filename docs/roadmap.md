@@ -134,11 +134,11 @@ GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへ�
 | 11.1 | 機構要素ライブラリ | スナップフィット、ヒンジ、ボタン・ライトパイプ、ボス・リブをbuild123dのパラメトリック部品として追加し、寸法根拠をrationale必須にする | 達成 |
 | 11.2 | 可動干渉チェック | 可動範囲のスイープ干渉を決定論的ゲートとして追加する（開閉・押下ストローク） | 達成 |
 | 11.3 | 製造性チェック拡張 | 3Dプリント／射出成形向けのDFM（最小肉厚、抜き勾配、オーバーハング）を機械laneゲートへ追加する | 達成 |
-| 11.4 | 部品込み3D統合 | KiCad 3Dモデルの選択的同梱と連携し、基板＋部品＋筐体の統合干渉チェックと組立図投影を生成する。選択的同梱にはimageサイズ増加、publish時間の増加、digestの再lock、ADR-0028のprovenance更新が伴う | 計画 |
+| 11.4 | 部品込み3D統合 | KiCad 3Dモデルの選択的同梱と連携し、基板＋部品＋筐体の統合干渉チェックと組立図投影を生成する。選択的同梱にはimageサイズ増加、publish時間の増加、digestの再lock、ADR-0028のprovenance更新が伴う | 達成 |
 | 11.4a | 統合3Dモデル投影（glTF＋HTMLビューア） | 基板（外形・厚さ・取付穴）＋部品（KiCad 3Dモデルが同梱済みならそのSTEP、無ければ`component_bodies`の直方体近似を`approximated`としてノードに明示）＋筐体を1つのアセンブリとして`out/<lane>/3d/assembly.glb`へ出力し、投影はL3として機械ゲートの合否へ作用させない | 完了 |
 | 11.5 | 筐体の干渉解決探索（C-1） | 達成。完了条件と実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある | 達成 |
 
-11.4は計画であり、11.1、11.2、11.3、11.4aと11.5は達成済みである。11.1は機構feature nodeを
+11.1〜11.4、11.4aと11.5は達成済みである。11.1は機構feature nodeを
 介したbuild123d部品のopt-in投影と`mechanism_rules` gateを実装し、寸法属性をrationaleへ
 必須化した。11.4aは`component_bodies`近似と
 筐体STEPから`3d/assembly.glb`（glTF 2.0）・単独HTMLビューア`3d/assembly.html`・
@@ -146,6 +146,9 @@ GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへ�
 実装済みであり、実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。11.3は
 `mechanical_dfm` gateでFDM、SLA、射出成形の肉厚、draft、overhang、drain-holeを
 再読込CADへ適用し、process未宣言のGD1は`not_applicable`として既存出力を維持する。
+11.4はKiCad 3D allowlistをdigest固定tools imageへ選択同梱し、実STEPの部品solidを
+graphのcomponent bodyへ割り当てる`assembly_interference_3d` gateと、
+`kicad_step` nodeを持つopt-in assembly projectionを追加した。
 
 ## マイルストーン12: 設計ナレッジQA
 

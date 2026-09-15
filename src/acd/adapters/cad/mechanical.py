@@ -45,6 +45,8 @@ class MechanicalGateReport:
     motion_findings: tuple[MotionSweepFinding, ...] = ()
     mechanical_dfm: str = "not_applicable"
     mechanical_dfm_findings: tuple[MechanicalDfmFinding, ...] = ()
+    assembly_interference_3d: str = "not_applicable"
+    assembly_interference_3d_findings: tuple[object, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "footprint_lib": "Button_Switch_SMD",
+      "model_rel_path": "SW_SPST_TS-1088-xR020.step"
+    },
+    {
+      "footprint_lib": "Capacitor_SMD",
+      "model_rel_path": "C_0603_1608Metric.step"
+    },
+    {
+      "footprint_lib": "Connector_USB",
+      "model_rel_path": "USB_C_Receptacle_HRO_TYPE-C-31-M-12.step"
+    },
+    {
+      "footprint_lib": "LED_SMD",
+      "model_rel_path": "LED_0603_1608Metric.step"
+    },
+    {
+      "footprint_lib": "Package_TO_SOT_SMD",
+      "model_rel_path": "SOT-223.step"
+    },
+    {
+      "footprint_lib": "Resistor_SMD",
+      "model_rel_path": "R_0603_1608Metric.step"
+    },
+    {
+      "footprint_lib": "Sensor_Humidity",
+      "model_rel_path": "Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad.step"
+    }
+  ],
+  "schema": "acd.kicad-3d-models/1"
+}

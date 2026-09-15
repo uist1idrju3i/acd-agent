@@ -30,6 +30,22 @@ container markerがあるのにdigestを解決できない場合は
 を維持できるが、出力Evidenceをprovisionalと明示し、合格側へ昇格させない。
 digest不明containerは既存のunknown fail-closed経路で停止する。
 
+## KiCad 3D allowlistとassembly-3d Evidence
+
+11.4の部品込み3D統合では、container provenanceに
+`docker/kicad-3d-models.json`のsha256と、imageへコピーされたモデル件数を含める。
+`kicad-3d-models` tool measurementはallowlist hashとfile countを記録し、
+`KICAD10_3DMODEL_DIR=/opt/acd/kicad-3d`にある資材だけをKiCad STEP exportへ入力する。
+allowlistが変わった場合はimageを再publishし、実測digestを再lockする。publish前の
+推測値やplaceholderはauthoritative provenanceへ記録しない。
+
+containerで生成した`assembly_interference_3d` gate結果とassembly-3d projectionは、
+KiCad version、PCB hash、model-directory hash、allowlist hash、STEP normalized hash、
+server image digestを同一revisionに結び付ける。hostでのKiCad不在、version不一致、
+欠落・破損モデル、STEP import／boolean失敗はunknownであり、既知digestのcontainer
+Evidenceへ昇格させない。既定のbox approximation projectionは従来どおりKiCad
+allowlist provenanceを持たない。
+
 容器実行の再利用可能な入口は`src/acd/openhands/workspace.py`へ集約し、
 CLIは`scripts/run_in_workspace.py`で引数と表示だけを担う。以前はSDKのdev workspace経路
 （on-the-fly build）でbase imageからagent-server imageを準備していたが、6.3〜6.5で

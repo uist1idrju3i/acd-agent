@@ -172,6 +172,24 @@ shell床の直径3 mm以上のthrough-holeを要求する。
 faceは丸めたcenter、areaの順でソートし、報告する角度、面積、centerは小数3桁へ丸める。
 結果は`fail > unknown > pass`で集約し、DFM findingsは機械Evidenceとsummaryへ記録する。
 
+### 部品込み3D統合（`assembly_interference_3d`）
+
+`--component-step`または`--with-kicad-3d`を明示した場合だけ、KiCad STEPを
+build123dで再読込し、基板solidと部品solidをgraphの`component_bodies`へ決定論的に
+割り当てる。未割当solid、`body_type != none`なのにモデルが無い部品、破損STEP、
+boolean失敗はunknownとして停止側へ保持する。部品solidはshell、lid、機構feature、
+motion sweep envelopeと交差させ、交差体積が
+`enclosure.interference_tolerance_mm3`を超えた場合はrefdesとbody ID付きでfailとする。
+`internal_clearance_mm`未満の距離もfailとする。実測bboxが宣言envelopeを許容差以上に
+超えた場合のruleは`declared_envelope_exceeded`である。モデル観測はL1の合格を昇格せず、
+未実行・unknownは合格側へ倒さない。
+
+実solidを使う組立投影ではnodeの`source`を`kicad_step`とし、モデル正規化hashを
+extrasへ記録する。実solidを渡さない既定経路は従来の`approximated` boxとバイト列を
+維持する。KiCad標準3Dモデルは`docker/kicad-3d-models.json`のallowlistだけを
+imageへ同梱し、allowlist hashとコピー件数を`kicad-3d-models` tool measurementへ
+記録する。
+
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|
 | 機能・構造系 | システム構成表、電源ツリー（構造化データ）、信号経路（構造化データ） | ブロック図、システム構成図、電源ツリー（図）、信号経路図 |

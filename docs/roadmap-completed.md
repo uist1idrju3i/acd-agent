@@ -1850,3 +1850,23 @@ featureのrib／snap-fit／button厚を比較する。FDM／SLAでは決定論�
 欠落profile、無効solid、測定／face走査例外は`unknown`、findingは`fail`として
 停止側へ集約する。mechanism fixtureのFDM pass、射出成形draft negative、最小肉厚、
 overhang、SLA drain-hole、入力不備、決定論的二回実行を回帰テストへ固定した。
+
+### 11.4 部品込み3D統合の実装記録
+
+`scripts/select_kicad_3d_models.py`でGD1 PCBの標準KiCad model参照を決定論的に
+allowlist化し、`docker/kicad-3d-models.json`とのdrift testを追加した。tools imageは
+build stageで`kicad-packages3d`を取得し、final stageではallowlist対象だけを
+`/opt/acd/kicad-3d`へコピーする。allowlist hashとコピー件数は
+`measure_image_tools.py`の`kicad-3d-models` measurementへ記録し、未publishのimage
+digestやplaceholderはlockへ追加していない。
+
+`export_board_step()`はKiCad 10のlocked versionを検査し、PCB hash、model-directory
+hash、normalized STEP hashを記録する。`component_3d.py`はSTEP solidsを基板と部品へ
+分離し、graphのcomponent body位置へ決定論的にmatchする。未割当solid、model欠落、
+破損・version不一致・tool不在はunknownで停止側へ扱う。実solidがshell／lidと干渉、
+internal clearanceを下回る、または宣言envelopeを超える場合は
+`assembly_interference_3d`をfailとする。
+
+assembly projectionは実solidのopt-in時だけ`source="kicad_step"`とモデルhashを
+記録し、既存のbox approximation defaultは変更しない。合否権限を持たないL3投影と
+L1 gateのrevision／container provenance境界をADR-0028へ追記した。
