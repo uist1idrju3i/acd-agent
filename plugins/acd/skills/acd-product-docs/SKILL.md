@@ -1,6 +1,6 @@
 ---
 name: acd-product-docs
-description: Generate deterministic product, interface, and shipping inspection documents from the design graph and recorded projections.
+description: Generate deterministic product, interface, and shipping inspection documents from the design graph and recorded projections. Use when product documentation or a shipping inspection sheet is requested for a design.
 version: 0.1.0
 license: BSD-3-Clause
 triggers:

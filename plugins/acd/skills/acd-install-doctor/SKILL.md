@@ -9,6 +9,8 @@ triggers:
   - environment check
   - plugin diagnosis
   - Local GUI
+  - インストール確認
+  - 環境確認
 ---
 
 # ACD install doctor

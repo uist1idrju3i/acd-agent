@@ -9,6 +9,7 @@ triggers:
   - STEP
   - 3MF
   - output hash
+  - 決定性
 ---
 
 # CAD出力の決定性測定

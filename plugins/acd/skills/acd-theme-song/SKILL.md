@@ -1,6 +1,6 @@
 ---
 name: acd-theme-song
-description: Compose a product theme song (jingle) for a design graph as a Standard MIDI File. The agent writes a theme song proposal JSON (key, tempo, tracks, notes, drums); the Skill validates it strictly and renders MIDI, falling back to a deterministic graph-derived song when no proposal exists.
+description: Compose a product theme song (jingle) for a design graph as a Standard MIDI File. The agent writes a theme song proposal JSON (key, tempo, tracks, notes, drums); the Skill validates it strictly and renders MIDI, falling back to a deterministic graph-derived song when no proposal exists. Use when a theme song or jingle is requested for a design.
 version: 0.3.0
 license: BSD-3-Clause
 triggers:

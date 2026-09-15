@@ -197,8 +197,15 @@ capabilityを観測する。これはL3観測であり、合否権限やauthorit
 
 Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 `disable_model_invocation=True`を強制し、`inputs:`はTaskTriggerになるため、現在の
-自然言語起点の任意利用には採用しない。Skill結果、AgentDefinitionの所見、reviewerの
-出力は合否Evidenceではない。
+自然言語起点の任意利用には採用しない。明示経路のSkill loader
+（`acd.openhands.distribution.skills.validate_acd_skill_contract`）はこの契約を
+fail-closedで検査し、AgentSkills形式でない資材、`description`欠落またはSDKが1024字で
+切り詰めた`description`、`license`欠落、`KeywordTrigger`以外のtrigger（trigger無し・
+`paths:`・`inputs:`）、空または重複するkeyword、`disable-model-invocation: true`を
+持つSkillがあれば会話構築を停止する。SDKのkeyword照合は英数字境界だけを見るため、
+日本語keywordは文中の部分一致で発火する。各Skillは英語keywordに加えて日本語keywordを
+持ち、`description`には「何をするか」と「いつ使うか」を含める。Skill結果、
+AgentDefinitionの所見、reviewerの出力は合否Evidenceではない。
 
 role promptは`PromptSection`へ変換するL2操舵資材であり、資材bytesと抽出本文を
 `prompt-manifest.json`で固定する。prompt sectionとmanifestはEvidenceではなく、

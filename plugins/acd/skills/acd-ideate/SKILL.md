@@ -1,6 +1,6 @@
 ---
 name: acd-ideate
-description: Refine a product idea through a sourced, append-only dialogue with the user.
+description: Refine a product idea through a sourced, append-only dialogue with the user. Use when the user has a product idea to shape before any design input exists.
 version: 0.1.0
 license: BSD-3-Clause
 triggers:
@@ -8,6 +8,9 @@ triggers:
   - idea
   - brainstorm
   - concept
+  - アイデア
+  - 企画
+  - 構想
 ---
 
 # ACD idea refinement

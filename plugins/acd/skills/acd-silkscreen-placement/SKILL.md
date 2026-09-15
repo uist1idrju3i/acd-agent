@@ -9,6 +9,8 @@ triggers:
   - board edge
   - footprint clearance
   - DRC
+  - シルク
+  - ラベル配置
 ---
 
 # Silkscreen label placement search

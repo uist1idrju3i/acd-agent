@@ -1,6 +1,6 @@
 ---
 name: acd-design-knowledge
-description: Answer product, usage, troubleshooting, rationale and history questions from the indexed design knowledge with source citations.
+description: Answer product, usage, troubleshooting, rationale and history questions from the indexed design knowledge with source citations. Use when the user asks what a design does, how to use it, why a value was chosen, or when something changed.
 version: 0.1.0
 license: BSD-3-Clause
 triggers:

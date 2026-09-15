@@ -1,6 +1,6 @@
 ---
 name: acd-library-governance
-description: Check declared KiCad footprint and symbol library assets against a deterministic library policy and project library tables.
+description: Check declared KiCad footprint and symbol library assets against a deterministic library policy and project library tables. Use when a footprint or symbol library reference is added or changed, or before projecting a board.
 version: 0.1.0
 license: BSD-3-Clause
 triggers:

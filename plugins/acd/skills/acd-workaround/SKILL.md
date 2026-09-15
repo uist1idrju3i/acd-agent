@@ -1,6 +1,6 @@
 ---
 name: acd-workaround
-description: Plan deterministic firmware, rework, and combined workaround candidates from an eligible defect record, then observe salvage-gate results.
+description: Plan deterministic firmware, rework, and combined workaround candidates from an eligible defect record, then observe salvage-gate results. Use when a recorded defect needs a salvage plan instead of a redesign.
 version: 0.1.0
 license: BSD-3-Clause
 triggers:
