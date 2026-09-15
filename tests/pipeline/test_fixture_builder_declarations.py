@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -63,6 +64,32 @@ def test_supplied_cpl_evidence_is_copied_after_validation(tmp_path: Path) -> Non
     copy_cpl_evidence(graph, Path("evidence/gd1-cpl-orientation"), tmp_path)
     copied = tmp_path / "evidence" / "gd1-cpl-orientation" / "U1.json"
     assert copied.read_bytes() == Path("evidence/gd1-cpl-orientation/U1.json").read_bytes()
+    report = run_lane_preflight(graph, ("board-pipeline",), root=Path.cwd(), evidence_root=tmp_path)
+    assert not [gap for gap in report.producer_gaps if gap.kind == "cpl_orientation"]
+
+
+def test_malformed_cpl_evidence_is_rejected(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    shutil.copytree("evidence/gd1-cpl-orientation", source)
+    (source / "U1.json").write_text("not-json", encoding="utf-8")
+    graph = DesignGraph.model_validate_json(
+        (Path("fixtures/golden-design-1") / "graph.json").read_text(encoding="utf-8")
+    )
+    with pytest.raises(FixtureBuilderError, match="unreadable"):
+        copy_cpl_evidence(graph, source, tmp_path / "fixture")
+
+
+def test_cpl_evidence_refdes_mismatch_is_rejected(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    shutil.copytree("evidence/gd1-cpl-orientation", source)
+    record = json.loads((source / "U1.json").read_text(encoding="utf-8"))
+    record["refdes"] = "U9"
+    (source / "U1.json").write_text(json.dumps(record), encoding="utf-8")
+    graph = DesignGraph.model_validate_json(
+        (Path("fixtures/golden-design-1") / "graph.json").read_text(encoding="utf-8")
+    )
+    with pytest.raises(FixtureBuilderError, match="unknown refdes"):
+        copy_cpl_evidence(graph, source, tmp_path / "fixture")
 
 
 def _mechanical_spec() -> DesignFixtureSpec:
