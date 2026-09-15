@@ -100,6 +100,9 @@ executionEnvironments = [
     { root = "plugins/acd/skills/acd-product-docs", extraPaths = [
         "plugins/acd/skills/acd-product-docs/scripts",
     ] },
+    { root = "plugins/acd/skills/acd-install-doctor", extraPaths = [
+        "plugins/acd/skills/acd-install-doctor/scripts",
+    ] },
     { root = "plugins/acd/skills/acd-theme-song", extraPaths = [
         "plugins/acd/skills/acd-theme-song/scripts",
     ] },

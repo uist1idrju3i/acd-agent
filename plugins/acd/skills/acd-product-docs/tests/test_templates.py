@@ -25,15 +25,10 @@ PUNCTUATION_ONLY_PATTERN = re.compile(r"^[\s\W]{1,3}$")
 
 
 def _catalog(language: str) -> dict[str, str]:
-    payload = json.loads(
-        (TEMPLATES / f"{language}.json").read_text(encoding="utf-8")
-    )
+    payload = json.loads((TEMPLATES / f"{language}.json").read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
     entries = cast(dict[object, object], payload)
-    assert all(
-        isinstance(key, str) and isinstance(value, str)
-        for key, value in entries.items()
-    )
+    assert all(isinstance(key, str) and isinstance(value, str) for key, value in entries.items())
     return {
         key: value
         for key, value in entries.items()
@@ -44,7 +39,7 @@ def _catalog(language: str) -> dict[str, str]:
 def _referenced_keys() -> set[str]:
     return {
         key
-        for path in SCRIPTS.glob("*.py")
+        for path in SCRIPTS.rglob("*.py")
         for key in KEY_PATTERN.findall(path.read_text(encoding="utf-8"))
     }
 
@@ -59,8 +54,7 @@ def test_english_templates_contain_no_cjk() -> None:
 
 def test_scripts_contain_no_cjk() -> None:
     assert not any(
-        CJK_PATTERN.search(path.read_text(encoding="utf-8"))
-        for path in SCRIPTS.glob("*.py")
+        CJK_PATTERN.search(path.read_text(encoding="utf-8")) for path in SCRIPTS.rglob("*.py")
     )
 
 
@@ -104,6 +98,6 @@ def _placeholders(value: str) -> set[str]:
 def test_template_placeholder_sets_match() -> None:
     ja = _catalog("ja")
     en = _catalog("en")
-    assert {
-        key: _placeholders(value) for key, value in ja.items()
-    } == {key: _placeholders(value) for key, value in en.items()}
+    assert {key: _placeholders(value) for key, value in ja.items()} == {
+        key: _placeholders(value) for key, value in en.items()
+    }

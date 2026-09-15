@@ -18,6 +18,7 @@ from acd.adapters.kicad.fab import (
     FootprintMeasurement,
 )
 from acd.adapters.kicad.fab import silkscreen as fab_silkscreen
+from acd.adapters.kicad.fab import silkscreen_qr as fab_silkscreen_qr
 from acd.adapters.kicad.fab.routed_board import parse_routed_board
 from acd.adapters.kicad.fab.silkscreen import (
     _local_silk_bounds,
@@ -222,9 +223,7 @@ def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyP
     for row in range(45):
         for column in range(45):
             expected_ink = not (
-                4 <= row < 41
-                and 4 <= column < 41
-                and matrix[row - 4][column - 4] == "1"
+                4 <= row < 41 and 4 <= column < 41 and matrix[row - 4][column - 4] == "1"
             )
             if not expected_ink:
                 continue
@@ -255,17 +254,9 @@ def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyP
         source_y = 18.0 + (point[1] - center[1]) / scale
         column = int(source_x / source_pitch)
         row = int(source_y / source_pitch)
-        expected = (
-            4 <= row < 41
-            and 4 <= column < 41
-            and matrix[row - 4][column - 4] == "1"
-        )
+        expected = 4 <= row < 41 and 4 <= column < 41 and matrix[row - 4][column - 4] == "1"
         actual_ink = not expected
-        return (
-            not actual_ink
-            if damaged and (row, column) == (10, 10)
-            else actual_ink
-        )
+        return not actual_ink if damaged and (row, column) == (10, 10) else actual_ink
 
     def intact_ink(_objects: Sequence[_SilkObject], point: tuple[float, float]) -> bool:
         return ink_for_point(point, damaged=False)
@@ -273,27 +264,20 @@ def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyP
     def damaged_ink(_objects: Sequence[_SilkObject], point: tuple[float, float]) -> bool:
         return ink_for_point(point, damaged=True)
 
-    monkeypatch.setattr(fab_silkscreen, "_point_has_ink", intact_ink)
-    intact_result = fab_silkscreen._qr_fidelity_measurement(
-        graphic, objects, 0.15, qr_path
-    )
+    monkeypatch.setattr(fab_silkscreen_qr, "_point_has_ink", intact_ink)
+    intact_result = fab_silkscreen._qr_fidelity_measurement(graphic, objects, 0.15, qr_path)
     assert intact_result["module_matrix_match"]
     assert intact_result["minimum_printed_width_mm"] == pytest.approx(0.3)
     assert intact_result["minimum_unprinted_gap_mm"] == pytest.approx(0.3)
 
-    monkeypatch.setattr(fab_silkscreen, "_point_has_ink", damaged_ink)
+    monkeypatch.setattr(fab_silkscreen_qr, "_point_has_ink", damaged_ink)
     with pytest.raises(FabOutputError, match="QR module matrix mismatch"):
         fab_silkscreen._qr_fidelity_measurement(graphic, objects, 0.15, qr_path)
 
     hole_row, hole_column = next(
-        (row, column)
-        for row in range(37)
-        for column in range(37)
-        if matrix[row][column] == "1"
+        (row, column) for row in range(37) for column in range(37) if matrix[row][column] == "1"
     )
-    hole_left = center[0] - (
-        (hole_column + 5) * source_pitch - 18.0
-    ) * scale
+    hole_left = center[0] - ((hole_column + 5) * source_pitch - 18.0) * scale
     hole_right = hole_left + 0.2
     hole_bottom = center[1] + ((hole_row + 4) * source_pitch - 18.0) * scale
     hole_top = hole_bottom + measured_pitch
@@ -314,15 +298,11 @@ def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyP
             ),
         ),
     ]
-    monkeypatch.setattr(fab_silkscreen, "_point_has_ink", intact_ink)
+    monkeypatch.setattr(fab_silkscreen_qr, "_point_has_ink", intact_ink)
     with pytest.raises(FabOutputError, match="minimum unprinted gap"):
-        fab_silkscreen._qr_fidelity_measurement(
-            graphic, tuple(expanded_objects), 0.15, qr_path
-        )
+        fab_silkscreen._qr_fidelity_measurement(graphic, tuple(expanded_objects), 0.15, qr_path)
     with pytest.raises(FabOutputError, match="unavailable"):
-        fab_silkscreen._qr_fidelity_measurement(
-            graphic, objects, 0.15, qr_path.parent
-        )
+        fab_silkscreen._qr_fidelity_measurement(graphic, objects, 0.15, qr_path.parent)
 
 
 def test_same_side_courtyard_overlap_is_rejected() -> None:
@@ -337,12 +317,8 @@ def test_same_side_courtyard_overlap_is_rejected() -> None:
     silk = _line(1.0, 1.0, 2.0, 1.0)
     edge = _line(0.0, 0.0, 3.0, 0.0)
     original = fab._gerber_silk_objects
-    fab._gerber_silk_objects = (
-        lambda _path, layer: (silk,)
-        if layer == "F.SilkS"
-        else (edge,)
-        if layer == "Edge.Cuts"
-        else ()
+    fab._gerber_silk_objects = lambda _path, layer: (
+        (silk,) if layer == "F.SilkS" else (edge,) if layer == "Edge.Cuts" else ()
     )
     try:
         with pytest.raises(FabOutputError, match="courtyard=1"):
@@ -439,12 +415,8 @@ def test_routed_board_layers_reach_silkscreen_fail_conditions(tmp_path: Path) ->
     silk = _SilkObject("Region", "F.SilkS", (4.0, 4.5, 6.0, 5.5), 2.0, 0.15)
     edge = _line(0.0, 0.0, 10.0, 0.0)
     original = fab._gerber_silk_objects
-    fab._gerber_silk_objects = (
-        lambda _path, layer: (silk,)
-        if layer == "F.SilkS"
-        else (edge,)
-        if layer == "Edge.Cuts"
-        else ()
+    fab._gerber_silk_objects = lambda _path, layer: (
+        (silk,) if layer == "F.SilkS" else (edge,) if layer == "Edge.Cuts" else ()
     )
     try:
         context = fab.build_silkscreen_context(
@@ -517,12 +489,12 @@ def test_declared_text_without_ink_is_rejected() -> None:
                             1.5,
                             0.15,
                             0.0,
-                                "test",
-                                "test",
-                                "SW1",
-                                0.25,
-                                1.0,
-                            ),
+                            "test",
+                            "test",
+                            "SW1",
+                            0.25,
+                            1.0,
+                        ),
                     ),
                     (),
                 ),
