@@ -47,7 +47,7 @@ def test_missing_or_non_string_version_fails_closed() -> None:
 def test_unsupported_version_without_migration_fails_closed(
     isolated_migrations: None,
 ) -> None:
-    with pytest.raises(SchemaVersionError, match="9.9"):
+    with pytest.raises(SchemaVersionError, match=r"9\.9"):
         migrate_schema_document(_graph("9.9"))
 
 
