@@ -12,10 +12,12 @@ def test_policy_hash_is_stable() -> None:
 
 def test_report_rejects_unknown_fields() -> None:
     with pytest.raises(ValueError):
-        ReadabilityReport(
-            status="pass",
-            findings=[],
-            text_count=0,
-            policy_hash="sha256:" + "a" * 64,
-            unexpected=True,
+        ReadabilityReport.model_validate(
+            {
+                "status": "pass",
+                "findings": [],
+                "text_count": 0,
+                "policy_hash": "sha256:" + "a" * 64,
+                "unexpected": True,
+            }
         )

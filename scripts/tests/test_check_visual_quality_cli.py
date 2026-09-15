@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from scripts import check_visual_quality
 from scripts.tests.cli_runner import run_main
 
 
 def test_check_visual_quality_cli_exit_codes(
-    capsys, tmp_path: Path
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
     svg = tmp_path / "input.svg"
     out = tmp_path / "report.json"
@@ -30,7 +32,7 @@ def test_check_visual_quality_cli_exit_codes(
 
 
 def test_check_visual_quality_cli_malformed_input(
-    capsys, tmp_path: Path
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
     svg = tmp_path / "input.svg"
     out = tmp_path / "report.json"
