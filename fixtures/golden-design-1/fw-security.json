@@ -1,0 +1,82 @@
+{
+  "artifact_kind": "firmware_security_declaration",
+  "flash_encryption": {
+    "enabled": true,
+    "key_boundary": "external_hsm",
+    "mode": "release"
+  },
+  "graph_id": "golden-design-1",
+  "ota": {
+    "anti_rollback_enabled": true,
+    "rollback_enabled": true,
+    "secure_version": 3,
+    "slots": 2,
+    "enabled": true
+  },
+  "partition_table": [
+    {
+      "encrypted": false,
+      "name": "nvs",
+      "offset_hex": "0x9000",
+      "size_hex": "0x6000",
+      "subtype": "nvs",
+      "type": "data"
+    },
+    {
+      "encrypted": true,
+      "name": "otadata",
+      "offset_hex": "0xf000",
+      "size_hex": "0x2000",
+      "subtype": "otadata",
+      "type": "data"
+    },
+    {
+      "encrypted": false,
+      "name": "phy_init",
+      "offset_hex": "0x11000",
+      "size_hex": "0x1000",
+      "subtype": "phy_init",
+      "type": "data"
+    },
+    {
+      "encrypted": true,
+      "name": "ota_0",
+      "offset_hex": "0x20000",
+      "size_hex": "0x140000",
+      "subtype": "ota_0",
+      "type": "app"
+    },
+    {
+      "encrypted": true,
+      "name": "ota_1",
+      "offset_hex": "0x160000",
+      "size_hex": "0x140000",
+      "subtype": "ota_1",
+      "type": "app"
+    },
+    {
+      "encrypted": false,
+      "name": "nvs_keys",
+      "offset_hex": "0x2a0000",
+      "size_hex": "0x1000",
+      "subtype": "nvs_keys",
+      "type": "data"
+    },
+    {
+      "encrypted": false,
+      "name": "spiffs",
+      "offset_hex": "0x2a1000",
+      "size_hex": "0x13f000",
+      "subtype": "spiffs",
+      "type": "data"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1",
+  "secure_boot": {
+    "enabled": true,
+    "key_boundary": "external_hsm",
+    "scheme": "secure_boot_v2",
+    "signing_key_id": "gd1-release"
+  }
+}

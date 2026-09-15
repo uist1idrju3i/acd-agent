@@ -666,3 +666,23 @@ Skillへのwireは16.3の対象外である。
 agent-serverのrouter一覧とは別の責務であり、外部CLIの未検出・版不明・出力不整合は
 `unknown`としてpipelineを停止させる。プローブ結果はツールの存在を示すだけで、
 設計の合否やEvidenceの代替にはしない。
+
+## FWセキュリティ設計整合ゲート（19.1、opt-in）
+
+`fixtures/golden-design-1/fw-security.json`は、secure boot v2、release
+flash encryption、2つのOTA app slot、`external_hsm`という鍵管理境界を宣言する。
+宣言には鍵識別子と境界だけを記録し、PEM、鍵バイト列、長いhex鍵素材は受け付けない。
+署名、eFuse burning、鍵provisioningはACDの外部境界である。
+
+宣言のpartition tableは4 KiB境界（appは64 KiB境界）、重複なし、flash size以内でなければ
+ならない。OTAには`otadata`と同一サイズの2つ以上のOTA app partitionを要求し、release
+flash encryptionにはsecure boot v2と`nvs_keys`を要求する。`fw_project.py`の
+`--security-declaration`経路だけが決定論的な`sdkconfig.defaults` fragmentと
+`partitions.csv`を追加する。宣言なしの既存FW投影は変更しない。
+
+`scripts/check_fw_security.py`はbuilt `sdkconfig`と有効な`partitions.csv`を宣言と比較する
+L1 gateで、結果のauthorityは`gate`である。security設定の不足、未宣言のflash encryption、
+partition不一致、flash size超過、サイズreportでのapp容量不足は`fail`、入力不足・parse失敗は
+`unknown`としてfirmware laneを停止させる。これはdeviceのsecure boot状態、flash encryption
+状態、署名済みまたはprovision済みであることをclaimしない。revision不一致やschema不正は
+CLI入力エラー（exit 2）である。

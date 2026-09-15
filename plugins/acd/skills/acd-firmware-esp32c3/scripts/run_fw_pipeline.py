@@ -57,6 +57,7 @@ from fw_qemu import (
     assert_virtual_log_ok,
     measurement_conditions_for_plan,
 )
+from fw_security import load_declaration
 
 
 class _LegacyFlag(argparse.Action):
@@ -114,6 +115,7 @@ def run_pipeline(
     *,
     stack_usage: bool = False,
     sim_peripherals: bool = False,
+    security_declaration: Path | None = None,
 ) -> dict[str, object]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -151,6 +153,15 @@ def run_pipeline(
             for item in scenario_data
         ]
     electrical = extract_electrical_lane(graph)
+    security = (
+        load_declaration(security_declaration)
+        if security_declaration is not None
+        else None
+    )
+    if security is not None and (
+        security.graph_id != graph.graph_id or security.revision != graph.revision
+    ):
+        raise ValueError("firmware security declaration graph/revision mismatch")
 
     project = write_firmware_project(
         fw_lane,
@@ -163,6 +174,7 @@ def run_pipeline(
         stack_usage=stack_usage,
         sim_peripherals=sim_peripherals,
         sim_scenario=scenario,
+        security_declaration=security,
     )
     mcu_refdes = resolve_mcu_refdes(graph)
     config_report = {
@@ -291,6 +303,7 @@ def main() -> int:
     parser.add_argument("--run-seconds", type=int, default=15)
     parser.add_argument("--stack-usage", action="store_true")
     parser.add_argument("--sim-peripherals", action="store_true")
+    parser.add_argument("--security-declaration", type=Path)
     for legacy, replacement in (
         ("--graph", "--fixture"),
         ("--graph-dir", "--fixture"),
@@ -313,6 +326,7 @@ def main() -> int:
             args.run_seconds,
             stack_usage=args.stack_usage,
             sim_peripherals=args.sim_peripherals,
+            security_declaration=args.security_declaration,
         )
     except Exception as exc:
         print(f"PIPELINE FAILED: {exc}", file=sys.stderr)

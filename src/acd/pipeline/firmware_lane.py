@@ -22,6 +22,7 @@ from acd.core.firmware_coverage import check_firmware_coverage
 from acd.pipeline.firmware_evidence import write_firmware_evidence
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence
+from acd.schema.fw_security import FirmwareSecurityDeclaration
 
 FIRMWARE_LANE_TIMEOUT_SECONDS = 3600
 
@@ -99,6 +100,7 @@ def run_firmware_lane(
     output: Path,
     *,
     run_seconds: int,
+    security_declaration: Path | None = None,
 ) -> FirmwareLaneResult:
     """Run the firmware Skill and write ``evidence-firmware.json``.
 
@@ -112,9 +114,27 @@ def run_firmware_lane(
     if run_seconds <= 0:
         raise FirmwareLaneError("run_seconds must be positive")
     _check_firmware_coverage(repository, fixture_dir, output)
+    declaration: FirmwareSecurityDeclaration | None = None
+    if security_declaration is not None:
+        try:
+            declaration = FirmwareSecurityDeclaration.model_validate_json(
+                security_declaration.read_text(encoding="utf-8")
+            )
+            graph_for_security = DesignGraph.model_validate_json(
+                (fixture_dir / "graph.json").read_text(encoding="utf-8")
+            )
+            if (
+                declaration.graph_id != graph_for_security.graph_id
+                or declaration.revision != graph_for_security.revision
+            ):
+                raise ValueError("firmware security declaration revision mismatch")
+        except (OSError, ValueError) as exc:
+            raise FirmwareLaneError(
+                f"firmware security declaration is invalid: {exc}",
+                output_path=output,
+            ) from exc
     started_at = datetime.now(UTC)
-    completed = subprocess.run(
-        [
+    command = [
             "uv",
             "run",
             "--script",
@@ -125,7 +145,11 @@ def run_firmware_lane(
             str(output),
             "--run-seconds",
             str(run_seconds),
-        ],
+        ]
+    if security_declaration is not None:
+        command.extend(["--security-declaration", str(security_declaration)])
+    completed = subprocess.run(
+        command,
         cwd=repository,
         capture_output=True,
         text=True,
@@ -148,6 +172,56 @@ def run_firmware_lane(
         ) from exc
     if not isinstance(summary, dict):
         raise FirmwareLaneError("firmware Skill summary must be an object")
+    if declaration is not None:
+        project_files = sorted(output.rglob("partitions.csv"))
+        sdkconfigs = sorted(output.rglob("sdkconfig"))
+        if len(project_files) != 1 or len(sdkconfigs) != 1:
+            raise FirmwareLaneError(
+                "firmware security build outputs are missing or ambiguous",
+                output_path=output,
+            )
+        gate_path = output / "firmware-security-gate.json"
+        gate_command = [
+            "uv",
+            "run",
+            "python",
+            str(repository / "scripts/check_fw_security.py"),
+            "--declaration",
+            str(security_declaration),
+            "--sdkconfig",
+            str(sdkconfigs[0]),
+            "--partitions",
+            str(project_files[0]),
+            "--out",
+            str(gate_path),
+        ]
+        gate = subprocess.run(
+            gate_command,
+            cwd=repository,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+            timeout=300,
+        )
+        if gate.returncode == 2:
+            raise FirmwareLaneError(
+                gate.stderr.strip() or "firmware security gate input error",
+                output_path=output,
+            )
+        try:
+            gate_result = json.loads(gate_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise FirmwareLaneError(
+                f"firmware security gate result is invalid: {exc}",
+                output_path=output,
+            ) from exc
+        summary["gates"] = [gate_result]
+        if gate_result.get("status") != "pass":
+            raise FirmwareLaneError(
+                f"firmware security gate {gate_result.get('status', 'unknown')}",
+                output_path=output,
+            )
     script_sha256 = _file_sha256(script)
     try:
         graph = DesignGraph.model_validate_json(

@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+import fw_project
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.firmware_capability import (
     FirmwareCapabilityContractError,
@@ -47,6 +48,7 @@ from fw_project import (
     write_firmware_project,
 )
 from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
+from fw_security import load_declaration
 
 FIXTURE = Path(__file__).resolve().parents[5] / "fixtures" / "golden-design-1" / "graph.json"
 DISABLED_SOURCE_GOLDEN = (
@@ -78,6 +80,40 @@ def test_lane_extraction_matches_golden_design(fw_lane: FirmwareLane) -> None:
     assert fw_lane.gpio_for_net("net.led") == 7
     assert fw_lane.gpio_for_net("net.i2c_sda") == 4
     assert fw_lane.gpio_for_net("net.i2c_scl") == 5
+
+
+def test_security_declaration_is_opt_in_and_writes_partition_files(
+    tmp_path: Path,
+    graph: DesignGraph,
+    fw_lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
+) -> None:
+    project = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path / "secure",
+        graph.graph_id,
+        plan=plan,
+        security_declaration=load_declaration(
+            FIXTURE.parent / "fw-security.json"
+        ),
+    )
+    assert (project.root / "partitions.csv").is_file()
+    assert "CONFIG_SECURE_BOOT=y" in (
+        project.root / "sdkconfig.defaults"
+    ).read_text(encoding="utf-8")
+
+    default = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path / "default",
+        graph.graph_id,
+        plan=plan,
+    )
+    assert not (default.root / "partitions.csv").exists()
+    assert (default.root / "sdkconfig.defaults").read_text(
+        encoding="utf-8"
+    ) == fw_project.__dict__["_SDKCONFIG_DEFAULTS"]
     assert fw_lane.gpio_for_net("net.boot") == 9
     assert fw_lane.gpio_for_net("net.usb_dn") == 18
     assert fw_lane.gpio_for_net("net.usb_dp") == 19

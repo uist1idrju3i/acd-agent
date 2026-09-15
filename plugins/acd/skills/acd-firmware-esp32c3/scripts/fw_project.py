@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from acd.schema.firmware_inspection import FirmwareInspectionSequence
+from acd.schema.fw_security import FirmwareSecurityDeclaration
 from fw_graph import (
     FirmwareCapabilityPlan,
     FirmwareExtractionError,
@@ -26,6 +27,7 @@ from fw_graph import (
     FirmwareSettings,
     validate_boot_log_message,
 )
+from fw_security import render_partitions_csv, render_sdkconfig_security
 
 _SEPARATOR_PATTERN = re.compile(r"[^a-z0-9]+")
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -636,6 +638,7 @@ def write_firmware_project(
     stack_usage: bool = False,
     sim_peripherals: bool = False,
     sim_scenario: list[dict[str, float]] | None = None,
+    security_declaration: FirmwareSecurityDeclaration | None = None,
 ) -> FirmwareProject:
     if settings is None:
         settings = FirmwareSettings(
@@ -653,7 +656,14 @@ def write_firmware_project(
     (root / "CMakeLists.txt").write_text(
         _ROOT_CMAKE.format(name=name), encoding="utf-8"
     )
-    (root / "sdkconfig.defaults").write_text(_SDKCONFIG_DEFAULTS, encoding="utf-8")
+    sdkconfig_defaults = _SDKCONFIG_DEFAULTS
+    if security_declaration is not None:
+        sdkconfig_defaults += render_sdkconfig_security(security_declaration)
+        (root / "partitions.csv").write_text(
+            render_partitions_csv(security_declaration),
+            encoding="utf-8",
+        )
+    (root / "sdkconfig.defaults").write_text(sdkconfig_defaults, encoding="utf-8")
     sources = ['"acd_main.c"']
     if inspection_sequence is not None:
         sources.append('"acd_inspection.c"')
