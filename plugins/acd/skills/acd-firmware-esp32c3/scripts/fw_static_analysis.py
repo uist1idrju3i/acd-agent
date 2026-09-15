@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@78744de4cb56b3575bab87fe50cbdcffc267e408",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@4471f309537dca4356a970ab5cb8cfeb224d92fe",
 # ]
 # ///
 """Deterministic clang-tidy analysis for a generated ESP-IDF project."""
