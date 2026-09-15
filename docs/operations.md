@@ -1146,7 +1146,9 @@ estimateであり、authoritative Evidenceではない。
 
 FW coverageのhost-side parserは`gcovr --json`の出力だけをsubprocess境界で
 読み取り、gcovr自体をACDへimportしない。tools imageでは`GCOVR_VERSION`を固定した
-PyPI packageを`uv pip install --system`で導入し、`measure_image_tools.py`が
+PyPI packageを`uv pip install --system --break-system-packages`で導入し
+（Ubuntu 26.04のpython3.14はPEP 668のexternally managed環境で、`--system`だけでは
+uvが導入を拒否する）、`measure_image_tools.py`が
 `gcovr --version`を測定する。image lockに新しい測定値が無い間は
 `docker/image-digests.json`へ推測値を追記せず、次回publishで記録する。
 依存checkerはDocker ARGをPyPIのgcovr versionと照合する。
