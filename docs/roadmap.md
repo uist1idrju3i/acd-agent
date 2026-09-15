@@ -47,9 +47,13 @@ GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判�
 wall-clock記録、14.22の残（実CPL record取得とcontainer runによるend-to-end合格の実証）
 である。15.21（代替routerの単独実測）はOrthoRouteを実測のうえ不採用として閉じた。計画段階のフェーズは16.2、
 18.2、20.3、20.5である。7の実発注と
-実supplier接続は本範囲外である。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
-未実装であり、8.5の電気視覚照合が図枠のtitle blockを読むため現行exportを維持し、
-極小表示の所見は20.4の可読性検査で扱う。
+実supplier接続は本範囲外である。KiCad由来SVGは既に`--page-size-mode 2`で
+board-only exportしており、現在はacd-svg wrapperがlayer viewを文書幅へzoomし、
+寸法とscale barをtrue-mmで表示する。8.5はboard-only modeでもKiCadが出力する
+`File:`／`KiCad E.D.A.` title-block textを読む（digest-locked imageのkicad-cli 10.0.6で
+確認した29.9974×24.9936 mm出力にも`File: golden-design-1.kicad_pcb`と
+`KiCad E.D.A. 10.0.6`が残る）。回路図SVGはtitle blockを8.5が読むためsheetを維持し、
+`select_paper`が既にsheetをcontentへfitする。
 
 ## 現行実装計画
 

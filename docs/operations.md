@@ -1888,6 +1888,10 @@ fail-closedとする。正規化後hashは再生成時にも照合し、renderer
 出力ファイル名が`<title>`へ入るため、この名前差が生バイト列の非決定性の由来になる。
 回路図SVGはKiCadがsheet名をファイル名にして出力するため、単一sheetの期待出力を投影パスへ
 renameする。複数sheetによる複数SVG出力は未対応で、追加されたSVGを検出した時点でfail-closedとする。
+layer SVGは`g#layer-view-frame`の`data-display-scale`で文書幅へ表示zoomするが、
+`svg#layer-view`の属性と`kicad-layer-svg-title-v1`正規化規則は変更しない。
+board-only exportでもkicad-cli 10.0.6は`File: golden-design-1.kicad_pcb`と
+`KiCad E.D.A. 10.0.6`をtitle-block textとして出力することを確認している。
 8.3ではGD1の各laneで、必須ゲート通過後にlane固有の視覚投影を
 `out_dir/visual/`へ既定生成する（電気laneは回路図ビューと宣言銅層ごとの層別レイアウト
 ビューを`visual-projections-electrical.json`へ、機械laneは断面・干渉ビューを

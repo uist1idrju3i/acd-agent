@@ -832,7 +832,7 @@ ECOの恒久変更は`rN+1` graphへ反映し、`rN+WA-001`のワークアラウ
 | （改善バックログ）FW成果物ディレクトリ名のgraph_id由来化 | 14.6（達成） |
 | （レビュー）視覚投影SVGのviewBox相対font-size | 8.2（達成）、再発防止は20.4 |
 | （レビュー）回路図の可読性（機能ブロック配置とネットラベル接続方式の注記） | 8.2（達成） |
-| （レビュー）KiCad由来SVGのfit-to-board化 | 20.4（未採用。8.5が図枠のtitle blockを読むため現行exportを維持する） |
+| （レビュー）KiCad由来SVGのfit-to-board化 | 20.4（達成。8.3/20.4。`--page-size-mode 2`のboard-only exportを維持し、acd-svg wrapperでlayer viewを文書幅へzoomする。8.5はboard-only出力にも残る`File:`／`KiCad E.D.A.` title-block textを読む） |
 | （レビュー）SKILL triggerとToolDefinition登録条件のdoctor診断 | 15.7（達成） |
 | （レビュー）hook遮断理由の要約自動集計 | 15.6（達成） |
 | （レビュー）DFMの未実装チェック一覧の明示 | 9.3 |

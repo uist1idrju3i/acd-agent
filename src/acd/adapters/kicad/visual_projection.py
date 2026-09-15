@@ -92,20 +92,24 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
         ratio=DIAGRAM_FONT_SIZE_RATIO,
     )
     layer_x = font_size * 4
+    available_width = DIAGRAM_REFERENCE_WIDTH - layer_x - font_size * 6
+    zoom = available_width / raw_width_mm
+    display_scale = scale * zoom
     layer_y = header_height(font_size) + font_size * 2
-    layer_width = raw_width_mm
-    layer_height = raw_height_mm
+    layer_width = raw_width_mm * zoom
+    layer_height = raw_height_mm * zoom
     dimension_y = layer_y + layer_height + font_size * 2
     dimension_x = layer_x + layer_width + font_size * 2
     scale_bar_y = dimension_y + font_size * 3.5
     legend_y = scale_bar_y + font_size * 3
     note_y = legend_y + font_size * 2
-    outer_height = note_y + footer_height(font_size) + font_size * 3
+    display_scale_note_y = note_y + font_size * 1.5
+    outer_height = display_scale_note_y + footer_height(font_size) + font_size * 3
     stroke = max(font_size * 0.08, 0.1)
     tick = font_size * 0.6
     width_label = svg_text(
         f"{format_svg_number(annotations.board_width_mm)} mm",
-        x=layer_x + annotations.board_width_mm * scale / 2,
+        x=layer_x + annotations.board_width_mm * display_scale / 2,
         y=dimension_y + font_size * 1.5,
         font_size=font_size,
         element_id="dimension-width-label",
@@ -115,16 +119,16 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
     height_label = svg_text(
         f"{format_svg_number(annotations.board_height_mm)} mm",
         x=height_label_x,
-        y=layer_y + annotations.board_height_mm * scale / 2,
+        y=layer_y + annotations.board_height_mm * display_scale / 2,
         font_size=font_size,
         element_id="dimension-height-label",
         extra=(
             f'transform="rotate(90 {format_svg_number(height_label_x)} '
-            f'{format_svg_number(layer_y + annotations.board_height_mm * scale / 2)})"'
+            f'{format_svg_number(layer_y + annotations.board_height_mm * display_scale / 2)})"'
         ),
     )
-    board_width = annotations.board_width_mm * scale
-    board_height = annotations.board_height_mm * scale
+    board_width = annotations.board_width_mm * display_scale
+    board_height = annotations.board_height_mm * display_scale
     outline_label = svg_text(
         "declared board outline",
         x=layer_x,
@@ -134,13 +138,19 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
     )
     scale_label = svg_text(
         "10 mm",
-        x=layer_x + 5 * scale,
+        x=layer_x + 5 * display_scale,
         y=scale_bar_y + font_size * 1.3,
         font_size=font_size,
         anchor="middle",
     )
     body: list[str] = [
         (
+            f'<g id="layer-view-frame" '
+            f'data-display-scale="{format_svg_number(zoom)}" '
+            f'transform="translate({format_svg_number(layer_x)} '
+            f'{format_svg_number(layer_y)}) scale({format_svg_number(zoom)}) '
+            f'translate(-{format_svg_number(layer_x)} '
+            f'-{format_svg_number(layer_y)})">'
             f'<svg id="layer-view" x="{format_svg_number(layer_x)}" '
             f'y="{format_svg_number(layer_y)}" '
             f'width="{format_svg_number(raw_width_mm)}" '
@@ -148,6 +158,7 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
             f'data-raw-width="{measured.width}" '
             f'data-raw-height="{measured.height}" viewBox="{raw_view_box}"'
             f"{(' ' + raw_attributes) if raw_attributes else ''}>{raw_inner}</svg>"
+            "</g>"
         ),
         (
             f'<g id="board-outline" fill="none" stroke="{COLOR_FRONT}" '
@@ -190,7 +201,7 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
         (
             f'<g id="scale-bar"><line x1="{format_svg_number(layer_x)}" '
             f'y1="{format_svg_number(scale_bar_y)}" '
-            f'x2="{format_svg_number(layer_x + 10 * scale)}" '
+            f'x2="{format_svg_number(layer_x + 10 * display_scale)}" '
             f'y2="{format_svg_number(scale_bar_y)}" stroke="{COLOR_EDGE}" '
             f'stroke-width="{format_svg_number(stroke * 2)}"/>'
             f"{scale_label}"
@@ -215,6 +226,17 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
             y=note_y,
             font_size=font_size,
             element_id="orientation-note",
+            fill=COLOR_TEXT_MUTED,
+        )
+    )
+    body.append(
+        svg_text(
+            f"displayed at ×{format_svg_number(zoom)} "
+            "(dimensions and scale bar are true board mm)",
+            x=layer_x,
+            y=display_scale_note_y,
+            font_size=font_size,
+            element_id="display-scale-note",
             fill=COLOR_TEXT_MUTED,
         )
     )

@@ -11,7 +11,11 @@ import pytest
 from acd.adapters.kicad.cli import KicadCli
 from acd.adapters.kicad.visual_projection import KicadVisualRenderer, wrap_kicad_layer_svg
 from acd.core.process import ExternalToolError
-from acd.core.visual_projection import LayerViewAnnotations, nested_view_geometry
+from acd.core.visual_projection import (
+    LayerViewAnnotations,
+    measure_svg_resolution,
+    nested_view_geometry,
+)
 
 _FAKE_KICAD = """\
 #!/usr/bin/env python3
@@ -208,6 +212,10 @@ def test_renderer_supports_layered_layout_view(
         "24.9936",
         ("0.0000", "0.0000", "29.9974", "24.9936"),
     )
+    layer_view_frame = re.search(rb'<g id="layer-view-frame"[^>]*>', wrapped)
+    assert layer_view_frame is not None
+    assert b'data-display-scale="' in layer_view_frame.group(0)
+    assert re.search(rb'transform="[^"]*scale\(', layer_view_frame.group(0))
     layer_view = re.search(rb'<svg id="layer-view"[^>]*>', wrapped)
     assert layer_view is not None
     assert (
@@ -219,6 +227,49 @@ def test_renderer_supports_layered_layout_view(
         wrapped,
     )
     assert len(list(tmp_path.glob(".*.raw"))) == 0
+
+
+def test_layer_wrapper_scales_display_without_changing_nested_geometry() -> None:
+    small_raw = (
+        b'<svg width="30mm" height="25mm" viewBox="0 0 30 25">'
+        b"<title>SVG Image created as small.svg date 2026-08-19T03:45:00Z </title>"
+        b"</svg>"
+    )
+    large_raw = (
+        b'<svg width="300mm" height="200mm" viewBox="0 0 300 200">'
+        b"<title>SVG Image created as large.svg date 2026-08-19T03:45:00Z </title>"
+        b"</svg>"
+    )
+
+    for raw, layer_annotations, expected_geometry, expected_direction in (
+        (
+            small_raw,
+            LayerViewAnnotations("small", "F.Cu", 30.0, 25.0, 2),
+            ("30", "25", ("0", "0", "30", "25")),
+            "greater",
+        ),
+        (
+            large_raw,
+            LayerViewAnnotations("large", "F.Cu", 300.0, 200.0, 2),
+            ("300", "200", ("0", "0", "300", "200")),
+            "less",
+        ),
+    ):
+        wrapped = wrap_kicad_layer_svg(raw, layer_annotations)
+        resolution = measure_svg_resolution(wrapped)
+        assert resolution.width == "240mm"
+        assert float(resolution.height[:-2]) == resolution.view_box[3]
+        assert nested_view_geometry(wrapped, "layer-view") == expected_geometry
+        frame = re.search(
+            rb'<g id="layer-view-frame"[^>]*data-display-scale="([^"]+)"',
+            wrapped,
+        )
+        assert frame is not None
+        display_scale = float(frame.group(1))
+        if expected_direction == "greater":
+            assert display_scale > 1
+        else:
+            assert display_scale < 1
 
 
 def test_layered_layout_view_export_keeps_the_drawing_sheet(
