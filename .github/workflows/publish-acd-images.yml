@@ -174,8 +174,10 @@ jobs:
         run: |
           set -euo pipefail
           dispatch_ci() {
-            # GITHUB_TOKEN-driven push/pull_request events never start workflows, so CI
-            # for the lock branch and for main after the merge is started explicitly.
+            # GITHUB_TOKEN-driven push/pull_request events never produce a real gate:
+            # at most a stillborn pull_request run is recorded (cancelled before merge
+            # below), so CI for the lock branch and for main after the merge is
+            # started explicitly.
             local ref="$1" base_sha="$2" started run_id=""
             # Reset per-call so a previous dispatch's conclusion cannot leak
             # into the summary when this run is not observed.
@@ -260,6 +262,15 @@ jobs:
           if ! dispatch_ci "$branch" "$base_sha"; then
             echo "lock PR checks failed; the lock PR was left open for manual review" >> "$GITHUB_STEP_SUMMARY"
             exit 1
+          fi
+          # A pull_request-triggered ci.yml run is still recorded for the bot PR even
+          # though the dispatched run above is the gate. The run sits in startup while
+          # the merge below deletes the branch, then dies with a spurious "workflow
+          # file issue" failure. Cancel it first so it ends as cancelled instead.
+          pr_ci_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?branch=${branch}&event=pull_request&per_page=10" \
+            --jq '[.workflow_runs[] | select(.status != "completed")][0].id // empty' || true)
+          if [ -n "$pr_ci_run" ]; then
+            gh run cancel --repo "$GITHUB_REPOSITORY" "$pr_ci_run" || true
           fi
           gh pr merge --repo "$GITHUB_REPOSITORY" --squash --delete-branch "$pr_url"
           # The post-merge main CI is observational: its conclusion (including
