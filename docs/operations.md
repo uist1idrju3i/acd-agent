@@ -1100,7 +1100,10 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 機械解析のFEM経路で使うCalculiXはGPLツールのため、ACDへimportせず
 `acd.core.process.run_tool`から`ccx` subprocessとしてだけ起動する。tools imageの
 DockerfileにはUbuntu archiveの`calculix-ccx`を追加し、`scripts/measure_image_tools.py`
-が`ccx -v`から版を抽出する。現行のdigest lockにはまだccxの測定値が無いため、
+が`ccx -v`から版を抽出する。`ccx -v`はstdoutへ`This is Version 2.21`形式の
+版バナーを出して終了コード201で終わるため、probe経路ではバナーが読めたときだけ
+非ゼロ終了を成功として扱う（解析実行`ccx <jobname>`は正常終了で0）。現行の
+digest lockにはまだccxの測定値が無いため、
 `docker/image-digests.json`へ版を推測記入せず、依存更新レポートでは
 `未計測（次回publishで記録）`として扱う。imageをpublishして実測した後にだけlockへ
 転記する。

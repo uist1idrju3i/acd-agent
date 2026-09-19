@@ -17,7 +17,11 @@ from acd.schema import (
 )
 
 CCX_FORMAT_VERSION = "1"
-_VERSION_RE = re.compile(r"(?:CalculiX|ccx)[^\d]*([0-9]+\.[0-9]+)", re.IGNORECASE)
+_VERSION_RE = re.compile(
+    r"(?:version|calculix|ccx)[^\d]*([0-9]+\.[0-9]+)", re.IGNORECASE
+)
+# ccx -v prints its version banner on stdout and exits 201.
+_CCX_VERSION_EXIT_CODES = frozenset({0, 201})
 _NUMBER_RE = r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?"
 
 
@@ -158,6 +162,7 @@ def run_ccx(inp: Path, workdir: Path, *, version_pin: str = "2.21") -> FemRawRes
             envelope_path=envelope,
             target_revision="r0",
             measurement_conditions="version probe",
+            allowed_exit_codes=_CCX_VERSION_EXIT_CODES,
         )
     except (ExternalToolError, OSError) as exc:
         return FemRawResult("unknown", None, "", (f"ccx tool unavailable: {exc}",))
