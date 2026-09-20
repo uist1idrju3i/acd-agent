@@ -154,7 +154,6 @@ def test_fem_version_mismatch_is_unknown() -> None:
 def test_fem_missing_tool_is_unknown(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     from acd.core.mechanical import fem
 
-
     def missing(**_kwargs: object) -> object:
         raise fem.ExternalToolError("ccx not found")
 
@@ -163,6 +162,34 @@ def test_fem_missing_tool_is_unknown(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     inp.write_text("*HEADING\n", encoding="utf-8")
     result = run_ccx(inp, tmp_path)
     assert result.status == "unknown"
+
+
+def test_ccx_version_probe_accepts_real_banner(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from types import SimpleNamespace
+
+    from acd.core.mechanical import fem
+
+    calls: list[dict[str, object]] = []
+
+    def fake_run_tool(**kwargs: object) -> SimpleNamespace:
+        calls.append(kwargs)
+        if kwargs["command"] == ["ccx", "-v"]:
+            return SimpleNamespace(stdout="\nThis is Version 2.21\n", stderr="")
+        (tmp_path / "model.dat").write_text(
+            (ROOT / "fixtures/fem/gd1-drop.dat").read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+        return SimpleNamespace(stdout="", stderr="")
+
+    monkeypatch.setattr(fem, "run_tool", fake_run_tool)
+    inp = tmp_path / "model.inp"
+    inp.write_text("*HEADING\n", encoding="utf-8")
+    raw = run_ccx(inp, tmp_path)
+    assert raw.status == "pass"
+    assert raw.ccx_version == "2.21"
+    assert calls[0]["allowed_exit_codes"] == frozenset({0, 201})
 
 
 @pytest.mark.skipif(shutil.which("ccx") is None, reason="CalculiX is unavailable")

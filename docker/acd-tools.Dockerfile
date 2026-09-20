@@ -2,11 +2,11 @@ FROM ubuntu:26.04 AS tools-build
 
 ARG FREEROUTING_VERSION=2.4.1
 ARG FREEROUTING_SHA256=251101c3eeac22d7e7dfcf6796603279e5d1000283eb82d8f093780f7afc6aa9
-ARG SEMERU_JRE_VERSION=26.0.2.10
-ARG SEMERU_JRE_SHA256=0de86d8ed8d1a764cfa5839bef0283c562f30fd902a01ec406f01143e5bec1aa
-ARG UV_VERSION=0.12.13
-ARG UV_SHA256=745765a3b6e360ad76743599ae5c42e9278c7edf8bbff9fc76d05bf2623a04dd
-ARG GCOVR_VERSION=8.4
+ARG SEMERU_JRE_VERSION=27.0.0.0
+ARG SEMERU_JRE_SHA256=9e6d9c1131da124bd08eb4183f7787a9f90111fc3d62c1231976c2d37372d59e
+ARG UV_VERSION=0.12.17
+ARG UV_SHA256=fa82fd8dde8e8eefdecada6aa0889666556cfceb690d06e0c3bca49eb3070a63
+ARG GCOVR_VERSION=8.6
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
 ARG QEMU_ESP_ARCHIVE=qemu-riscv32-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz
 ARG QEMU_ESP_SHA256=547f03e04701a92cbb699f7f7d015adc1f5b5ef93cbb94c0dd9b7107e2d84e77
@@ -77,14 +77,14 @@ RUN apt-get update \
     && ccache --version \
     && curl --fail --location --silent --show-error \
         --output /tmp/semeru-jre.tar.gz \
-        "https://github.com/ibmruntimes/semeru26-binaries/releases/download/jdk-${SEMERU_JRE_VERSION}/ibm-semeru-open-jre_x64_linux_${SEMERU_JRE_VERSION}.tar.gz" \
+        "https://github.com/ibmruntimes/semeru27-binaries/releases/download/jdk-${SEMERU_JRE_VERSION}/ibm-semeru-open-jre_x64_linux_${SEMERU_JRE_VERSION}.tar.gz" \
     && echo "${SEMERU_JRE_SHA256}  /tmp/semeru-jre.tar.gz" | sha256sum --check \
     && mkdir -p /opt/jre \
     && tar -xzf /tmp/semeru-jre.tar.gz -C /opt/jre --strip-components=1 \
     && rm -f /tmp/semeru-jre.tar.gz \
     && command -v java | grep -E '^/opt/jre/bin/java$' \
     && java -version 2>&1 | grep -q 'Eclipse OpenJ9 VM' \
-    && java -version 2>&1 | grep -E 'IBM Semeru Runtime Open Edition 26\.0\.2\.10' \
+    && java -version 2>&1 | grep -E 'IBM Semeru Runtime Open Edition 27\.0\.0\.0' \
     && curl --fail --location --silent --show-error \
         --output /opt/freerouting.jar \
         "https://github.com/freerouting/freerouting/releases/download/v${FREEROUTING_VERSION}/freerouting-${FREEROUTING_VERSION}.jar" \
@@ -102,17 +102,19 @@ RUN apt-get update \
     && tar -xzf /tmp/uv.tar.gz -C /tmp \
     && install -m 0755 "/tmp/uv-x86_64-unknown-linux-gnu/uv" /usr/local/bin/uv \
     && rm -rf /tmp/uv.tar.gz /tmp/uv-x86_64-unknown-linux-gnu \
-    && uv pip install --system "gcovr==${GCOVR_VERSION}" \
+    && uv pip install --system --break-system-packages "gcovr==${GCOVR_VERSION}" \
     && gcovr --version \
     && rm -rf /var/lib/apt/lists/*
 
 FROM tools-build AS final
 
 COPY docker/kicad-3d-models.json /tmp/kicad-3d-models.json
+COPY docker/bundle_kicad_3d_models.py /tmp/bundle_kicad_3d_models.py
 
-RUN mkdir -p "${KICAD10_3DMODEL_DIR}" \
-    && python3.14 -c 'import json, pathlib, shutil; spec=json.loads(pathlib.Path("/tmp/kicad-3d-models.json").read_text(encoding="utf-8")); root=pathlib.Path("/usr/share/kicad/3dmodels"); dest=pathlib.Path("/opt/acd/kicad-3d"); [((dest / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"]).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(root / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"], dest / (e["footprint_lib"] + ".3dshapes") / e["model_rel_path"])) for e in spec["entries"]]' \
-    && rm -rf /usr/share/kicad/3dmodels
+RUN python3.14 /tmp/bundle_kicad_3d_models.py --manifest /tmp/kicad-3d-models.json \
+    && rm -rf /usr/share/kicad/3dmodels \
+        /tmp/bundle_kicad_3d_models.py \
+        /tmp/kicad-3d-models.json
 
 # Espressif QEMU for the firmware lane virtual run (pinned release archive).
 RUN curl --fail --location --silent --show-error \

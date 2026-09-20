@@ -1,48 +1,56 @@
 {
   "acd_tools": {
     "image": "ghcr.io/uist1idrju3i/acd-tools",
-    "tag": "6d694bb1370bae95f42832235e6f4f4f7f88c83d-tools",
-    "digest": "sha256:f6183da561f22b8c80197af37c700665ed6e9d273b9d1267658e61a36577dc25",
-    "published_at": "2026-09-14T09:53:54Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34829253827",
+    "tag": "488db967431387f2df7b2fdd7e6e8464b3ba6b90-tools",
+    "digest": "sha256:ef69545cabab9cccc0da36fc0994bd13b391d2daf9d993205e44e9343baa8d9b",
+    "published_at": "2026-09-19T06:01:02Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/35423979667",
     "dockerfile": "docker/acd-tools.Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
+      "ccx": "2.21",
+      "clang-tidy": "21.1.8",
       "cmake": "cmake version 4.2.3",
       "esp-idf": "ESP-IDF v6.1",
       "freerouting": "2.4.1",
+      "gcovr": "8.6",
       "git": "git version 2.53.0",
-      "java": "openjdk 26.0.2.1 2026-08-18 (IBM Semeru Runtime Open Edition 26.0.2.10, Eclipse OpenJ9 0.61.0)",
+      "java": "openjdk 27 2026-09-15 (IBM Semeru Runtime Open Edition 27.0.0.0, Eclipse OpenJ9 0.62.0)",
+      "kicad-3d-models": "allowlist_sha256=sha256:c907ed6ab11f2ec7485c3b84995fc83cf342a449c44608a49bea61519f199276;file_count=5",
       "kicad-cli": "10.0.6",
       "libcairo2": "1.18.4-3",
       "ngspice": "45.2",
       "ninja": "1.13.2",
       "python3.14": "Python 3.14.4",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
-      "uv": "uv 0.12.13 (x86_64-unknown-linux-gnu)"
+      "uv": "uv 0.12.17 (x86_64-unknown-linux-gnu)"
     }
   },
   "acd_server": {
     "image": "ghcr.io/uist1idrju3i/acd-server",
-    "tag": "6d694bb1370bae95f42832235e6f4f4f7f88c83d-latest-source",
-    "digest": "sha256:0347fd649b4100010657e11be4197dd6e7e5eee2ff4b7938a0e12da53317c693",
-    "published_at": "2026-09-14T09:53:54Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34829253827",
+    "tag": "488db967431387f2df7b2fdd7e6e8464b3ba6b90-latest-source",
+    "digest": "sha256:1173ed4d90d83d12f80eb39e43c10c03359b9b7ff7ffe0785125a9e826d60dde",
+    "published_at": "2026-09-19T06:01:02Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/35423979667",
     "dockerfile": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
+      "ccx": "2.21",
+      "clang-tidy": "21.1.8",
       "cmake": "cmake version 4.2.3",
       "esp-idf": "ESP-IDF v6.1",
       "freerouting": "2.4.1",
+      "gcovr": "8.6",
       "git": "git version 2.53.0",
-      "java": "openjdk 26.0.2.1 2026-08-18 (IBM Semeru Runtime Open Edition 26.0.2.10, Eclipse OpenJ9 0.61.0)",
+      "java": "openjdk 27 2026-09-15 (IBM Semeru Runtime Open Edition 27.0.0.0, Eclipse OpenJ9 0.62.0)",
+      "kicad-3d-models": "allowlist_sha256=sha256:c907ed6ab11f2ec7485c3b84995fc83cf342a449c44608a49bea61519f199276;file_count=5",
       "kicad-cli": "10.0.6",
       "libcairo2": "1.18.4-3",
       "ngspice": "45.2",
       "ninja": "1.13.2",
       "python3.14": "Python 3.14.4",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
-      "uv": "uv 0.12.13 (x86_64-unknown-linux-gnu)"
+      "uv": "uv 0.12.17 (x86_64-unknown-linux-gnu)"
     }
   }
 }

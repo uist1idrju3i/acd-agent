@@ -1,7 +1,7 @@
 # ACDドキュメント索引
 
 > ステータス: Accepted
-> 対象: OpenHands Software Agent SDK v1.47.0
+> 対象: OpenHands Software Agent SDK v1.49.2
 
 | 文書 | 内容 |
 |---|---|

@@ -11,7 +11,10 @@
 機械解析のFEM経路で使うCalculiXはGPLツールのため、ACDへimportせず
 `acd.core.runtime.process.run_tool`から`ccx` subprocessとしてだけ起動する。tools imageの
 DockerfileにはUbuntu archiveの`calculix-ccx`を追加し、`scripts/measure_image_tools.py`
-が`ccx -v`から版を抽出する。現行のdigest lockにはまだccxの測定値が無いため、
+が`ccx -v`から版を抽出する。`ccx -v`はstdoutへ`This is Version 2.21`形式の
+版バナーを出して終了コード201で終わるため、probe経路ではバナーが読めたときだけ
+非ゼロ終了を成功として扱う（解析実行`ccx <jobname>`は正常終了で0）。現行の
+digest lockにはまだccxの測定値が無いため、
 `docker/image-digests.json`へ版を推測記入せず、依存更新レポートでは
 `未計測（次回publishで記録）`として扱う。imageをpublishして実測した後にだけlockへ
 転記する。
@@ -57,7 +60,9 @@ estimateであり、authoritative Evidenceではない。
 
 FW coverageのhost-side parserは`gcovr --json`の出力だけをsubprocess境界で
 読み取り、gcovr自体をACDへimportしない。tools imageでは`GCOVR_VERSION`を固定した
-PyPI packageを`uv pip install --system`で導入し、`measure_image_tools.py`が
+PyPI packageを`uv pip install --system --break-system-packages`で導入し
+（Ubuntu 26.04のpython3.14はPEP 668のexternally managed環境で、`--system`だけでは
+uvが導入を拒否する）、`measure_image_tools.py`が
 `gcovr --version`を測定する。image lockに新しい測定値が無い間は
 `docker/image-digests.json`へ推測値を追記せず、次回publishで記録する。
 依存checkerはDocker ARGをPyPIのgcovr versionと照合する。
@@ -160,14 +165,49 @@ SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajor�
   - 採否: 採用。`libraries/README.md`の取得commit・取得日を更新し、`tests/core/test_cern_submodule_pin.py`とcatalog testで整合を確認した。
 - **保留継続**: cadquery-ocp 8.0.1.0.0（build123d 0.11.1が`cadquery-ocp-novtk<8.0`を要求）、Python 3.14（target 3.12、SDK v1.47.0 baseline）は`scripts/dependency_update_deferrals.json`の2026-12-01期限のまま据え置く。
 
+#### 2026-09 更新記録（#517）
+
+- **OpenHands SDK v1.49.2**
+  - 一次情報: [v1.48.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.48.0)、[v1.49.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.49.0)、[v1.49.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.49.1)、[v1.49.2](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.49.2)
+  - 破壊的変更/新機能・採否: 「依存・版・破壊的変更の記録」節のv1.47.0→v1.49.2項に記録する。submodule、`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`AGENTS.md`、`docs/openhands-sdk-capabilities.json`を同じ変更で更新した。
+- **ruff 0.16.8**
+  - 一次情報: [Ruff 0.16.8 release](https://github.com/astral-sh/ruff/releases/tag/0.16.8)
+  - 破壊的変更/新機能: bug fixのみ（`SIM117` nested async with、`SIM109` operand順、`UP040`の括弧保存とTypeVarTuple除外、`RUF043`の`\Z`検出、`__lazy_modules__`・PEP-728 TypedDict対応等）。破壊的変更と新規stable ruleの追加はない。
+  - 採否: 採用。dev groupの`ruff>=0.16.8`へ更新し、`uv run ruff check`は変更なしで通過する。
+- **uv.lock間接依存**
+  - 一次情報: `uv lock --upgrade`およびIssue #517の候補表。
+  - 破壊的変更/新機能: boto3/botocore 1.43.98、cachetools 7.2.0、cyclopts 4.25.3、filelock 4.0.1、fsspec 2026.9.0、google-api-core 2.38.0、greenlet 3.5.6、grpcio 1.84.0、huggingface-hub 1.32.0、idna 3.20、litellm 1.101.0、lmnr 0.7.63、multidict 6.9.0、platformdirs 4.11.11、posthog 7.58.0、propcache 0.5.4、py-key-value-aio 0.4.6、pypdf 6.19.0、sqlalchemy 2.0.54、threadpoolctl 3.7.0、urllib3 2.8.0、uvicorn 0.53.0、wcwidth 0.8.4、yarl 1.25.1のminor/patch更新と、macOS限定の新規間接依存`pyobjc-framework-pubsub` 12.2.2の追加。
+  - 採否: 採用。`[tool.uv] constraint-dependencies`（`mcp<2`、`protobuf<7`）は維持する。SDK v1.49.2が`fastmcp>=3.2.0,<4`をpinするため、fastmcpは3.4.7に留まる。
+- **uv 0.12.17（Docker ARG `UV_VERSION`）**
+  - 一次情報: [0.12.14](https://github.com/astral-sh/uv/releases/tag/0.12.14)、[0.12.15](https://github.com/astral-sh/uv/releases/tag/0.12.15)、[0.12.16](https://github.com/astral-sh/uv/releases/tag/0.12.16)、[0.12.17](https://github.com/astral-sh/uv/releases/tag/0.12.17)
+  - 破壊的変更/新機能: 0.12.14はdownload中断時のHTTP Range resume、エラー描画の`cause:`表示、package-operationのexit code分類（expected failure=1、operational/internal failure=2）。0.12.15は0.12.14のsymlink destination回帰修正。0.12.16はindex供給hashによるwheel/sdist検証、build-constraint-dependenciesのhash対応。0.12.17はlockfile内Git archive pathの明示拒否。CLIと既定値の破壊的変更はない。
+  - 採否: 採用。`UV_VERSION`と`UV_SHA256`（release assetの`.sha256`から取得）を同じ変更で更新した。exit code分類は`uv sync`等の非ゼロ判定のみの現行scriptへ影響しない。
+- **gcovr 8.6（Docker ARG `GCOVR_VERSION`）**
+  - 一次情報: [gcovr 8.5](https://github.com/gcovr/gcovr/releases/tag/8.5)、[8.6](https://github.com/gcovr/gcovr/releases/tag/8.6)
+  - 破壊的変更/新機能: 8.5は`--lcov-test-name`の空白禁止、`--lcov-format-1.x`のdeprecation、HTML templateのgrid layout化、`gcov-exclude-directory`等のconfig key改名（旧名はalias存続）。8.6はPython 3.9 support終了、Python 3.14対応、merge error対策の関数名line番号付与等。
+  - 採否: 採用。ACDの利用は`gcovr --json --root <dir> <dir>`だけであり、変更対象のoptionとHTML出力を使用しない。image内Pythonは3.14のため8.6のPython要件を充足する。
+- **IBM Semeru 27.0.0.0（Docker ARG `SEMERU_JRE_VERSION`）**
+  - 一次情報: [jdk-27.0.0.0 release](https://github.com/ibmruntimes/semeru27-binaries/releases/tag/jdk-27.0.0.0)とrelease metadata JSON。
+  - 破壊的変更/新機能: Java 27 GA（2026-09-16公開、Eclipse OpenJ9 0.62.0、build 27+35）。以前はprereleaseのみでmajor更新を保留していたが、GAが出たため採用へ転換する。download repositoryは`semeru26-binaries`から`semeru27-binaries`へ変わる。
+  - 採否: 採用。`SEMERU_JRE_VERSION=27.0.0.0`、`SEMERU_JRE_SHA256=9e6d9c1131da124bd08eb4183f7787a9f90111fc3d62c1231976c2d37372d59e`、download URLのrepositoryを同じ変更で更新し、build時の`java -version`検査をSemeru 27.0.0.0へ合わせた。FreeRouting 2.4.1はJava 25+ baselineのためJRE 27上で動作する。image digest lockはpublish後に別変更で更新する。
+- **ohwr/cern-kicad-libs `9dba1850616da7fb1a4834531a3a1f0fff7c8666`**
+  - 一次情報: upstream commit `9dba185`（CERN KiCad Library Bot、2026-09-19）。`1c71207c`との差分は9ファイル追加・18ファイル変更・0削除で、`LICENSE`・`LICENSES/`・`.reuse/dep5`に変更はない。
+  - 破壊的変更/新機能: 既存部品の削除はなく、GD1 fixtureはCERN catalog部品を参照しないため`parts_catalog_sha256`を記録した既存Evidenceに影響しない。`CERN.sqlite`のhashは変わるため、以後の`catalog="cern"`選択は新しい`parts_catalog_sha256`を記録する。
+  - 採否: 採用。`libraries/README.md`の取得commit・取得日を更新し、`tests/core/test_cern_submodule_pin.py`とcatalog testで整合を確認した。
+- **build123d 0.12.0**
+  - 一次情報: [build123d 0.12.0 release](https://github.com/gumyr/build123d/releases/tag/0.12.0)、[PyPI metadata](https://pypi.org/pypi/build123d/json)
+  - 破壊的変更/新機能: `threejs-materials>=1.2.1,<1.3.0`を要求し、同packageが`pillow<12.3.0`をpinする。`openhands-sdk`の`pillow>=12.3.0`と両立せず`uv lock`がunsatisfiableになる。
+  - 採否: 保留。`src/acd/adapters/cad/visual_projection.py`は`add_layer`の0-255 RGB tuple指定等、0.12.0でdeprecateされたAPIを使うため、単独での更新はAPI差分吸収も必要になる。pillow競合が解消する新版かSDK側pin緩和を待ち、`scripts/dependency_update_deferrals.json`へ2026-12-01の再確認期限付きで記録する。
+- **保留継続**: cadquery-ocp 8.0.1.0.0（build123d 0.11.1が`cadquery-ocp-novtk<8.0`を要求）、Python 3.14（target 3.12、SDK v1.49.2 baselineへ理由を更新）は`scripts/dependency_update_deferrals.json`の2026-12-01期限のまま据え置く。
+
 
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、
 採否を本節へ追記する。現行の基準は次のとおりである。
 
-- SDKは`vendor/software-agent-sdk`のv1.47.0、commit
-  `50080b58d35b4824fda25fca2345d80bcd08aeff`に固定する。更新前にpinned checkoutの
+- SDKは`vendor/software-agent-sdk`のv1.49.2、commit
+  `d128a786ee2ee570eb23ff5862ec148b43cfad0b`に固定する。更新前にpinned checkoutの
   API、上流release tag、CHANGELOGまたは一次リリース情報を確認する。
 - v1.42.1からv1.43.1への更新では、Agent Pluginsのmanifest loaderとclosed
   `plugin.json` schema、structured task outcome preset、shell semanticsの
@@ -234,6 +274,40 @@ SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajor�
   （0.11.0の`prompt()`引数順変更を回避）、lockは0.12.1から0.10.1へ下がる。ACDはACPを
   使用しないため影響はない。`AgentBase.model_dump_succint`（deprecated）が削除された。
   ACDは使用していない。
+- v1.47.0からv1.49.2への更新（一次情報: [v1.48.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.48.0)、
+  [v1.49.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.49.0)、
+  [v1.49.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.49.1)、
+  [v1.49.2](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.49.2)）では、
+  次の既定動作改善をSDK経路を通じて採用する。いずれもL2の漏洩防止・停止境界を強化する
+  方向の変更であり、L1判定、authoritative Evidence、approval規則を変更しない。
+  - `SecretRegistry`のmasking対象にlibtmuxのlog出力が追加され（#4871）、API key
+    パターンに`sk-oh-*`が追加された（#4947）。ACDが`Conversation`へ設定する
+    `SecretRegistry`の効果範囲が広がる。
+  - Agent Pluginsのpackage pathにcontainment検査が強制された（#5101）。
+    fail-closed方向の既定強化であり、ACDのplugin境界を緩めない。
+  - saved secretはlookup時にscopeで解決される（#5017）。ACDはSDKのsaved secret
+    機構を利用しないため既定動作への影響はない。
+  - hard quota exhaustion時にfallback LLMへ即時failoverする（#4917）。LLM既定
+    動作の改善であり、ACDの判定経路を変更しない。
+  - pluginのskill発見は`load_skills_from_dir`へ委譲された（#5086）。同関数の新規
+    引数はoptionalであり、ACDの`PluginSource(source="github:…", repo_path="plugins/acd")`
+    の既存利用に互換性問題はない。
+  - Agent Pluginsへ`mcp.json` loaderが追加された（#5093）。SDKの公開追加surface
+    として記録するが、upstreamの`AgentPluginsFormat`は引き続き未登録であり、ACDの
+    plugin format採用範囲は変えない。
+  - SDKが`fastmcp>=3.2.0,<4`でpinするようになり（#5153）、unlocked installでも
+    fastmcp 4系へ上がらなくなった。ACDの`[tool.uv] constraint-dependencies`
+    （`mcp<2`、`protobuf<7`）と整合する。
+  - 新module `workspace.agent_sandbox`（Kubernetes agent-sandbox実行）を
+    `docs/openhands-sdk-capabilities.json`へ不採用として登録した。
+    `DockerWorkspace`以外の実行環境はOpenHands専用拡張の境界外である。
+- 同更新の不採用項目: agent-serverのper-conversation Docker runtime mode、
+  python-minimal image、Docker conversation metadata/catalog/proxy root/restart
+  修正、deprecated desktop URL endpointの削除（いずれもagent-server側）。
+  verified model listの最新2系統への整理と新model追加（model registryはACDの
+  対象外）。cryptography 48→50のmajor bump（transitive、ACDの直接使用なし）。
+- 同更新の破壊的変更: `LLM.modify_params`がv1.47.0のremoval deadlineどおり
+  削除された（#4954）。ACDは使用していない。
 - Python依存は`pyproject.toml`とlockを正とし、既定値・公開API・破壊的変更を確認して
   `docs/openhands-sdk-capabilities.json`の採否へ反映する。Markdown表は
   `scripts/verify_sdk_capabilities.py`で生成し、採否enumと代表APIの検査を通す。

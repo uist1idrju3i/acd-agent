@@ -1,6 +1,6 @@
 {
-  "sdk_version": "1.47.0",
-  "submodule_commit": "50080b58d35b4824fda25fca2345d80bcd08aeff",
+  "sdk_version": "1.49.2",
+  "submodule_commit": "d128a786ee2ee570eb23ff5862ec148b43cfad0b",
   "scanned_packages": [
     {
       "prefix": "sdk",
@@ -1240,6 +1240,15 @@
         }
       ]
 
+    },
+    {
+      "domain": "workspace.agent_sandbox",
+      "modules": ["workspace.agent_sandbox", "workspace.agent_sandbox.*"],
+      "representative_apis": ["AgentSandboxWorkspace"],
+      "use": "Kubernetes agent-sandbox実行",
+      "adoption": "不採用",
+      "rationale": "`DockerWorkspace`以外の実行環境はOpenHands専用拡張の境界外",
+      "verification": "pinned API確認、採用しない"
     },
     {
       "domain": "workspace.apptainer",

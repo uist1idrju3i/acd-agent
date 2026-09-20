@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
+import pytest
 from scripts.measure_image_tools import main
 
 _IMAGE = "ghcr.io/example/acd-tools@sha256:" + "a" * 64
@@ -13,7 +15,7 @@ _IMAGE = "ghcr.io/example/acd-tools@sha256:" + "a" * 64
 def _outputs() -> dict[tuple[str, ...], str]:
     return {
         ("ccache", "--version"): "ccache version 4.12.3\n",
-        ("ccx", "-v"): "CalculiX Version 2.21\n",
+        ("ccx", "-v"): "This is Version 2.21\n",
         ("clang-tidy", "--version"): "LLVM version 20.1.8\n",
         ("cmake", "--version"): "cmake version 4.2.3\n",
         (
@@ -107,6 +109,45 @@ def test_measurement_parse_failure_is_fail_closed(tmp_path: Path) -> None:
 
     out = tmp_path / "tools.json"
     assert main(["--image-ref", _IMAGE, "--out", str(out)], run=fake_run) == 1
+    assert not out.exists()
+
+
+def _subprocess_outputs(
+    monkeypatch: pytest.MonkeyPatch, exit_codes: dict[tuple[str, ...], int]
+) -> dict[tuple[str, ...], str]:
+    outputs = _outputs()
+
+    def fake_run(
+        command: list[str], **_kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        argv = tuple(command[len(["docker", "run", "--rm", "--entrypoint", "", _IMAGE]) :])
+        return subprocess.CompletedProcess(
+            list(command), exit_codes.get(argv, 0), outputs[argv], ""
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    return outputs
+
+
+def test_ccx_banner_nonzero_exit_is_accepted(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    outputs = _subprocess_outputs(monkeypatch, {("ccx", "-v"): 201})
+    outputs[("ccx", "-v")] = "\nThis is Version 2.21\n"
+
+    out = tmp_path / "tools.json"
+    assert main(["--image-ref", _IMAGE, "--out", str(out)]) == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["ccx"] == "2.21"
+
+
+def test_nonzero_exit_without_banner_is_fail_closed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    outputs = _subprocess_outputs(monkeypatch, {("ccx", "-v"): 201})
+    outputs[("ccx", "-v")] = "segfault\n"
+
+    out = tmp_path / "tools.json"
+    assert main(["--image-ref", _IMAGE, "--out", str(out)]) == 1
     assert not out.exists()
 
 
