@@ -100,7 +100,7 @@ def test_uncovered_ground_region_diagnostic_describes_enclosures_tracks_and_leve
         model,
         routes,
         (("F.Cu", region),),
-        layer_of_region=lambda source: str(source),
+        layer_of_region=str,
     )
 
     assert len(details) == 1

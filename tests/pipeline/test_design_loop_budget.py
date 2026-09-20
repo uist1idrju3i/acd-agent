@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-import acd.pipeline.design_loop as design_loop
+from acd.pipeline import design_loop
 from acd.pipeline.design_loop import DesignLoopConfig, run_design_loop
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1"

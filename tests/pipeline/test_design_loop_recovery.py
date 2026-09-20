@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-import acd.pipeline.design_loop as design_loop  # pyright: ignore[reportMissingTypeStubs]
+from acd.pipeline import design_loop  # pyright: ignore[reportMissingTypeStubs]
 from acd.pipeline.design_loop import (  # pyright: ignore[reportMissingTypeStubs]
     DESIGN_LOOP_STAGE_IDS,
     DesignLoopConfig,

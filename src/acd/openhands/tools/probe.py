@@ -51,6 +51,7 @@ def _run_version_command(
             text=True,
             encoding="utf-8",
             timeout=30,
+            check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         return "unknown", f"version command failed: {exc}"

@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-import scripts.pre_order_gate as pre_order_gate
+from scripts import pre_order_gate
 
 from acd.core.manufacturing.order_total import (
     OrderSubtotal,

@@ -154,7 +154,7 @@ def _measure(key: str, output: str) -> str:
         return _first_line(output, key)
     if key == "java":
         return _java_version(output)
-    if key == "libcairo2" or key == "ninja":
+    if key in {"libcairo2", "ninja"}:
         return _single_line(output, key)
     if key == "esp-idf":
         match = re.search(r"ESP-IDF v[^\s]+", output)

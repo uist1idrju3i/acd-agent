@@ -85,7 +85,7 @@ def _capability_conflicts(
             )
             continue
         conflict: str | None = None
-        if field == "gpio_count" or field == "memory_kb":
+        if field in {"gpio_count", "memory_kb"}:
             if (
                 isinstance(need_value, int)
                 and isinstance(cap_value, int)

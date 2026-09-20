@@ -6,7 +6,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-import acd.pipeline.design_loop as design_loop
+from acd.pipeline import design_loop
 from acd.pipeline.design_loop import loop, stages
 from acd.pipeline.lane_plan import DESIGN_LOOP_LANE_IDS, DESIGN_LOOP_STAGE_IDS
 
