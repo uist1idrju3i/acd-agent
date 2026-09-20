@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.process import sha256_paths
+from acd.core.runtime.process import sha256_paths
 from acd.pipeline.firmware_evidence import (
     FirmwareEvidenceError,
     build_firmware_evidence,

@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TextIO
 
-from acd.core.lane_log import append_lane_log_footer, write_lane_log_header
+from acd.core.runtime.lane_log import append_lane_log_footer, write_lane_log_header
 from acd.openhands.container_runtime import (
     DEFAULT_COMMAND_TIMEOUT,
     DEFAULT_DOCKER_CLI_TIMEOUT,

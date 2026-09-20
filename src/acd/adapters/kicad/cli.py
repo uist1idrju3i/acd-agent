@@ -12,8 +12,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from acd.core.fileio import read_json
-from acd.core.process import DEFAULT_TOOL_TIMEOUT_S, ExternalToolError, ToolRun, run_tool
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.process import DEFAULT_TOOL_TIMEOUT_S, ExternalToolError, ToolRun, run_tool
 
 _EXIT_OK_OR_VIOLATIONS = frozenset({0, 5})
 

@@ -14,7 +14,7 @@ from acd.adapters.kicad.board import generate_board
 from acd.adapters.kicad.library import FootprintLibrary, SymbolLibrary
 from acd.adapters.kicad.paper import select_paper
 from acd.adapters.kicad.schematic import PWR_FLAG_LIB_ID, generate_schematic
-from acd.core.electrical import (
+from acd.core.electrical.electrical import (
     ComponentView,
     ElectricalLane,
     LibraryPin,

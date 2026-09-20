@@ -11,15 +11,15 @@ from typing import TYPE_CHECKING, Any, cast
 
 from acd.adapters.cad.constants import CAD_LINEAR_DEFLECTION_MM
 from acd.adapters.cad.mechanical_dfm import MechanicalDfmFinding, check_mechanical_dfm
-from acd.core.cad_normalize import parse_stl
-from acd.core.mechanical import (
+from acd.core.mechanical.cad_normalize import parse_stl
+from acd.core.mechanical.mechanical import (
     BoardEdgeOverhangView,
     ComponentBodyView,
     EnclosureView,
     MechanicalLane,
 )
-from acd.core.mechanism_rules import MechanismFinding, check_mechanism_features
-from acd.core.parallel import PipelineStageRunner
+from acd.core.mechanical.mechanism_rules import MechanismFinding, check_mechanism_features
+from acd.core.runtime.parallel import PipelineStageRunner
 
 if TYPE_CHECKING:
     from acd.adapters.cad.motion_sweep import MotionSweepFinding

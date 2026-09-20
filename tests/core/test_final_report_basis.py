@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.final_report_basis import (
+from acd.core.runtime.final_report_basis import (
     collect_design_values,
     collect_final_report_basis,
     collect_source_changes,

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from scripts import verify_all
 
-from acd.core import command_runner
+from acd.core.runtime import command_runner
 
 
 def test_list_matches_stage_definitions(capsys: pytest.CaptureFixture[str]) -> None:

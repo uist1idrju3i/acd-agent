@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.naming import firmware_project_name, output_prefix, subject_node_id
+from acd.core.knowledge.naming import firmware_project_name, output_prefix, subject_node_id
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1" / "graph.json"

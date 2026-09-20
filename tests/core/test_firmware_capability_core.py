@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.firmware_capability import (
+from acd.core.firmware.firmware_capability import (
     FirmwareCapabilityContractError,
     load_firmware_capability_registry,
 )

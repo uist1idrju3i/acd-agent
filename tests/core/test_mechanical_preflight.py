@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.electrical import GraphExtractionError
-from acd.core.mechanical import REQUIRED_MECHANICAL_ATTRS, extract_mechanical_lane
-from acd.core.mechanical_preflight import check_mechanical_preflight
+from acd.core.electrical.electrical import GraphExtractionError
+from acd.core.mechanical.mechanical import REQUIRED_MECHANICAL_ATTRS, extract_mechanical_lane
+from acd.core.mechanical.mechanical_preflight import check_mechanical_preflight
 from acd.schema.design_graph import DesignGraph
 
 ROOT = Path(__file__).resolve().parents[2]

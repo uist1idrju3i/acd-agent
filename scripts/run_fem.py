@@ -14,14 +14,14 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.fem import (
+from acd.core.mechanical.fem import (
     FemAnalysisError,
     evaluate_fem,
     fem_markdown,
     generate_ccx_input,
     run_ccx,
 )
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.schema import DesignGraph, FemRequest
 
 

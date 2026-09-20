@@ -17,7 +17,7 @@ from typing import cast
 
 import pytest
 
-from acd.core.parallel import (
+from acd.core.runtime.parallel import (
     DEFAULT_CAD_STAGE_WORKERS,
     PipelineStageRunner,
     _warm_up_worker,

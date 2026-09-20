@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 from scripts import run_design_lanes
 
-from acd.core import command_runner
-from acd.core.command_runner import CommandSpec
+from acd.core.runtime import command_runner
+from acd.core.runtime.command_runner import CommandSpec
 from acd.pipeline.lane_plan import build_lane_plan
 
 FIXTURE = Path("fixtures/golden-design-1")

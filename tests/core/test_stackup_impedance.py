@@ -6,8 +6,8 @@ from typing import cast
 
 import pytest
 
-from acd.core.design_predicates import PredicateResult, evaluate_design_predicates
-from acd.core.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.electrical.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.knowledge.design_predicates import PredicateResult, evaluate_design_predicates
 from acd.schema import DesignGraph
 
 FIXTURE = Path(__file__).parents[2] / "fixtures/stackup/four-layer/graph.json"

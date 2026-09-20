@@ -11,8 +11,8 @@ from itertools import pairwise
 from pathlib import Path
 from statistics import fmean
 
-from acd.core.fileio import read_json
-from acd.core.process import source_provenance_fields
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.process import source_provenance_fields
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, PhysicalEvidence
 from acd.schema.functional_run import (
@@ -93,17 +93,11 @@ def _parse_build(
     if not version_matches:
         return _unknown_check("build log ESP-IDF version line is missing")
     if version_matches[0] != run.esp_idf_version:
-        return _failed_check(
-            "build log ESP-IDF version does not match the run declaration"
-        )
+        return _failed_check("build log ESP-IDF version does not match the run declaration")
     if "Project build complete." not in lines:
         return _failed_check("build log does not declare successful completion")
-    bin_artifact = next(
-        item for item in run.build_artifacts if item.artifact_type == "bin"
-    )
-    size_pattern = re.compile(
-        r"(?P<name>\S+) binary size 0x(?P<size>[0-9a-fA-F]+) bytes"
-    )
+    bin_artifact = next(item for item in run.build_artifacts if item.artifact_type == "bin")
+    size_pattern = re.compile(r"(?P<name>\S+) binary size 0x(?P<size>[0-9a-fA-F]+) bytes")
     size_matches = [
         (match.group("name"), int(match.group("size"), 16))
         for line in lines
@@ -111,9 +105,7 @@ def _parse_build(
     ]
     if not size_matches:
         return _unknown_check("build log binary size line is missing")
-    basename_matches = [
-        size for name, size in size_matches if name == Path(bin_artifact.path).name
-    ]
+    basename_matches = [size for name, size in size_matches if name == Path(bin_artifact.path).name]
     if not basename_matches:
         return _failed_check(
             "build log binary size line does not identify the declared bin artifact"
@@ -121,9 +113,7 @@ def _parse_build(
     if len(basename_matches) != 1:
         return _unknown_check("build log contains duplicate binary size lines")
     if basename_matches[0] != artifact_sizes[bin_artifact.path]:
-        return _failed_check(
-            "build log binary size does not match the declared bin artifact"
-        )
+        return _failed_check("build log binary size does not match the declared bin artifact")
     return FunctionalCheckReport(status="pass", measured_values={"artifact_count": 2.0})
 
 
@@ -139,9 +129,7 @@ def _parse_flash(
     if any("A fatal error occurred" in line for line in lines):
         return _failed_check("flash log reports a fatal error")
     chip_matches = [
-        match.group(1)
-        for line in lines
-        if (match := re.match(r"^Chip is (\S+)", line)) is not None
+        match.group(1) for line in lines if (match := re.match(r"^Chip is (\S+)", line)) is not None
     ]
     if not chip_matches:
         return _unknown_check("flash log chip line is missing")
@@ -160,18 +148,13 @@ def _parse_flash(
         return _unknown_check("flash log write line is missing")
     verifications = [line for line in lines if line.strip() == "Hash of data verified."]
     if len(verifications) != len(writes):
-        return _failed_check(
-            "flash verification count does not match write count"
-        )
+        return _failed_check("flash verification count does not match write count")
     app_writes = [
-        offset
-        for size, offset in writes
-        if size == bin_size and offset == run.app_flash_offset
+        offset for size, offset in writes if size == bin_size and offset == run.app_flash_offset
     ]
     if not app_writes:
         return _failed_check(
-            f"flash app image does not match offset 0x{run.app_flash_offset:x} "
-            f"and size {bin_size}"
+            f"flash app image does not match offset 0x{run.app_flash_offset:x} and size {bin_size}"
         )
     if "Hard resetting" not in "\n".join(lines):
         return _unknown_check("flash log completion marker is missing")
@@ -212,15 +195,11 @@ def _parse_led(path: Path, expectation: LedExpectation) -> FunctionalCheckReport
     ]
     if len(rising) < expectation.minimum_cycles:
         return _failed_check("LED capture has too few complete cycles")
-    period = fmean(
-        current - previous for previous, current in pairwise(rising)
-    )
+    period = fmean(current - previous for previous, current in pairwise(rising))
     frequency = 1 / period
     duration = samples[-1][0] - samples[0][0]
     high_duration = sum(
-        current[0] - previous[0]
-        for previous, current in pairwise(samples)
-        if previous[1] == 1
+        current[0] - previous[0] for previous, current in pairwise(samples) if previous[1] == 1
     )
     duty = high_duration / duration if duration > 0 else math.nan
     if (
@@ -258,9 +237,7 @@ def _parse_serial(
         match = pattern.fullmatch(line)
         if match is None:
             return _unknown_check("serial log contains a malformed sensor line")
-        timestamp_ms, temperature, humidity = (
-            float(value) for value in match.groups()
-        )
+        timestamp_ms, temperature, humidity = (float(value) for value in match.groups())
         samples.append((timestamp_ms / 1000, temperature, humidity))
     if len(samples) < expectation.minimum_samples:
         return _failed_check("serial log has too few samples")
@@ -268,9 +245,7 @@ def _parse_serial(
         return _unknown_check("serial log timestamps are not strictly increasing")
     temperatures = [sample[1] for sample in samples]
     humidities = [sample[2] for sample in samples]
-    intervals = [
-        current[0] - previous[0] for previous, current in pairwise(samples)
-    ]
+    intervals = [current[0] - previous[0] for previous, current in pairwise(samples)]
     period = fmean(intervals)
     if (
         min(temperatures) < expectation.temperature_min_deg_c
@@ -467,11 +442,7 @@ def evaluate_functional_run(
     }
     statuses = {check.status for check in checks.values()}
     overall_status = (
-        "unknown"
-        if "unknown" in statuses
-        else "fail"
-        if "fail" in statuses
-        else "pass"
+        "unknown" if "unknown" in statuses else "fail" if "fail" in statuses else "pass"
     )
     report = FunctionalRunReport(
         status=overall_status,

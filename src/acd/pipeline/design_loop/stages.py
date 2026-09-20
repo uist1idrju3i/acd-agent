@@ -8,28 +8,28 @@ from pathlib import Path
 from typing import Any
 
 from acd.adapters.kicad.fab.silkscreen import SilkscreenGateError
-from acd.core.lane_preflight import (
+from acd.core.electrical.silkscreen import extract_silkscreen_lane
+from acd.core.knowledge.requirement_compiler import compile_requirement_change
+from acd.core.knowledge.requirements import (
+    default_requirements_path,
+    load_requirements,
+    validate_requirements,
+)
+from acd.core.manufacturing.manufacturing_submission import (
+    ManufacturingSubmissionError,
+    evaluate_manufacturing_submission,
+)
+from acd.core.manufacturing.order_total import (
+    aggregate_order_total,
+    order_total_result_from_document,
+    order_total_result_to_document,
+)
+from acd.core.runtime.lane_preflight import (
     LANE_REQUIREMENTS,
     missing_declaration_action,
     missing_declarations,
     run_lane_preflight,
 )
-from acd.core.manufacturing_submission import (
-    ManufacturingSubmissionError,
-    evaluate_manufacturing_submission,
-)
-from acd.core.order_total import (
-    aggregate_order_total,
-    order_total_result_from_document,
-    order_total_result_to_document,
-)
-from acd.core.requirement_compiler import compile_requirement_change
-from acd.core.requirements import (
-    default_requirements_path,
-    load_requirements,
-    validate_requirements,
-)
-from acd.core.silkscreen import extract_silkscreen_lane
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
 from acd.pipeline.firmware_lane import FirmwareLaneError, run_firmware_lane

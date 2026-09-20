@@ -27,9 +27,9 @@ from acd.adapters.cad.visual_projection import (
     generate_mechanical_visual_projections,
 )
 from acd.adapters.svg.common import format_svg_number
-from acd.core.mechanical import extract_mechanical_lane
-from acd.core.parallel import PipelineStageRunner
-from acd.core.visual_projection import cad_view_geometry
+from acd.core.electrical.visual_projection import cad_view_geometry
+from acd.core.mechanical.mechanical import extract_mechanical_lane
+from acd.core.runtime.parallel import PipelineStageRunner
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.schema.design_graph import DesignGraph
 

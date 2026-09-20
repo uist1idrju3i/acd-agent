@@ -14,8 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.dft_coverage import evaluate_dft_coverage
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical.dft_coverage import evaluate_dft_coverage
+from acd.core.electrical.electrical import extract_electrical_lane
 from acd.schema import DesignGraph, DftPolicy
 
 

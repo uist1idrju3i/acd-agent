@@ -7,14 +7,14 @@ from typing import Any
 
 import pytest
 
-from acd.core.exploration import ExplorationError, RemediationRequest
-from acd.core.firmware_coverage import FirmwareCoverageFinding
-from acd.core.firmware_exploration import (
+from acd.core.firmware.firmware_coverage import FirmwareCoverageFinding
+from acd.core.firmware.firmware_exploration import (
     FIRMWARE_SEARCHABLE_DIMENSIONS,
     explore_firmware_candidates,
     load_firmware_coverage_findings,
 )
-from acd.core.lane_recovery import resolve_lane_recovery
+from acd.core.knowledge.exploration import ExplorationError, RemediationRequest
+from acd.core.runtime.lane_recovery import resolve_lane_recovery
 
 FIXTURE_DIR = Path("fixtures/golden-design-1")
 GRAPH_PATH = FIXTURE_DIR / "graph.json"

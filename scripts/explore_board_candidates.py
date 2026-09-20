@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
-from acd.core.exploration import (
+from acd.core.knowledge.exploration import (
     ExplorationError,
     explore_board_candidates,
 )

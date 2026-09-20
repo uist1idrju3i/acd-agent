@@ -12,7 +12,7 @@ import pytest
 from openhands.sdk.git.exceptions import GitError
 
 import acd.openhands.order_gate as order_gate
-from acd.core.order_total import OrderTotalResult
+from acd.core.manufacturing.order_total import OrderTotalResult
 from acd.openhands.order_gate import PreOrderGateError, evaluate_pre_order_gate
 from acd.schema import OrderPolicy, QuoteAmount
 

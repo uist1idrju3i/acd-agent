@@ -19,14 +19,14 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from acd.core.library_assets import (
+from acd.core.manufacturing.library_assets import (
     LibraryAsset,
     LibraryAssetError,
     graph_library_assets,
     verify_fixture_library_asset,
     verify_library_asset,
 )
-from acd.core.part_selection import default_parts_catalog_path, load_parts_catalog
+from acd.core.manufacturing.part_selection import default_parts_catalog_path, load_parts_catalog
 from acd.schema.design_graph import DesignGraph
 
 REPO_ROOT = Path(__file__).resolve().parent.parent

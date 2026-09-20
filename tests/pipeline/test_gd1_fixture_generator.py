@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.rationale import subject_hash_for
+from acd.core.knowledge.rationale import subject_hash_for
 from acd.pipeline.gd1_fixture import mechanical_nodes, silkscreen_nodes
 from acd.pipeline.gd1_fixture.graph import build_graph, check_rationale_hashes
 from acd.pipeline.placement_evidence import summarize_placement_evidence

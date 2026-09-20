@@ -22,7 +22,7 @@ from acd.adapters.kicad.fab import (
     measure_net_track_widths,
     run_dfm,
 )
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     ComponentPlacement,
     FootprintShape,
@@ -31,15 +31,15 @@ from acd.core.board_model import (
     RoutedVia,
     RoutedWire,
 )
-from acd.core.electrical import (
+from acd.core.electrical.electrical import (
     BoardView,
     ComponentView,
     ElectricalLane,
     LibraryPin,
     extract_electrical_lane,
 )
-from acd.core.fab import FabProfile, load_fab_profile
-from acd.core.routing_width import NetWidthRequirement
+from acd.core.electrical.routing_width import NetWidthRequirement
+from acd.core.manufacturing.fab import FabProfile, load_fab_profile
 from acd.schema import DesignGraph
 
 ROOT = Path(__file__).parents[3]

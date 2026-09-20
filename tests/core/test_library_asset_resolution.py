@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 from acd.adapters.kicad.library import FootprintLibrary
-from acd.core.electrical import extract_electrical_lane
-from acd.core.library_assets import (
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.manufacturing.library_assets import (
     LibraryAssetError,
     graph_library_assets,
     library_asset_store,

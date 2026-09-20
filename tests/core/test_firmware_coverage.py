@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.firmware_capability import (
+from acd.core.firmware.firmware_capability import (
     FirmwareCapabilityRegistry,
     load_firmware_capability_registry,
 )
-from acd.core.firmware_coverage import (
+from acd.core.firmware.firmware_coverage import (
     FirmwareCoverageFinding,
     FirmwareCoverageReport,
     check_firmware_coverage,

@@ -15,15 +15,15 @@ from acd.adapters.kicad.fab import (
     deterministic_zip,
     zip_content_hash,
 )
-from acd.core.electrical import (
+from acd.core.electrical.electrical import (
     BoardView,
     ComponentView,
     ElectricalLane,
     LibraryPin,
     extract_electrical_lane,
 )
-from acd.core.fab import FabProfile, load_fab_profile
-from acd.core.routing_width import NetWidthRequirement
+from acd.core.electrical.routing_width import NetWidthRequirement
+from acd.core.manufacturing.fab import FabProfile, load_fab_profile
 from acd.schema import DesignGraph
 
 ROOT = Path(__file__).parents[3]

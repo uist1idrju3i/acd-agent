@@ -6,15 +6,15 @@ import json
 import subprocess
 from pathlib import Path
 
-from acd.core.design_history import design_input_history, resolve_head_commit
-from acd.core.knowledge_index import KnowledgeSourceLocation, build_knowledge_index
-from acd.core.knowledge_qa import (
+from acd.core.knowledge.design_history import design_input_history, resolve_head_commit
+from acd.core.knowledge.knowledge_index import KnowledgeSourceLocation, build_knowledge_index
+from acd.core.knowledge.knowledge_qa import (
     HistoryEntry,
     KnowledgeBase,
     answer_question,
     classify_question,
 )
-from acd.core.troubleshooting import derive_troubleshooting_knowledge, parse_pin_macros
+from acd.core.knowledge.troubleshooting import derive_troubleshooting_knowledge, parse_pin_macros
 from acd.schema.design_graph import DesignGraph
 from acd.schema.knowledge_index import KnowledgeAudience, KnowledgeIndex
 from acd.schema.rationale import RationaleDocument

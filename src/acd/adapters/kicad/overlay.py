@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import cast
 
 from acd.adapters.kicad.library import LibraryPinError, verify_pinned_file
-from acd.core.fab import FabProfile
-from acd.core.fileio import read_json
-from acd.core.sexpr import SExpr, dumps, find_all
+from acd.core.electrical.sexpr import SExpr, dumps, find_all
+from acd.core.manufacturing.fab import FabProfile
+from acd.core.runtime.fileio import read_json
 
 
 def _hash_bytes(data: bytes) -> str:

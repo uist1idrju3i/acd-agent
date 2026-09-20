@@ -10,39 +10,39 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Final, cast
 
-from acd.core.cpl_orientation import cpl_evidence_attrs, cpl_orientation_attrs
-from acd.core.decoupling_placement import (
+from acd.core.electrical.cpl_orientation import cpl_evidence_attrs, cpl_orientation_attrs
+from acd.core.electrical.decoupling_placement import (
     DecouplingPlacementError,
     DecouplingPlacementReport,
     apply_decoupling_placements,
     solve_decoupling_placements,
 )
-from acd.core.electrical import GraphExtractionError
-from acd.core.evidence_declarations import check_cpl_rotation_record
-from acd.core.fileio import read_json
-from acd.core.firmware_capability import (
+from acd.core.electrical.electrical import GraphExtractionError
+from acd.core.electrical.pin_functions import pin_function_attrs
+from acd.core.firmware.firmware_capability import (
     FirmwareCapabilityContractError,
     load_firmware_capability_registry,
 )
-from acd.core.functional_blocks import (
+from acd.core.knowledge.functional_blocks import (
     load_functional_block_registry,
     unknown_block_message,
 )
-from acd.core.library_assets import (
-    LibraryAssetError,
-    materialize_library_assets,
-    verify_materialized_library_assets,
-)
-from acd.core.naming import artifact_prefix
-from acd.core.part_selection import PartSelectionError, select_part
-from acd.core.pin_functions import pin_function_attrs
-from acd.core.rationale import (
+from acd.core.knowledge.naming import artifact_prefix
+from acd.core.knowledge.rationale import (
     REQUIRED_RATIONALE_ATTRS,
     check_rationale_coverage,
     subject_hash_for,
     summarize_rationale_coverage,
 )
-from acd.core.requirements import validate_requirements
+from acd.core.knowledge.requirements import validate_requirements
+from acd.core.manufacturing.library_assets import (
+    LibraryAssetError,
+    materialize_library_assets,
+    verify_materialized_library_assets,
+)
+from acd.core.manufacturing.part_selection import PartSelectionError, select_part
+from acd.core.runtime.evidence_declarations import check_cpl_rotation_record
+from acd.core.runtime.fileio import read_json
 from acd.schema import (
     DesignFixtureSpec,
     DesignGraph,

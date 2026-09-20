@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from acd.core.feedback import apply_input_feedback
+from acd.core.manufacturing.feedback import apply_input_feedback
 from acd.schema import (
     FeedbackApplyPolicy,
     FeedbackApplyRule,

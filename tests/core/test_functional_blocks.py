@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.design_predicates import (
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.knowledge.design_predicates import (
     PREDICATE_CATALOG,
     PredicateResult,
     evaluate_design_predicates,
 )
-from acd.core.electrical import extract_electrical_lane
-from acd.core.functional_blocks import (
+from acd.core.knowledge.functional_blocks import (
     FunctionalBlockContractError,
     declared_functional_blocks,
     load_functional_block_registry,

@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import cast
 
-from acd.core.quote import QuoteReadError, quote_provider_from_config
+from acd.core.manufacturing.quote import QuoteReadError, quote_provider_from_config
 
 
 def _timestamp(value: str) -> datetime:

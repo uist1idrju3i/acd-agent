@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.lane_preflight import missing_declarations, run_lane_preflight
+from acd.core.runtime.lane_preflight import missing_declarations, run_lane_preflight
 from acd.pipeline.fixture_builder import (
     FixtureBuilderError,
     build_design_fixture,

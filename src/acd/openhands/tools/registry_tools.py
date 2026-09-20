@@ -14,9 +14,9 @@ from openhands.sdk.tool import (
 )
 from pydantic import Field
 
-from acd.core.firmware_capability_entry import register_firmware_capability
-from acd.core.functional_block_entry import register_functional_block_contract
-from acd.core.parts_catalog_entry import register_parts_catalog_entry
+from acd.core.firmware.firmware_capability_entry import register_firmware_capability
+from acd.core.knowledge.functional_block_entry import register_functional_block_contract
+from acd.core.manufacturing.parts_catalog_entry import register_parts_catalog_entry
 
 if TYPE_CHECKING:
     from openhands.sdk.conversation.state import ConversationState

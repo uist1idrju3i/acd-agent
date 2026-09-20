@@ -13,7 +13,7 @@ from typing import Any
 import pytest
 
 import acd.pipeline.design_loop as design_loop  # pyright: ignore[reportMissingTypeStubs]
-from acd.core.naming import artifact_prefix, output_prefix
+from acd.core.knowledge.naming import artifact_prefix, output_prefix
 from acd.pipeline.design_loop import (  # pyright: ignore[reportMissingTypeStubs]
     DEFAULT_STAGE_RUNNERS,
     DESIGN_LOOP_LANE_IDS,

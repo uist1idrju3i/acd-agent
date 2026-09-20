@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from acd.core.firmware_capability import load_firmware_capability_registry
+from acd.core.firmware.firmware_capability import load_firmware_capability_registry
 from acd.schema.firmware_capability import (
     FirmwareCapabilityRegistryDocument,
 )

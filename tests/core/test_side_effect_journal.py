@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.side_effect_journal import (
+from acd.core.runtime.side_effect_journal import (
     SideEffectJournalError,
     append_post_order,
     append_pre_order,

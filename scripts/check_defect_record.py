@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.defect_records import (
+from acd.core.manufacturing.defect_records import (
     DefectRecordError,
     check_defect_records,
     load_defect_document,

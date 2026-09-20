@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.electrical import (
+from acd.core.electrical.electrical import (
     BoardView,
     ComponentView,
     ElectricalLane,

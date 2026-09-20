@@ -8,7 +8,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.feedback import FeedbackError, apply_input_feedback
+from acd.core.manufacturing.feedback import FeedbackError, apply_input_feedback
 from acd.schema import FeedbackApplyPolicy, FeedbackProposal
 
 

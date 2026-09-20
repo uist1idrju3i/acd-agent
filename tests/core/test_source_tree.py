@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from acd.core.source_tree import (
+from acd.core.runtime.source_tree import (
     SOURCE_TREE_PATHS,
     SourceProvenance,
     collect_source_provenance,

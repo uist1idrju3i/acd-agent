@@ -20,12 +20,12 @@ from acd.adapters.kicad.fab import (
     verify_smd_pad_centers_in_gerber,
 )
 from acd.adapters.kicad.project import ProjectFiles
-from acd.core.board_model import RoutedDesign
-from acd.core.electrical import ElectricalLane
-from acd.core.fab import FabProfile
-from acd.core.parallel import run_ordered_stages
-from acd.core.routing_width import derive_net_widths
-from acd.core.silkscreen import SilkscreenLane
+from acd.core.electrical.board_model import RoutedDesign
+from acd.core.electrical.electrical import ElectricalLane
+from acd.core.electrical.routing_width import derive_net_widths
+from acd.core.electrical.silkscreen import SilkscreenLane
+from acd.core.manufacturing.fab import FabProfile
+from acd.core.runtime.parallel import run_ordered_stages
 from acd.pipeline.repository import resolve_repository_file
 from acd.pipeline.stitch_candidate_evidence import summarize_stitch_candidate_report
 

@@ -17,8 +17,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from acd.core.naming import evidence_id, subject_node_id
-from acd.core.process import (
+from acd.core.knowledge.naming import evidence_id, subject_node_id
+from acd.core.runtime.process import (
     execution_env,
     execution_provenance,
     sha256_bytes,

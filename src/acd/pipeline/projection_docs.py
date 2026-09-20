@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from acd.core.fileio import file_sha256, write_json
+from acd.core.runtime.fileio import file_sha256, write_json
 from acd.pipeline.visual_review import collect_visual_projection_sets
 
 PRODUCT_DOCS_SKILL = "acd-product-docs"

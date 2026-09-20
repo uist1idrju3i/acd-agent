@@ -10,7 +10,7 @@ from pathlib import Path
 from acd.adapters.svg import (  # pyright: ignore[reportMissingTypeStubs]
     generate_harness_visual_projection,
 )
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
 from acd.schema import DesignGraph, HarnessContract
 
 ROOT = Path(__file__).parents[3]

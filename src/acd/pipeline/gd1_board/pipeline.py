@@ -39,36 +39,36 @@ from acd.adapters.kicad.reload import (
     verify_gerber,
     verify_schematic,
 )
-from acd.core.design_freedom import (
+from acd.core.electrical.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.electrical.projection_format_check import ProjectionKind
+from acd.core.electrical.silkscreen import extract_silkscreen_lane
+from acd.core.knowledge.design_freedom import (
     load_design_freedom_declaration,
     searchable_dimensions,
     validate_change_dimension_alignment,
 )
-from acd.core.design_predicates import (
+from acd.core.knowledge.design_predicates import (
     OPT_IN_PREDICATES,
     PredicateResult,
     evaluate_design_predicates,
 )
-from acd.core.electrical import ElectricalLane, extract_electrical_lane
-from acd.core.evidence_declarations import check_fab_profile_declaration
-from acd.core.fab import (
+from acd.core.knowledge.functional_blocks import (
+    declared_functional_blocks,
+    load_functional_block_registry,
+)
+from acd.core.knowledge.naming import output_prefix, subject_node_id
+from acd.core.manufacturing.fab import (
     extract_fab_intent,
     load_fab_profile,
     load_fab_profile_registry,
     resolve_fab_profile_path,
 )
-from acd.core.fileio import read_json, write_json
-from acd.core.functional_blocks import (
-    declared_functional_blocks,
-    load_functional_block_registry,
-)
-from acd.core.lane_cli import add_lane_io_arguments
-from acd.core.naming import output_prefix, subject_node_id
-from acd.core.parallel import DEFAULT_PIPELINE_WORKERS, run_ordered_stages
-from acd.core.process import DEFAULT_TOOL_TIMEOUT_S, execution_provenance
-from acd.core.projection_format_check import ProjectionKind
-from acd.core.runtime_records import TimingRecorder, write_timing_record
-from acd.core.silkscreen import extract_silkscreen_lane
+from acd.core.runtime.evidence_declarations import check_fab_profile_declaration
+from acd.core.runtime.fileio import read_json, write_json
+from acd.core.runtime.lane_cli import add_lane_io_arguments
+from acd.core.runtime.parallel import DEFAULT_PIPELINE_WORKERS, run_ordered_stages
+from acd.core.runtime.process import DEFAULT_TOOL_TIMEOUT_S, execution_provenance
+from acd.core.runtime.runtime_records import TimingRecorder, write_timing_record
 from acd.pipeline.gate_evidence import (
     write_design_predicate_evidence,
     write_gate_evidence_or_unavailable,

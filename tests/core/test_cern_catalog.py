@@ -12,14 +12,14 @@ import pytest
 from pydantic import ValidationError
 
 from acd.adapters.kicad.library import LibraryPinError, SymbolLibrary
-from acd.core.cern_catalog import (
+from acd.core.manufacturing.cern_catalog import (
     CERN_SUBMODULE,
     CernCatalogError,
     pinned_cern_commit,
     resolve_cern_part,
 )
-from acd.core.library_assets import LibraryAsset, verify_library_asset
-from acd.core.part_selection import PartSelectionError, select_cern_part, select_part
+from acd.core.manufacturing.library_assets import LibraryAsset, verify_library_asset
+from acd.core.manufacturing.part_selection import PartSelectionError, select_cern_part, select_part
 from acd.pipeline.repository import repository_root
 from acd.schema import ComponentPartRequest
 

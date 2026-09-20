@@ -24,8 +24,7 @@ from acd.adapters.svg.common import (
     svg_text,
     view_box_font_size,
 )
-from acd.core.process import DEFAULT_TOOL_TIMEOUT_S, ExternalToolError, run_tool, sha256_bytes
-from acd.core.visual_projection import (
+from acd.core.electrical.visual_projection import (
     KICAD_LAYER_SVG_NORMALIZATION_RULE_DESCRIPTION,
     KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
@@ -34,6 +33,12 @@ from acd.core.visual_projection import (
     measure_svg_resolution,
     raw_svg_parts,
     svg_source_hash,
+)
+from acd.core.runtime.process import (
+    DEFAULT_TOOL_TIMEOUT_S,
+    ExternalToolError,
+    run_tool,
+    sha256_bytes,
 )
 from acd.pipeline.repository import repository_root
 from acd.schema.visual_projection import (

@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from acd.core.final_report_basis import (
+from acd.core.runtime.final_report_basis import (
     collect_final_report_basis,
     render_final_report_basis,
 )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from acd.core.log_summary import summarize_log
+from acd.core.runtime.log_summary import summarize_log
 
 
 def test_short_log_is_kept_verbatim() -> None:

@@ -9,7 +9,7 @@ clearance and final DRC still runs on the exact KiCad geometry.
 from __future__ import annotations
 
 from acd.adapters.kicad.placement import rotate_point
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     FootprintShape,
     KeepoutRect,

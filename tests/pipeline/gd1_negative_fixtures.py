@@ -10,9 +10,9 @@ from pathlib import Path
 from acd.adapters.kicad.board import generate_board
 from acd.adapters.kicad.library import FootprintLibrary
 from acd.adapters.kicad.placement import Placement
-from acd.core.board_model import BoardModel, KeepoutRect
-from acd.core.electrical import ElectricalLane, extract_electrical_lane
-from acd.core.fab import FabProfile, load_fab_profile
+from acd.core.electrical.board_model import BoardModel, KeepoutRect
+from acd.core.electrical.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.manufacturing.fab import FabProfile, load_fab_profile
 from acd.schema import DesignGraph
 from acd.schema.design_graph import GraphNode
 

@@ -36,13 +36,13 @@ from acd.adapters.svg.common import (
     svg_text,
     text_advance,
 )
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     ComponentPlacement,
     EdgeOverhangDeclaration,
     PlacementAnnotations,
 )
-from acd.core.electrical import BoardView
+from acd.core.electrical.electrical import BoardView
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,

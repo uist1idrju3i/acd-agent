@@ -8,8 +8,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.idea_dialogue import IdeaDialogueError, load_idea_record
-from acd.core.idea_promotion import (
+from acd.core.knowledge.idea_dialogue import IdeaDialogueError, load_idea_record
+from acd.core.knowledge.idea_promotion import (
     IdeaPromotionError,
     load_promotion_rationale,
     promote_idea,

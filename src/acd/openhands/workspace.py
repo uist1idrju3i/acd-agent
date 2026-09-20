@@ -16,9 +16,9 @@ from typing import Any, Literal, cast
 from openhands.sdk.workspace import LocalWorkspace
 from openhands.workspace import DockerWorkspace
 
-from acd.core.fileio import read_json
-from acd.core.naming import artifact_prefix, required_evidence_ids
-from acd.core.source_tree import (
+from acd.core.knowledge.naming import artifact_prefix, required_evidence_ids
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.source_tree import (
     SOURCE_TREE_PATHS,
     SourceProvenance,
     collect_source_provenance,

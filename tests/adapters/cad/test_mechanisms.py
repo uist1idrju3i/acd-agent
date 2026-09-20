@@ -13,7 +13,7 @@ from acd.adapters.cad.mechanisms import (
     build_rib,
     build_snap_fit,
 )
-from acd.core.mechanical import MechanismFeatureView, extract_mechanical_lane
+from acd.core.mechanical.mechanical import MechanismFeatureView, extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = Path(__file__).parents[3] / "fixtures/mechanism-library/graph.json"

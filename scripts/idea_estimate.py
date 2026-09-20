@@ -8,8 +8,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.idea_dialogue import IdeaDialogueError, load_idea_record
-from acd.core.idea_estimate import estimate_idea, load_estimate_catalog
+from acd.core.knowledge.idea_dialogue import IdeaDialogueError, load_idea_record
+from acd.core.knowledge.idea_estimate import estimate_idea, load_estimate_catalog
 
 
 def _parser() -> argparse.ArgumentParser:

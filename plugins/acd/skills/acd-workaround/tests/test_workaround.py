@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-import acd.core.salvage_gate as salvage_gate
+import acd.core.manufacturing.salvage_gate as salvage_gate
 import workaround
 from acd.core.design_predicates import PredicateResult
 from check_workaround import main as check_workaround_main

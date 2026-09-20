@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.board_model import PlacementAnnotations
-from acd.core.electrical import GraphExtractionError
-from acd.core.mechanical import extract_mechanical_lane, placement_annotations
+from acd.core.electrical.board_model import PlacementAnnotations
+from acd.core.electrical.electrical import GraphExtractionError
+from acd.core.mechanical.mechanical import extract_mechanical_lane, placement_annotations
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1" / "graph.json"

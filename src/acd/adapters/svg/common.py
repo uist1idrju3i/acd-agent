@@ -10,11 +10,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
-from acd.core.process import sha256_bytes
-from acd.core.visual_projection import (
+from acd.core.electrical.visual_projection import (
     ACD_SVG_NORMALIZATION_RULE_ID,
     measure_svg_resolution,
 )
+from acd.core.runtime.process import sha256_bytes
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,

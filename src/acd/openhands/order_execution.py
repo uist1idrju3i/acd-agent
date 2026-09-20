@@ -17,12 +17,12 @@ from openhands.sdk.security.confirmation_policy import (
 )
 from openhands.sdk.security.risk import SecurityRisk
 
-from acd.core.order_execution import build_dry_run_order_payload
-from acd.core.order_submission import (
+from acd.core.manufacturing.order_execution import build_dry_run_order_payload
+from acd.core.manufacturing.order_submission import (
     build_order_submission_record,
     resolve_order_provider,
 )
-from acd.core.side_effect_journal import (
+from acd.core.runtime.side_effect_journal import (
     SideEffectJournalError,
     append_post_order,
     append_pre_order,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from acd.core.placement_constraints import (
+from acd.core.electrical.placement_constraints import (
     PlacementConstraintError,
     load_placement_coupling_constraints,
 )

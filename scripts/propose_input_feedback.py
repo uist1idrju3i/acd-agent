@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from acd.core.feedback import propose_input_feedback
+from acd.core.manufacturing.feedback import propose_input_feedback
 from acd.schema import (
     DesignGraph,
     FeedbackPolicy,

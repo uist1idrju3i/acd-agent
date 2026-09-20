@@ -6,28 +6,28 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.enclosure_exploration import (
-    EnclosureExplorationResult,
-    explore_enclosure_candidates,
+from acd.core.firmware.firmware_coverage import FirmwareCoverageFinding
+from acd.core.firmware.firmware_exploration import (
+    explore_firmware_candidates,
+    load_firmware_coverage_findings,
 )
-from acd.core.exploration import (
+from acd.core.knowledge.exploration import (
     ExplorationResult,
     RemediationRequest,
     explore_board_candidates,
     load_remediation_requests,
 )
-from acd.core.firmware_coverage import FirmwareCoverageFinding
-from acd.core.firmware_exploration import (
-    explore_firmware_candidates,
-    load_firmware_coverage_findings,
+from acd.core.mechanical.enclosure_exploration import (
+    EnclosureExplorationResult,
+    explore_enclosure_candidates,
 )
-from acd.core.lane_recovery import (
+from acd.core.runtime.lane_recovery import (
     LaneRecoveryDeclarationError,
     LaneRecoveryPlan,
     load_lane_recovery_declarations,
     resolve_lane_recovery,
 )
-from acd.core.runtime_records import (
+from acd.core.runtime.runtime_records import (
     RuntimeObservationError,
     TimingRecorder,
     write_timing_record,

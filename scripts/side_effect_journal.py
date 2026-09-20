@@ -8,7 +8,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.side_effect_journal import (
+from acd.core.runtime.side_effect_journal import (
     SideEffectJournalError,
     reconstruct_order,
 )

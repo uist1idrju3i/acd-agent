@@ -20,7 +20,7 @@ from openhands.sdk.tool import (
 from pydantic import Field
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
-from acd.core.fileio import file_sha256, read_json
+from acd.core.runtime.fileio import file_sha256, read_json
 from acd.openhands.tools.probe import probe_all
 from acd.schema.design_graph import DesignGraph
 

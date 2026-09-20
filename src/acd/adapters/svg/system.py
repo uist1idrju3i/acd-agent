@@ -31,7 +31,7 @@ from acd.adapters.svg.common import (
     svg_text,
     text_advance,
 )
-from acd.core.electrical import ElectricalLane, NetView
+from acd.core.electrical.electrical import ElectricalLane, NetView
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 from acd.schema.visual_projection import (
     VisualProjectionInput,

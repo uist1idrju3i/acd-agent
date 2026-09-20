@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from acd.core.manufacturing_submission import (
+from acd.core.manufacturing.manufacturing_submission import (
     ManufacturingSubmissionError,
     evaluate_manufacturing_submission,
     manufacturing_submission_content_hash_payload,

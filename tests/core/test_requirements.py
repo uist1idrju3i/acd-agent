@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from acd.core.requirements import RequirementError, validate_requirements
+from acd.core.knowledge.requirements import RequirementError, validate_requirements
 from acd.schema import DesignGraph, GraphNode, RequirementDocument, RequirementRecord
 
 

@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
-from acd.core.lcsc_record import (
+from acd.core.manufacturing.lcsc_record import (
     LcscMpnCheck,
     check_declared_lcsc,
     check_declared_mpn,

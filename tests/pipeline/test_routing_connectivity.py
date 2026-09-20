@@ -12,7 +12,7 @@ from typing import cast
 import pytest
 
 from acd.adapters.freerouting.ses import SesImportError, parse_ses
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     BoardNet,
     ComponentPlacement,

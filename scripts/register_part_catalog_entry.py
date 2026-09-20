@@ -13,7 +13,7 @@ import argparse
 import json
 from pathlib import Path
 
-from acd.core.parts_catalog_entry import (
+from acd.core.manufacturing.parts_catalog_entry import (
     PartsCatalogEntryError,
     register_parts_catalog_entry,
 )

@@ -1,7 +1,6 @@
 """Tests for parts-catalog declaration registration."""
 
 # pyright: reportPrivateUsage=false
-
 from __future__ import annotations
 
 import hashlib
@@ -10,9 +9,9 @@ from typing import cast
 
 import pytest
 
-from acd.core import parts_catalog_entry as parts_catalog_entry_module
-from acd.core.part_selection import select_part
-from acd.core.parts_catalog_entry import (
+from acd.core.manufacturing import parts_catalog_entry as parts_catalog_entry_module
+from acd.core.manufacturing.part_selection import select_part
+from acd.core.manufacturing.parts_catalog_entry import (
     PartsCatalogEntryError,
     register_parts_catalog_entry,
 )

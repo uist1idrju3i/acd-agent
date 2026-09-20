@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.design_freedom import (
+from acd.core.knowledge.design_freedom import (
     DesignFreedomDeclarationError,
     design_freedom_dimension,
     load_design_freedom_declaration,
     searchable_dimensions,
     validate_change_dimension_alignment,
 )
-from acd.core.functional_blocks import (
+from acd.core.knowledge.functional_blocks import (
     FunctionalBlockRegistry,
     load_functional_block_registry,
 )

@@ -7,8 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.functional_block_entry import register_functional_block_contract
-from acd.core.functional_blocks import FunctionalBlockContractError, load_functional_block_registry
+from acd.core.knowledge.functional_block_entry import register_functional_block_contract
+from acd.core.knowledge.functional_blocks import (
+    FunctionalBlockContractError,
+    load_functional_block_registry,
+)
 
 
 def _contract(**overrides: object) -> dict[str, object]:

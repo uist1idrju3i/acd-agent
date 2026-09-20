@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.process import sha256_bytes
-from acd.core.visual_projection import (
+from acd.core.electrical.visual_projection import (
     ACD_SVG_NORMALIZATION_RULE_ID,
     CAD_SVG_NORMALIZATION_RULE_ID,
     KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
@@ -22,6 +21,7 @@ from acd.core.visual_projection import (
     normalized_svg_sha256,
     svg_source_hash,
 )
+from acd.core.runtime.process import sha256_bytes
 
 _REAL_KICAD_FIXTURE_DIR = (
     Path(__file__).parents[2] / "fixtures" / "visual_projection" / "kicad"

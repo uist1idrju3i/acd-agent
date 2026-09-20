@@ -68,12 +68,8 @@ class ComponentView:
     cpl_rotation_unverified_pad_source: str | None = None
     esd_protection: bool = False
     test_point: bool = False
-    cpl_rotation_pin_functions: dict[str, str] = field(
-        default_factory=lambda: dict[str, str]()
-    )
-    cpl_rotation_pin_aliases: dict[str, str] = field(
-        default_factory=lambda: dict[str, str]()
-    )
+    cpl_rotation_pin_functions: dict[str, str] = field(default_factory=lambda: dict[str, str]())
+    cpl_rotation_pin_aliases: dict[str, str] = field(default_factory=lambda: dict[str, str]())
 
 
 @dataclass(frozen=True)
@@ -307,9 +303,7 @@ def _stackup(graph: DesignGraph, board: BoardView) -> StackupView | None:
     node = nodes[0]
     board_id = node.attrs.get("board_id")
     board_dependencies = [
-        dependency
-        for dependency in node.depends_on
-        if dependency.startswith("board.")
+        dependency for dependency in node.depends_on if dependency.startswith("board.")
     ]
     if board_id is not None and board_id != board.node_id:
         raise GraphExtractionError(f"stackup {node.id!r} references an unknown board")
@@ -342,9 +336,7 @@ def _stackup(graph: DesignGraph, board: BoardView) -> StackupView | None:
         dielectric = raw.get("dielectric_constant")
         if kind == "dielectric":
             if copper is not None:
-                raise GraphExtractionError(
-                    f"dielectric layer {name!r} cannot declare copper_um"
-                )
+                raise GraphExtractionError(f"dielectric layer {name!r} cannot declare copper_um")
             if material is not None and (not isinstance(material, str) or not material):
                 raise GraphExtractionError(f"dielectric layer {name!r} has invalid material")
             if dielectric is not None and (
@@ -356,11 +348,7 @@ def _stackup(graph: DesignGraph, board: BoardView) -> StackupView | None:
                     f"dielectric layer {name!r} has invalid dielectric_constant"
                 )
         else:
-            if (
-                isinstance(copper, bool)
-                or not isinstance(copper, int)
-                or copper <= 0
-            ):
+            if isinstance(copper, bool) or not isinstance(copper, int) or copper <= 0:
                 raise GraphExtractionError(
                     f"copper layer {name!r} requires positive integer copper_um"
                 )
@@ -452,20 +440,12 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     cpl_position_evidence_revision=_optional_str(
                         node, "cpl_position_evidence_revision"
                     ),
-                    cpl_position_evidence_basis=_optional_str(
-                        node, "cpl_position_evidence_basis"
-                    ),
-                    cpl_position_evidence_note=_optional_str(
-                        node, "cpl_position_evidence_note"
-                    ),
+                    cpl_position_evidence_basis=_optional_str(node, "cpl_position_evidence_basis"),
+                    cpl_position_evidence_note=_optional_str(node, "cpl_position_evidence_note"),
                     cpl_rotation_basis=_optional_str(node, "cpl_rotation_basis"),
                     cpl_rotation_source_url=_optional_str(node, "cpl_rotation_source_url"),
-                    cpl_rotation_evidence_basis=_optional_str(
-                        node, "cpl_rotation_evidence_basis"
-                    ),
-                    cpl_rotation_evidence_note=_optional_str(
-                        node, "cpl_rotation_evidence_note"
-                    ),
+                    cpl_rotation_evidence_basis=_optional_str(node, "cpl_rotation_evidence_basis"),
+                    cpl_rotation_evidence_note=_optional_str(node, "cpl_rotation_evidence_note"),
                     cpl_rotation_evidence_at=_optional_str(node, "cpl_rotation_evidence_at"),
                     cpl_rotation_evidence_method=_optional_str(
                         node, "cpl_rotation_evidence_method"
@@ -498,9 +478,7 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     cpl_rotation_pin_functions=_optional_string_map(
                         node, "cpl_rotation_pin_functions"
                     ),
-                    cpl_rotation_pin_aliases=_optional_string_map(
-                        node, "cpl_rotation_pin_aliases"
-                    ),
+                    cpl_rotation_pin_aliases=_optional_string_map(node, "cpl_rotation_pin_aliases"),
                 )
             )
             if components[-1].assembly not in {"fitted", "not_fitted"}:
@@ -522,15 +500,11 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     power_source_pin=_optional_str(node, "power_source_pin"),
                     differential_pair=_optional_str(node, "differential_pair"),
                     differential_polarity=_optional_str(node, "differential_polarity"),
-                    target_impedance_ohm=_optional_positive_number(
-                        node, "target_impedance_ohm"
-                    ),
+                    target_impedance_ohm=_optional_positive_number(node, "target_impedance_ohm"),
                     impedance_tolerance_pct=_optional_positive_number(
                         node, "impedance_tolerance_pct"
                     ),
-                    impedance_reference_layer=_optional_str(
-                        node, "impedance_reference_layer"
-                    ),
+                    impedance_reference_layer=_optional_str(node, "impedance_reference_layer"),
                     impedance_trace_width_mm=_optional_positive_number(
                         node, "impedance_trace_width_mm"
                     ),
@@ -539,12 +513,8 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     width_basis=_str_attr(node, "width_basis"),
                     current_max_a=_optional_number(node, "current_max_a"),
                     width_basis_source=_optional_str(node, "width_basis_source"),
-                    manufacturing_minimum_mm=_optional_number(
-                        node, "manufacturing_minimum_mm"
-                    ),
-                    manufacturing_margin_mm=_optional_number(
-                        node, "manufacturing_margin_mm"
-                    ),
+                    manufacturing_minimum_mm=_optional_number(node, "manufacturing_minimum_mm"),
+                    manufacturing_margin_mm=_optional_number(node, "manufacturing_margin_mm"),
                 )
             )
             polarity = nets[-1].differential_polarity
@@ -591,9 +561,7 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     edge_copper_clearance_mm=_float_attr(node, "edge_copper_clearance_mm"),
                     antenna_keepout=_bool_attr(node, "antenna_keepout"),
                     ground_plane_net=_optional_str(node, "ground_plane_net"),
-                    ground_plane_layers=tuple(
-                        _optional_string_list(node, "ground_plane_layers")
-                    ),
+                    ground_plane_layers=tuple(_optional_string_list(node, "ground_plane_layers")),
                     ground_plane_min_island_area_mm2=_optional_number(
                         node, "ground_plane_min_island_area_mm2"
                     ),
@@ -610,17 +578,12 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     stitch_via_cost_note=_optional_str(node, "stitch_via_cost_note"),
                     stitch_via_refill_max_iterations=(
                         int(value)
-                        if (value := _optional_number(
-                            node, "stitch_via_refill_max_iterations"
-                        )) is not None
+                        if (value := _optional_number(node, "stitch_via_refill_max_iterations"))
+                        is not None
                         else None
                     ),
-                    outer_copper_thickness_um=_optional_number(
-                        node, "outer_copper_thickness_um"
-                    ),
-                    copper_thickness_source=_optional_str(
-                        node, "copper_thickness_source"
-                    ),
+                    outer_copper_thickness_um=_optional_number(node, "outer_copper_thickness_um"),
+                    copper_thickness_source=_optional_str(node, "copper_thickness_source"),
                     allowable_temperature_rise_k=_optional_number(
                         node, "allowable_temperature_rise_k"
                     ),

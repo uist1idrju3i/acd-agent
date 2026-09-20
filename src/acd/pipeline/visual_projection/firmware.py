@@ -10,9 +10,9 @@ from acd.adapters.svg.common import (
     ACD_SVG_NORMALIZATION_RULE_ID,
     ACD_SVG_RENDERER_VERSION,
 )
-from acd.core.fileio import read_json
-from acd.core.firmware_lane import FirmwareLane
-from acd.core.process import sha256_bytes
+from acd.core.firmware.firmware_lane import FirmwareLane
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.process import sha256_bytes
 from acd.pipeline.visual_projection._common import (
     crosscheck_item,
     decimal_value,

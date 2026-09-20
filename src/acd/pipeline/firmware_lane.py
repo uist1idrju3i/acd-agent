@@ -16,9 +16,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.fileio import file_sha256, read_json
-from acd.core.firmware_capability import load_firmware_capability_registry
-from acd.core.firmware_coverage import check_firmware_coverage
+from acd.core.firmware.firmware_capability import load_firmware_capability_registry
+from acd.core.firmware.firmware_coverage import check_firmware_coverage
+from acd.core.runtime.fileio import file_sha256, read_json
 from acd.pipeline.firmware_evidence import write_firmware_evidence
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence

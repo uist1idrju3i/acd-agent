@@ -21,17 +21,17 @@ from acd.adapters.kicad.fab import (
 from acd.adapters.kicad.fab.assembly import apply_cpl_contract
 from acd.adapters.kicad.library import LibraryPinError
 from acd.adapters.kicad.overlay import apply_overlay
-from acd.core.bom import bom_csv, build_bom
-from acd.core.electrical import (
+from acd.core.electrical.electrical import (
     BoardView,
     ComponentView,
     ElectricalLane,
     LibraryPin,
     extract_electrical_lane,
 )
-from acd.core.fab import FabProfile, load_fab_profile
-from acd.core.routing_width import NetWidthRequirement
-from acd.core.sexpr import SExpr
+from acd.core.electrical.routing_width import NetWidthRequirement
+from acd.core.electrical.sexpr import SExpr
+from acd.core.manufacturing.bom import bom_csv, build_bom
+from acd.core.manufacturing.fab import FabProfile, load_fab_profile
 from acd.schema import DesignGraph
 
 ROOT = Path(__file__).parents[3]

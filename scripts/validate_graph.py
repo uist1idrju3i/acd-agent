@@ -15,15 +15,15 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.functional_blocks import load_functional_block_registry
-from acd.core.lane_cli import (
+from acd.core.knowledge.functional_blocks import load_functional_block_registry
+from acd.core.knowledge.rationale import check_rationale_coverage
+from acd.core.knowledge.requirements import validate_requirements
+from acd.core.runtime.lane_cli import (
     LEGACY_FIXTURE_FLAGS,
     LEGACY_OUT_FLAGS,
     add_legacy_flags,
 )
-from acd.core.lane_preflight import LANE_IDS, run_lane_preflight
-from acd.core.rationale import check_rationale_coverage
-from acd.core.requirements import validate_requirements
+from acd.core.runtime.lane_preflight import LANE_IDS, run_lane_preflight
 from acd.schema.design_graph import DesignGraph
 from acd.schema.rationale import RationaleDocument
 from acd.schema.requirement import RequirementDocument

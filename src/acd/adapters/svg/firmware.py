@@ -36,7 +36,7 @@ from acd.adapters.svg.common import (
     svg_text,
     text_advance,
 )
-from acd.core.firmware_lane import FirmwareLane, FirmwareStateTransitionView
+from acd.core.firmware.firmware_lane import FirmwareLane, FirmwareStateTransitionView
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,

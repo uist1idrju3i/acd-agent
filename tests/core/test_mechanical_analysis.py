@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.fem import FemRawResult, evaluate_fem, generate_ccx_input, run_ccx
-from acd.core.thermal import estimate_thermal
+from acd.core.electrical.thermal import estimate_thermal
+from acd.core.mechanical.fem import FemRawResult, evaluate_fem, generate_ccx_input, run_ccx
 from acd.schema import DesignGraph, FemLimits, FemRequest, ThermalRequest, UseEnvironment
 
 ROOT = Path(__file__).parents[2]
@@ -152,7 +152,7 @@ def test_fem_version_mismatch_is_unknown() -> None:
 
 
 def test_fem_missing_tool_is_unknown(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    from acd.core import fem
+    from acd.core.mechanical import fem
 
     def missing(**_kwargs: object) -> object:
         raise fem.ExternalToolError("ccx not found")
@@ -169,7 +169,7 @@ def test_ccx_version_probe_accepts_real_banner(
 ) -> None:
     from types import SimpleNamespace
 
-    from acd.core import fem
+    from acd.core.mechanical import fem
 
     calls: list[dict[str, object]] = []
 

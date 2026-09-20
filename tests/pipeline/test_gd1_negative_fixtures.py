@@ -13,15 +13,15 @@ from acd.adapters.kicad.fab import FabOutputError
 from acd.adapters.kicad.fab.gerber import verify_ground_plane_gerbers
 from acd.adapters.kicad.gates import GateError, assert_rule_check_input_matches
 from acd.adapters.kicad.library import FootprintLibrary, LibraryPinError
-from acd.core.board_model import RoutedDesign
-from acd.core.design_predicates import (
+from acd.core.electrical.board_model import RoutedDesign
+from acd.core.electrical.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.knowledge.design_predicates import (
     evaluate_i2c_pullup,
     evaluate_pin_firmware_alignment,
     evaluate_strapping_pin,
     evaluate_usb_cc,
 )
-from acd.core.electrical import GraphExtractionError, extract_electrical_lane
-from acd.core.process import ToolRun, sha256_paths
+from acd.core.runtime.process import ToolRun, sha256_paths
 from acd.schema import ToolEnvelope
 from tests.pipeline.gd1_negative_fixtures import (
     FIXTURE_DIR,

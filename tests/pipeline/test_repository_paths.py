@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.silkscreen import SilkscreenLane, SilkTextView
+from acd.core.electrical.silkscreen import SilkscreenLane, SilkTextView
 from acd.pipeline.repository import repository_root, resolve_repository_file
 from acd.pipeline.silkscreen_resolve import _assert_no_unresolved_texts
 

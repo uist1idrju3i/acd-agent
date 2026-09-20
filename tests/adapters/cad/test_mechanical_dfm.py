@@ -14,8 +14,8 @@ from acd.adapters.cad.mechanical_dfm import (
     check_mechanical_dfm,
 )
 from acd.adapters.cad.project import build_enclosure_shapes
-from acd.core.electrical import GraphExtractionError
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.electrical.electrical import GraphExtractionError
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = Path(__file__).parents[3] / "fixtures/mechanism-library/graph.json"

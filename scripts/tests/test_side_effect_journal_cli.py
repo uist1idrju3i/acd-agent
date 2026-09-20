@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from scripts import side_effect_journal
 
-from acd.core.side_effect_journal import append_post_order, append_pre_order
+from acd.core.runtime.side_effect_journal import append_post_order, append_pre_order
 from acd.schema import EvidenceReference, PreOrderGateRecord, QuoteAmount
 
 HASH = "sha256:" + "a" * 64

@@ -12,7 +12,7 @@ import pytest
 from scripts import verify_manufacturing_submission
 from tests.core.manufacturing_tree import GRAPH_PATH, build_submission_tree
 
-from acd.core.manufacturing_submission import (
+from acd.core.manufacturing.manufacturing_submission import (
     manufacturing_submission_content_hash_payload,
 )
 from acd.schema.common import canonical_json_sha256

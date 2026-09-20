@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.firmware import (
+from acd.core.firmware.firmware import (
     FunctionalRunError,
     load_and_evaluate_functional_run,
 )

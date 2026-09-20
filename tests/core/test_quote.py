@@ -10,7 +10,7 @@ from typing import cast
 import pytest
 from pydantic import ValidationError
 
-from acd.core.quote import QuoteReadError, load_quote, read_quote
+from acd.core.manufacturing.quote import QuoteReadError, load_quote, read_quote
 from acd.schema import QuoteAmount, QuoteRecord
 
 ROOT = Path(__file__).parents[2]

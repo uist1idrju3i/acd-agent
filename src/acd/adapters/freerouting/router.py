@@ -14,7 +14,7 @@ import subprocess
 from pathlib import Path
 from typing import Final
 
-from acd.core.process import (
+from acd.core.runtime.process import (
     DEFAULT_TOOL_TIMEOUT_S,
     ExternalToolError,
     ToolRun,

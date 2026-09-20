@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from acd.core.pin_functions import pin_function_attrs
+from acd.core.electrical.pin_functions import pin_function_attrs
 from acd.schema.parts_catalog import PartCplOrientation
 
 CATALOG_ID = "acd-parts-catalog-1"

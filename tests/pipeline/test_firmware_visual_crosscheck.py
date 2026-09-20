@@ -11,15 +11,15 @@ from pathlib import Path
 import pytest
 
 from acd.adapters.svg import generate_firmware_visual_projections
-from acd.core.electrical import extract_electrical_lane
-from acd.core.firmware_lane import (
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.firmware.firmware_lane import (
     FirmwareLane,
     FirmwareSequenceStepView,
     FirmwareStateView,
     extract_firmware_lane,
 )
-from acd.core.naming import output_prefix
-from acd.core.process import sha256_bytes
+from acd.core.knowledge.naming import output_prefix
+from acd.core.runtime.process import sha256_bytes
 from acd.pipeline.gd1_board.visual_stages import stage_firmware_visual_projections
 from acd.pipeline.repository import repository_root
 from acd.pipeline.visual_projection import crosscheck_firmware_visual_projections

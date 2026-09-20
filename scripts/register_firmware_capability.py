@@ -6,8 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from acd.core.firmware_capability import FirmwareCapabilityContractError
-from acd.core.firmware_capability_entry import register_firmware_capability
+from acd.core.firmware.firmware_capability import FirmwareCapabilityContractError
+from acd.core.firmware.firmware_capability_entry import register_firmware_capability
 
 
 def _parser() -> argparse.ArgumentParser:

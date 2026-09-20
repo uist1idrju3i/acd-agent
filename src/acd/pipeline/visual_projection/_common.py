@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from xml.etree import ElementTree
 
-from acd.core.process import sha256_bytes
+from acd.core.runtime.process import sha256_bytes
 from acd.schema.visual_crosscheck import (
     CrosscheckStatus,
     VisualCrosscheckItem,

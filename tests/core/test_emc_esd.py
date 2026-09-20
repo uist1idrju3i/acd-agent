@@ -7,9 +7,9 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.design_predicates import PREDICATE_CATALOG
-from acd.core.electrical import extract_electrical_lane
-from acd.core.emc_esd import evaluate_emc_esd
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.electrical.emc_esd import evaluate_emc_esd
+from acd.core.knowledge.design_predicates import PREDICATE_CATALOG
 from acd.schema import DesignGraph, UseEnvironment
 
 ROOT = Path(__file__).parents[2]

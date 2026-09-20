@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.lane_cli import add_lane_io_arguments
+from acd.core.runtime.lane_cli import add_lane_io_arguments
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

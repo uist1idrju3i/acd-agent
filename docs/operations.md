@@ -370,7 +370,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    | `evidence.authoritative` | unchecked | Evidence validation |
 
    enclosure-pipeline laneでは宣言ループの後に機械preflight
-   （`src/acd/core/mechanical_preflight.py`の`collect_mechanical_findings`、
+   （`src/acd/core/mechanical/mechanical_preflight.py`の`collect_mechanical_findings`、
    graphのみで評価できるfinding）を折り込む。`mechanical.node.missing`は
    `missing_nodes`へ、`mechanical.attribute.missing`は`missing_attrs`へ、
    `mechanical.attribute.invalid`・`mechanical.node.duplicated`・
@@ -381,7 +381,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    あり、authoritative EvidenceやL1合格は確立しない。
 
    board-pipeline laneでは宣言されたevidence属性を実測recordへ解決する
-   （`src/acd/core/evidence_declarations.py`）。
+   （`src/acd/core/runtime/evidence_declarations.py`）。
    `electrical.component`の`cpl_rotation_evidence_basis`が`confirmed`の場合、
    record `evidence/<artifact_prefix>-cpl-orientation/<refdes>.json`の存在、
    refdes・lcsc一致、`response_canonical_sha256`の再計算一致、ISO-8601の
@@ -405,7 +405,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    生成したgraphが同じ段まで到達しない。
 
    宣言語彙の前倒し検査として、board-pipeline laneでは自由form属性の許容値を
-   `src/acd/core/declaration_vocabulary.py`の語彙と照合し、違反を
+   `src/acd/core/knowledge/declaration_vocabulary.py`の語彙と照合し、違反を
    `unsupported_values`へ機械可読に記録する。codeは`safety.boundary.missing`
    （node数が1でない）、`safety.boundary.intended_use_unsupported`、
    `safety.boundary.module_certified_unsupported`、
@@ -450,7 +450,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    合格や発注可を述べず、`scripts/verify_authoritative_evidence.py`の結果を提示する。
 
    最終報告の機械生成basis（Z-8）: 報告のsource変更節と設計値節は
-   `scripts/report_final_basis.py`（`src/acd/core/final_report_basis.py`、
+   `scripts/report_final_basis.py`（`src/acd/core/runtime/final_report_basis.py`、
    契約は`src/acd/schema/final_report_basis.py`）の出力を正とする。source変更節は
    `git log --stat --format='%H %s' <bootstrap>..HEAD`とworktreeの
    `git status --porcelain`・`git diff HEAD --stat`のverbatim blockで構成し、
@@ -858,7 +858,7 @@ graph検証失敗、
 round上限到達は元のboard失敗理由を保持してfail-closedで停止する。自動連結を使わない場合や
 診断次元を指定して手動評価する場合は`acd_explore_board_candidates`を使用する。
 
-`--recover-lanes`でFW laneが却下された場合は`acd.core.firmware_exploration`の
+`--recover-lanes`でFW laneが却下された場合は`acd.core.firmware.firmware_exploration`の
 FW専用候補生成器へ回る。入力はlane出力の`gate-evidence/design-predicates.json`
 （存在時）と`firmware-coverage.json`（存在時）であり、両方不在ならfail-closedで
 停止する。候補次元は`gpio_assignment`に限り、基板側の配置・回転次元は
@@ -1098,7 +1098,7 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 #### CalculiX（ccx）のtools image運用
 
 機械解析のFEM経路で使うCalculiXはGPLツールのため、ACDへimportせず
-`acd.core.process.run_tool`から`ccx` subprocessとしてだけ起動する。tools imageの
+`acd.core.runtime.process.run_tool`から`ccx` subprocessとしてだけ起動する。tools imageの
 DockerfileにはUbuntu archiveの`calculix-ccx`を追加し、`scripts/measure_image_tools.py`
 が`ccx -v`から版を抽出する。`ccx -v`はstdoutへ`This is Version 2.21`形式の
 版バナーを出して終了コード201で終わるため、probe経路ではバナーが読めたときだけ

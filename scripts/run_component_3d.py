@@ -14,8 +14,8 @@ from acd.adapters.cad.component_3d import (
 )
 from acd.adapters.cad.project import project_enclosure
 from acd.adapters.kicad.step_export import export_board_step
-from acd.core.electrical import extract_electrical_lane
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from acd.core.fw_security_gate import (
+from acd.core.firmware.fw_security_gate import (
     check_build_config_consistency,
     validate_security_gate_result,
 )

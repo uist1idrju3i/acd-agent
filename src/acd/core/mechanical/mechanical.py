@@ -6,12 +6,12 @@ import math
 from dataclasses import dataclass
 from typing import Final, Literal, cast
 
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     EdgeOverhangDeclaration,
     MountHole,
     PlacementAnnotations,
 )
-from acd.core.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.electrical.electrical import GraphExtractionError, extract_electrical_lane
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 SUPPORTED_OPENING_FACES: Final[tuple[str, ...]] = ("front", "back", "left", "right")
@@ -99,8 +99,12 @@ MECHANISM_FACES: Final[tuple[str, ...]] = (
 )
 MECHANISM_DIMENSIONS: Final[dict[str, tuple[str, ...]]] = {
     "snap_fit": (
-        "hook_length_mm", "hook_thickness_mm", "undercut_mm",
-        "insertion_angle_deg", "retention_angle_deg", "deflection_mm",
+        "hook_length_mm",
+        "hook_thickness_mm",
+        "undercut_mm",
+        "insertion_angle_deg",
+        "retention_angle_deg",
+        "deflection_mm",
     ),
     "hinge": ("pin_diameter_mm", "knuckle_width_mm", "knuckle_count", "clearance_mm", "swing_deg"),
     "button": ("cap_diameter_mm", "stroke_mm", "travel_clearance_mm", "web_thickness_mm"),
@@ -287,9 +291,7 @@ def placement_annotations(graph: DesignGraph) -> PlacementAnnotations:
             )
         overhang_mm = _float_attr(node, "overhang_mm")
         if not math.isfinite(overhang_mm) or overhang_mm <= 0:
-            raise GraphExtractionError(
-                f"node {node.id!r}: overhang_mm must be finite and positive"
-            )
+            raise GraphExtractionError(f"node {node.id!r}: overhang_mm must be finite and positive")
         requirement_id = _str_attr(node, "requirement_id")
         key = (component_refdes, edge)
         if key in seen:
@@ -469,13 +471,9 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
             body_type = _str_attr(node, "body_type")
             height_mm = _float_attr(node, "height_mm")
             if body_type not in {"solid", "none"}:
-                raise GraphExtractionError(
-                    f"node {node.id!r}: body_type must be 'solid' or 'none'"
-                )
+                raise GraphExtractionError(f"node {node.id!r}: body_type must be 'solid' or 'none'")
             if body_type == "none" and height_mm != 0:
-                raise GraphExtractionError(
-                    f"node {node.id!r}: body_type=none requires height_mm=0"
-                )
+                raise GraphExtractionError(f"node {node.id!r}: body_type=none requires height_mm=0")
             if body_type == "solid" and height_mm <= 0:
                 raise GraphExtractionError(
                     f"node {node.id!r}: solid body requires positive height_mm"
@@ -576,9 +574,7 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     f"node {node.id!r}: lid_screw_hole_diameter_mm must be finite and positive"
                 )
             standoff_radius = _float_attr(node, "standoff_radius_mm")
-            if standoff_radius - pilot_diameter / 2 < _float_attr(
-                node, "min_wall_thickness_mm"
-            ):
+            if standoff_radius - pilot_diameter / 2 < _float_attr(node, "min_wall_thickness_mm"):
                 raise GraphExtractionError(
                     f"node {node.id!r}: standoff pilot hole leaves less than min_wall_thickness_mm"
                 )
@@ -589,17 +585,12 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
             manufacturing_process_value = node.attrs.get("manufacturing_process")
             if manufacturing_process_value is not None and (
                 not isinstance(manufacturing_process_value, str)
-                or manufacturing_process_value
-                not in {"fdm", "sla", "injection_molding"}
+                or manufacturing_process_value not in {"fdm", "sla", "injection_molding"}
             ):
-                raise GraphExtractionError(
-                    f"node {node.id!r}: unsupported manufacturing_process"
-                )
+                raise GraphExtractionError(f"node {node.id!r}: unsupported manufacturing_process")
             dfm_profile_value = node.attrs.get("dfm_profile")
             if dfm_profile_value is not None and not isinstance(dfm_profile_value, dict):
-                raise GraphExtractionError(
-                    f"node {node.id!r}: dfm_profile must be an object"
-                )
+                raise GraphExtractionError(f"node {node.id!r}: dfm_profile must be an object")
             enclosures.append(
                 EnclosureView(
                     node_id=node.id,
@@ -615,9 +606,7 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     material=_str_attr(node, "material"),
                     unit=_str_attr(node, "unit"),
                     tolerance_mm=_float_attr(node, "tolerance_mm"),
-                    interference_tolerance_mm3=_float_attr(
-                        node, "interference_tolerance_mm3"
-                    ),
+                    interference_tolerance_mm3=_float_attr(node, "interference_tolerance_mm3"),
                     tolerance_source=_str_attr(node, "tolerance_source"),
                     tolerance_source_ref=_str_attr(node, "tolerance_source_ref"),
                     manufacturing_process=manufacturing_process_value,
@@ -631,10 +620,10 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     f"node {node.id!r}: unsupported mechanism feature_type {feature_type!r}"
                 )
             enclosure_ids = [
-                dep for dep in node.depends_on
+                dep
+                for dep in node.depends_on
                 if any(
-                    item.id == dep and item.kind == "mechanical.enclosure"
-                    for item in graph.nodes
+                    item.id == dep and item.kind == "mechanical.enclosure" for item in graph.nodes
                 )
             ]
             if len(enclosure_ids) != 1:

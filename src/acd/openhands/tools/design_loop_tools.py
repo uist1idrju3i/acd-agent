@@ -227,7 +227,7 @@ class AcdCompileRequirementChangeExecutor(
     ) -> AcdObservation:
         del conversation
         try:
-            from acd.core.requirement_compiler import compile_requirement_change
+            from acd.core.knowledge.requirement_compiler import compile_requirement_change
 
             result = compile_requirement_change(
                 Path(action.fixture_dir),
@@ -295,11 +295,11 @@ class AcdAggregateOrderTotalExecutor(
     ) -> AcdObservation:
         del conversation
         try:
-            from acd.core.order_total import (
+            from acd.core.manufacturing.order_total import (
                 aggregate_order_total,
                 order_total_result_to_document,
             )
-            from acd.core.timestamps import parse_evaluated_at
+            from acd.core.runtime.timestamps import parse_evaluated_at
             from acd.schema import FabProfileDocument, OrderScope, QuoteRecord
 
             records = [
@@ -368,7 +368,7 @@ class AcdExploreBoardCandidatesExecutor(
     ) -> AcdObservation:
         del conversation
         try:
-            from acd.core.exploration import explore_board_candidates
+            from acd.core.knowledge.exploration import explore_board_candidates
 
             result = explore_board_candidates(
                 Path(action.graph),
@@ -402,7 +402,7 @@ class AcdExploreEnclosureCandidatesExecutor(
     ) -> AcdObservation:
         del conversation
         try:
-            from acd.core.enclosure_exploration import explore_enclosure_candidates
+            from acd.core.mechanical.enclosure_exploration import explore_enclosure_candidates
 
             result = explore_enclosure_candidates(
                 Path(action.graph),
@@ -435,7 +435,7 @@ class AcdDiagnoseGateFailureExecutor(ToolExecutor[AcdDiagnoseGateFailureAction, 
     ) -> AcdObservation:
         del conversation
         try:
-            from acd.core.gate_diagnosis import diagnose_gate_failure
+            from acd.core.runtime.gate_diagnosis import diagnose_gate_failure
 
             report = diagnose_gate_failure(
                 Path(action.out_dir),
@@ -465,7 +465,7 @@ class AcdCheckOrderReadinessExecutor(ToolExecutor[AcdCheckOrderReadinessAction, 
         try:
             from datetime import datetime
 
-            from acd.core.order_total import order_total_result_from_document
+            from acd.core.manufacturing.order_total import order_total_result_from_document
             from acd.openhands.order_gate import evaluate_pre_order_gate
             from acd.schema import OrderPolicy, OrderTotalDocument
 
@@ -510,7 +510,7 @@ class AcdRunDesignLoopExecutor(
     ) -> AcdRunDesignLoopObservation:
         del conversation
         try:
-            from acd.core.timestamps import parse_evaluated_at
+            from acd.core.runtime.timestamps import parse_evaluated_at
             from acd.pipeline.design_loop import run_design_loop
 
             evaluated_at = (

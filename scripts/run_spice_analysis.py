@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from acd.core.spice import (
+from acd.core.electrical.spice import (
     SpiceNetlistError,
     evaluate_spice,
     extract_power_netlist,

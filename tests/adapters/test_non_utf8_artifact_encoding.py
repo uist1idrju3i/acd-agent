@@ -12,12 +12,12 @@ from pathlib import Path
 from acd.adapters.kicad.fab import jlcpcb_bom_csv, jlcpcb_cpl_csv, parse_pos_csv
 from acd.adapters.kicad.fab.archive import deterministic_zip, zip_content_hash
 from acd.adapters.kicad.reload import normalize_member
-from acd.core.cad_normalize import normalize_3mf, normalize_step, normalize_stl
-from acd.core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
-from acd.core.manufacturing_submission import (
+from acd.core.electrical.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
+from acd.core.manufacturing.manufacturing_submission import (
     _fitted_refdes_from_bom,
     _fitted_refdes_from_cpl,
 )
+from acd.core.mechanical.cad_normalize import normalize_3mf, normalize_step, normalize_stl
 from tests.helpers.locale import run_under_c_locale
 
 
@@ -148,7 +148,10 @@ from pathlib import Path
 from acd.adapters.kicad.fab import parse_pos_csv
 from acd.adapters.kicad.fab.archive import zip_content_hash
 from acd.adapters.kicad.reload import normalize_member
-from acd.core.manufacturing_submission import _fitted_refdes_from_bom, _fitted_refdes_from_cpl
+from acd.core.manufacturing.manufacturing_submission import (
+    _fitted_refdes_from_bom,
+    _fitted_refdes_from_cpl,
+)
 root = Path(sys.argv[1])
 names = json.loads(sys.argv[2])
 bom = root / names["bom"]
@@ -230,7 +233,7 @@ import json
 import sys
 from hashlib import sha256
 from pathlib import Path
-from acd.core.cad_normalize import normalize_3mf, normalize_stl, normalize_step
+from acd.core.mechanical.cad_normalize import normalize_3mf, normalize_stl, normalize_step
 root = Path(sys.argv[1])
 names = json.loads(sys.argv[2])
 step = root / names["step"]

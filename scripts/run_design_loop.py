@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
-from acd.core.timestamps import parse_evaluated_at
+from acd.core.runtime.timestamps import parse_evaluated_at
 from acd.pipeline.design_loop import run_design_loop
 
 

@@ -19,10 +19,10 @@ from typing import Literal, cast
 from pydantic import Field
 
 from acd.adapters.raster import CairoSvgRasterizer
-from acd.core.fileio import read_json
-from acd.core.process import sha256_bytes
-from acd.core.vision_tool_events import response_sha256
-from acd.core.visual_quality import analyze_svg_readability
+from acd.core.electrical.visual_quality import analyze_svg_readability
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.process import sha256_bytes
+from acd.core.runtime.vision_tool_events import response_sha256
 from acd.openhands.session.visual_projection import write_visual_vision_observation
 from acd.pipeline.visual_projection import derive_png_visual_projections
 from acd.schema.common import AcdModel, NonEmptyStr

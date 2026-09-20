@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import cast
 
 # ruff: noqa: E501,RUF100
-from acd.core.qr_geometry import qr_module_matrix_from_svg
+from acd.core.electrical.qr_geometry import qr_module_matrix_from_svg
 from acd.schema.design_graph import GraphNode
 
 from ..repository import repository_root

@@ -21,9 +21,9 @@ from pathlib import Path
 from acd.adapters.kicad.emit import det_uuid, fmt, requote
 from acd.adapters.kicad.library import ParsedSymbol, SymbolLibrary, SymbolPin
 from acd.adapters.kicad.paper import select_paper
-from acd.core.electrical import ComponentView, ElectricalLane, LibraryPin
-from acd.core.library_assets import resolve_fixture_library_path
-from acd.core.sexpr import Quoted, SExpr, Sym, dumps
+from acd.core.electrical.electrical import ComponentView, ElectricalLane, LibraryPin
+from acd.core.electrical.sexpr import Quoted, SExpr, Sym, dumps
+from acd.core.manufacturing.library_assets import resolve_fixture_library_path
 
 SCH_VERSION = "20250114"
 SCH_FORMAT_NAME = "kicad_sch"

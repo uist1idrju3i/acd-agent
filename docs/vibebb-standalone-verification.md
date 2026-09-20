@@ -556,7 +556,7 @@ S-1（候補評価前のrationale更新）は解消を確認できた。候補�
 deterministic pipeline rejected candidate: timing stage already started: board[1/12]
 ```
 
-`TimingRecorder.start()`は同名stageの二重開始をValueErrorにする（`src/acd/core/runtime_records.py`）。
+`TimingRecorder.start()`は同名stageの二重開始をValueErrorにする（`src/acd/core/runtime/runtime_records.py`）。
 親の基板pipelineはpre-routerで却下されるため`board[1/12]`を`finish`せずに中断し、stage名が
 `_started`へ残る。復帰の候補評価は`src/acd/pipeline/design_loop.py`の`pipeline_runner`が
 `timing_recorder=config.timing_recorder`として親と同一のrecorderを渡すため、候補側の
@@ -1260,8 +1260,8 @@ TerminalAction（実行中processのpoll）はprojection保護hookに誤って�
   作った側面がある。
 - 17:01–17:10: rationale coverage失敗の切り分けのため、`check_rationale_coverage`を
   常時通過させるmonkeypatch debug scriptを作成し（F-2）、さらに検証checkout内の
-  `src/acd/pipeline/fixture_builder.py`・`src/acd/core/design_predicates.py`・
-  `src/acd/core/rationale.py`を直接改変した（F-3）。`run_in_workspace.py`はmountした
+  `src/acd/pipeline/fixture_builder.py`・`src/acd/core/knowledge/design_predicates.py`・
+  `src/acd/core/knowledge/rationale.py`を直接改変した（F-3）。`run_in_workspace.py`はmountした
   repoを`uv sync`するため、以後のEvidenceはbootstrap recordが`e45f1ec`を主張する一方で
   dirty treeから生成される。pipeline／Evidenceに作業treeのdirty状態を記録する面が無い。
 - 17:33: `evaluate_strapping_pin`がnet名`"LED"`の固定検索（`_net_id(graph, "LED")`）で
@@ -1442,7 +1442,7 @@ completion約27.3万／reasoning約20.6万）。16:25:12にre-promptを1回投�
   （Y-2の要約は出た）。agentが`mechanical.outline`へ持ち込んだ`dimensions_*`はoutlineの
   契約に無い属性であり、coverageの`unclassified`が正しく止めた。しかし診断の「next step」が
   sourceの分類表名を挙げたため、agentはそれを文字どおり実行した（次項、Z-2）。
-- **12:09:24: agentが検証checkoutの`src/acd/core/rationale.py`を編集**し
+- **12:09:24: agentが検証checkoutの`src/acd/core/knowledge/rationale.py`を編集**し
   `RATIONALE_EXEMPT_ATTRS["mechanical.outline"]`へ4属性を追加（gate緩和、第8回F-3と同型）。
   12:10:20に`run_in_workspace.py`が「source tree is dirty (1 path(s) under ('src', …));
   commit the changes or pass allow_dirty (CLI: --allow-dirty) …」で**container起動前に拒否**
@@ -1517,7 +1517,7 @@ completion約27.3万／reasoning約20.6万）。16:25:12にre-promptを1回投�
 
 最終報告（`conversation/agent-final-report.md`）には2点の不正確さがある。
 (1)「`git diff --stat`なし、`src/`・`scripts/`の変更なし」とあるが、実際は
-`src/acd/core/rationale.py`・`src/acd/pipeline/design_loop.py`・`scripts/run_vibebb.py`が
+`src/acd/core/knowledge/rationale.py`・`src/acd/pipeline/design_loop.py`・`scripts/run_vibebb.py`が
 **commit済み**であり、working treeだけを見た報告になっている
 （`report/workspace-git-commits.json`・`report/workspace-src-diffs/`が一次資料）。
 (2)「R4／R6が10 kΩで誤配線」とあるが、最終`spec.json`ではR3／R4が4.7 kΩでSDA／SCL→+3V3、
@@ -1719,7 +1719,7 @@ completion約22.0万／reasoning約13.6万。`conversation/conversation-stats.js
   （11回）に対し、agentは**`contracts/parts-catalog.json`へ`jq`でentryを追加**した
   （05:05 KT-0603G緑LED・KT-0603A橙LED、06:50 `Conn_01x04_Pin`ヘッダ。計80行、
   `report/workspace-src-diffs/contracts__parts-catalog.json.diff`）。さらに**05:38:10に
-  `src/acd/core/part_selection.py`を`str_replace`で編集**し、`PartSelectionError`の
+  `src/acd/core/manufacturing/part_selection.py`を`str_replace`で編集**し、`PartSelectionError`の
   message へ`kind=… value=… package=…`を付けた（pristineのmessageは要求内容を示さない。AA-4）。
   ゲート・閾値の緩和ではないが、source・contract編集はいずれも会話内で行われ、
   commitはされなかった（Z-3の「clean」化は起きず、dirtyのまま`--allow-dirty`で進んだ。AA-5）。
@@ -1727,7 +1727,7 @@ completion約22.0万／reasoning約13.6万。`conversation/conversation-stats.js
   「rationale coverage failed … unclassified=12 [...] next step: add rationale records in the
   design input (DesignFixtureSpec) for missing/stale subjects; unclassified attrs are not part
   of the rationale contract, so remove them from the design input or propose the contract
-  change in a separate PR」とsource表名を示さず、agentは`src/acd/core/rationale.py`を
+  change in a separate PR」とsource表名を示さず、agentは`src/acd/core/knowledge/rationale.py`を
   編集しなかった（unclassified属性は設計入力から除去）。overlay欠落（05:13）には
   第9回と同じく`fixtures/mini-blink-dongle/overlays/j1-usb-c-annular-ring.json`を
   **コピー**した。07:07:33の「unknown functional blocks: board_outline_mechanical,
@@ -1781,7 +1781,7 @@ completion約22.0万／reasoning約13.6万。`conversation/conversation-stats.js
   書いて4回目で終了した（`loop/stop-report.json`）。
 
 最終報告（`conversation/agent-final-report.md`）の評価（**Z-8**）: `report_final_basis.py`の
-機械出力（worktree block `M contracts/parts-catalog.json` / `M src/acd/core/part_selection.py`、
+機械出力（worktree block `M contracts/parts-catalog.json` / `M src/acd/core/manufacturing/part_selection.py`、
 `git diff HEAD --stat` 82行）はそのまま引用され、第9回の「`src/`変更なし」型の誤報告は
 **起きなかった**。しかし機械出力に添えたagentの説明は「`contracts/parts-catalog.json`:
 ACD pipelineが新規部品を自動登録した結果」「`part_selection.py`: pipeline実行中の

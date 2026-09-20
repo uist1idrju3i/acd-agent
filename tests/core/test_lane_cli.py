@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.lane_cli import add_lane_io_arguments
+from acd.core.runtime.lane_cli import add_lane_io_arguments
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LANE_ENTRYPOINTS = (

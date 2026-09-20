@@ -21,8 +21,8 @@ from acd.adapters.cad.assembly_viewer import render_assembly_viewer_html
 from acd.adapters.cad.component_3d import import_component_step
 from acd.adapters.cad.mechanical import run_mechanical_gates
 from acd.adapters.cad.project import project_enclosure
-from acd.core.electrical import extract_electrical_lane
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.schema.design_graph import DesignGraph
 

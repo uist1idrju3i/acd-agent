@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.parts_catalog_entry import register_parts_catalog_entry
+from acd.core.manufacturing.parts_catalog_entry import register_parts_catalog_entry
 from acd.pipeline.fixture_builder import FixtureBuilderError, build_design_fixture
 from acd.pipeline.gd1_fixture.graph import build_graph as build_gd1_graph
 from acd.schema import (
@@ -134,7 +134,7 @@ def test_battery_fixture_uses_test_provenance_without_battery_contract(
     catalog_path.write_text(json.dumps(catalog_data), encoding="utf-8")
     register_parts_catalog_entry(battery_entry, catalog_path)
     monkeypatch.setattr(
-        "acd.core.part_selection.default_parts_catalog_path",
+        "acd.core.manufacturing.part_selection.default_parts_catalog_path",
         lambda: catalog_path,
     )
     spec = DesignFixtureSpec(
@@ -287,7 +287,7 @@ def test_fixture_builder_does_not_default_missing_cpl_orientation(
     catalog_path = tmp_path / "parts-catalog.json"
     catalog_path.write_text(json.dumps(data), encoding="utf-8")
     monkeypatch.setattr(
-        "acd.core.part_selection.default_parts_catalog_path",
+        "acd.core.manufacturing.part_selection.default_parts_catalog_path",
         lambda: catalog_path,
     )
     spec = DesignFixtureSpec(

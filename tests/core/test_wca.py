@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.wca import evaluate_wca
+from acd.core.electrical.wca import evaluate_wca
 from acd.schema import (
     DesignGraph,
     SpiceResult,

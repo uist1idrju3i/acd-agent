@@ -18,7 +18,7 @@ from acd.adapters.kicad.library import FootprintLibrary
 from acd.adapters.kicad.overlay import apply_overlay
 from acd.adapters.kicad.paper import select_paper
 from acd.adapters.kicad.placement import Placement, PlacementError, Rect
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     BoardNet,
     ComponentPlacement,
@@ -27,17 +27,17 @@ from acd.core.board_model import (
     KeepoutRect,
     NetClass,
 )
-from acd.core.electrical import BoardView, ElectricalLane
-from acd.core.fab import FabProfile
-from acd.core.library_assets import resolve_fixture_library_path
-from acd.core.routing_width import derive_net_widths, group_netclasses
-from acd.core.sexpr import Quoted, SExpr, Sym, dumps
-from acd.core.silkscreen import (
+from acd.core.electrical.electrical import BoardView, ElectricalLane
+from acd.core.electrical.routing_width import derive_net_widths, group_netclasses
+from acd.core.electrical.sexpr import Quoted, SExpr, Sym, dumps
+from acd.core.electrical.silkscreen import (
     SilkGraphicPartView,
     SilkGraphicView,
     SilkscreenLane,
     SilkTextView,
 )
+from acd.core.manufacturing.fab import FabProfile
+from acd.core.manufacturing.library_assets import resolve_fixture_library_path
 
 PCB_VERSION = "20241229"
 

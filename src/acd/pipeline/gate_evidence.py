@@ -7,13 +7,13 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
-from acd.core.design_predicates import (
+from acd.core.knowledge.design_predicates import (
     DESIGN_PREDICATE_PROFILE,
     PREDICATE_EVALUATION_STAGE,
     PredicateResult,
     PredicateStatus,
 )
-from acd.core.fileio import write_json
+from acd.core.runtime.fileio import write_json
 from acd.schema.common import canonical_json_sha256
 
 

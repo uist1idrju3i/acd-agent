@@ -45,7 +45,7 @@ capability registry（`contracts/firmware-capability-registry.json`）の
 ## 許容値
 
 `attrs`は自由form辞書だが、lane predicateとpreflightは次の語彙だけを受理する。
-語彙の正は`src/acd/core/declaration_vocabulary.py`であり、
+語彙の正は`src/acd/core/knowledge/declaration_vocabulary.py`であり、
 `lane-preflight` stageが違反を`unsupported_values`としてfail-closedで報告する。
 
 | 宣言 | 許容値 | 違反時のcode |

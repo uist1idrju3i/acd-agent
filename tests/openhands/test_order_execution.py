@@ -13,7 +13,7 @@ from openhands.sdk.hooks import HookConfig
 from openhands.sdk.security import ConfirmRisky, SecurityRisk
 from openhands.sdk.security.confirmation_policy import ConfirmationPolicyBase, NeverConfirm
 
-from acd.core.side_effect_journal import (
+from acd.core.runtime.side_effect_journal import (
     SideEffectJournalError,
     reconstruct_order,
 )

@@ -12,7 +12,7 @@ from acd.adapters.cad.mechanical import (
     build_component_body_shape,
 )
 from acd.adapters.cad.mechanisms import build_mechanism_feature
-from acd.core.mechanical import MechanicalLane, MechanismFeatureView
+from acd.core.mechanical.mechanical import MechanicalLane, MechanismFeatureView
 
 
 @dataclass(frozen=True)

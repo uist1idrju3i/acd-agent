@@ -22,7 +22,7 @@ from gerbonara.graphic_objects import (  # pyright: ignore[reportMissingTypeStub
 )
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
-from acd.core.silkscreen import SilkTextView
+from acd.core.electrical.silkscreen import SilkTextView
 
 from .common import FabOutputError
 from .geometry import _bbox_overlap_area, _gerber_to_board_point

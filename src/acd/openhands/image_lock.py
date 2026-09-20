@@ -11,7 +11,7 @@ from typing import Final
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
-from acd.core.fileio import read_json
+from acd.core.runtime.fileio import read_json
 
 _DIGEST_PATTERN: Final = re.compile(r"^sha256:[0-9a-f]{64}$")
 _PLACEHOLDER_VALUES: Final = {"", "unknown", "tbd", "placeholder", "none", "null"}

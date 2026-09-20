@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-from acd.core.router_diagnostics import (
+from acd.core.electrical.router_diagnostics import (
     read_router_diagnostics,
     router_diagnostics_hint,
 )

@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from acd.core.mechanical import MechanicalLane, MechanismFeatureView
+from acd.core.mechanical.mechanical import MechanicalLane, MechanismFeatureView
 
 DfmStatus = Literal["pass", "fail", "unknown"]
 

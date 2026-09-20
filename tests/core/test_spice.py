@@ -9,7 +9,7 @@ from typing import cast
 
 import pytest
 
-from acd.core.spice import (
+from acd.core.electrical.spice import (
     SpiceRawResult,
     evaluate_spice,
     extract_power_netlist,
@@ -47,7 +47,8 @@ def test_netlist_bytes_are_deterministic() -> None:
 def test_recorded_output_evaluates() -> None:
     netlist = extract_power_netlist(_graph(), _request())
     output = OUTPUT_PATH.read_text(encoding="utf-8")
-    from acd.core import spice
+    from acd.core.electrical import spice
+
 
     parse_output = cast(
         Callable[
@@ -198,7 +199,7 @@ def test_version_mismatch_is_unknown(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     def fake_run_tool(**_: object) -> SimpleNamespace:
         return SimpleNamespace(stdout="ngspice-44.0\n", stderr="")
 
-    monkeypatch.setattr("acd.core.spice.run_tool", fake_run_tool)
+    monkeypatch.setattr("acd.core.electrical.spice.run_tool", fake_run_tool)
     result = run_ngspice(netlist, tmp_path)
     assert result.status == "unknown"
     assert "tool_version_mismatch" in result.findings
@@ -210,7 +211,7 @@ def test_tool_missing_is_unknown(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     def missing_tool(**_: object) -> SimpleNamespace:
         raise OSError("ngspice not found")
 
-    monkeypatch.setattr("acd.core.spice.run_tool", missing_tool)
+    monkeypatch.setattr("acd.core.electrical.spice.run_tool", missing_tool)
     result = run_ngspice(netlist, tmp_path)
     assert result.status == "unknown"
     assert "tool_missing" in result.findings
@@ -232,7 +233,7 @@ def test_non_convergence_is_unknown(
         )
         return SimpleNamespace(stdout="", stderr="")
 
-    monkeypatch.setattr("acd.core.spice.run_tool", fake_run_tool)
+    monkeypatch.setattr("acd.core.electrical.spice.run_tool", fake_run_tool)
     result = run_ngspice(netlist, tmp_path)
     assert result.status == "unknown"
     assert "ngspice did not converge" in result.findings
@@ -252,7 +253,7 @@ def test_mocked_subprocess_parses_recorded_output(
         output_paths[0].write_text(output, encoding="utf-8")
         return SimpleNamespace(stdout="", stderr="")
 
-    monkeypatch.setattr("acd.core.spice.run_tool", fake_run_tool)
+    monkeypatch.setattr("acd.core.electrical.spice.run_tool", fake_run_tool)
     result = run_ngspice(netlist, tmp_path)
     assert result.status == "pass"
     assert result.ngspice_version == "45.2"

@@ -16,7 +16,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from acd.core.lane_artifact_retention import (
+from acd.core.runtime.lane_artifact_retention import (
     AUTHORITY_STATEMENT,
     LaneArtifactRetentionError,
     load_lane_artifact_retention,

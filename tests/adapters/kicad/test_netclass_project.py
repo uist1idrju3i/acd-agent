@@ -9,9 +9,9 @@ from typing import cast
 import pytest
 
 from acd.adapters.kicad.project import _project_settings  # pyright: ignore[reportPrivateUsage]
-from acd.core.electrical import extract_electrical_lane
-from acd.core.fab import load_fab_profile
-from acd.core.routing_width import derive_net_widths, group_netclasses
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.electrical.routing_width import derive_net_widths, group_netclasses
+from acd.core.manufacturing.fab import load_fab_profile
 from acd.schema import DesignGraph
 
 ROOT = Path(__file__).parents[3]

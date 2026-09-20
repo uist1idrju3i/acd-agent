@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.lane_preflight import (
+from acd.core.manufacturing.part_selection import load_parts_catalog
+from acd.core.runtime.lane_preflight import (
     LANE_IDS,
     PREFLIGHT_CHECKED_PREDICATES,
     PREFLIGHT_UNCHECKED_PREDICATES,
@@ -16,7 +17,6 @@ from acd.core.lane_preflight import (
     missing_declarations,
     run_lane_preflight,
 )
-from acd.core.part_selection import load_parts_catalog
 from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.lane_preflight import (
     LanePreflightLaneReport,
@@ -443,7 +443,7 @@ def test_firmware_coverage_is_unknown_when_registry_fails(
         raise ValueError("registry unreadable")
 
     monkeypatch.setattr(
-        "acd.core.lane_preflight.load_firmware_capability_registry", broken
+        "acd.core.runtime.lane_preflight.load_firmware_capability_registry", broken
     )
     report = run_lane_preflight(_graph(), ("firmware-pipeline",))
     lane = _firmware_lane(report)

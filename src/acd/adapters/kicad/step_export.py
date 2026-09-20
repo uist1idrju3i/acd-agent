@@ -9,9 +9,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from acd.core.cad_normalize import normalize_step
-from acd.core.fileio import read_json
-from acd.core.process import ExternalToolError, run_tool, sha256_bytes
+from acd.core.mechanical.cad_normalize import normalize_step
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.process import ExternalToolError, run_tool, sha256_bytes
 
 
 @dataclass(frozen=True)

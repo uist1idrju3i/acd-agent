@@ -33,19 +33,19 @@ from acd.adapters.svg.common import (
     svg_text,
     view_box_font_size,
 )
-from acd.core.cad_normalize import normalize_step
-from acd.core.fileio import read_json
-from acd.core.mechanical import SUPPORTED_OPENING_FACES, MechanicalLane
-from acd.core.naming import artifact_prefix
-from acd.core.parallel import PipelineStageRunner
-from acd.core.process import ExternalToolError, sha256_bytes
-from acd.core.visual_projection import (
+from acd.core.electrical.visual_projection import (
     CAD_SVG_NORMALIZATION_RULE_ID,
     SvgNormalizationError,
     cad_view_geometry,
     measure_svg_resolution,
     raw_svg_parts,
 )
+from acd.core.knowledge.naming import artifact_prefix
+from acd.core.mechanical.cad_normalize import normalize_step
+from acd.core.mechanical.mechanical import SUPPORTED_OPENING_FACES, MechanicalLane
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.parallel import PipelineStageRunner
+from acd.core.runtime.process import ExternalToolError, sha256_bytes
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,

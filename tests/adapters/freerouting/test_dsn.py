@@ -7,7 +7,7 @@ from dataclasses import replace
 import pytest
 
 from acd.adapters.freerouting.dsn import DsnExportError, export_dsn
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     BoardNet,
     ComponentPlacement,

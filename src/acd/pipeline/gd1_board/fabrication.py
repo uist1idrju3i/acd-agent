@@ -25,11 +25,11 @@ from acd.adapters.kicad.fab import (
 )
 from acd.adapters.kicad.project import ProjectFiles
 from acd.adapters.kicad.reload import normalized_hash
-from acd.core.board_model import RoutedDesign
-from acd.core.electrical import ElectricalLane
-from acd.core.fab import FabOrderIntentView, FabProfile, ProcessAllowanceView
-from acd.core.fileio import write_json
-from acd.core.naming import artifact_prefix
+from acd.core.electrical.board_model import RoutedDesign
+from acd.core.electrical.electrical import ElectricalLane
+from acd.core.knowledge.naming import artifact_prefix
+from acd.core.manufacturing.fab import FabOrderIntentView, FabProfile, ProcessAllowanceView
+from acd.core.runtime.fileio import write_json
 from acd.pipeline.repository import repository_root
 from acd.schema.design_graph import DesignGraph
 

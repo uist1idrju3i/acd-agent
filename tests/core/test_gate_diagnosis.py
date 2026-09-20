@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.gate_diagnosis import GateDiagnosisError, diagnose_gate_failure
+from acd.core.runtime.gate_diagnosis import GateDiagnosisError, diagnose_gate_failure
 from acd.schema.common import canonical_json_sha256
 
 FIXTURE_DIR = Path("fixtures/golden-design-1")

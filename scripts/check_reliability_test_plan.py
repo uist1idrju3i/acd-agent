@@ -14,8 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.electrical import extract_electrical_lane
-from acd.core.reliability_test import evaluate_reliability_test_plan
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.manufacturing.reliability_test import evaluate_reliability_test_plan
 from acd.schema import DesignGraph, ReliabilityTestPlan, UseEnvironment
 
 

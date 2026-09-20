@@ -18,7 +18,7 @@ from acd.adapters.svg.firmware import (
     FirmwareProjectionType,
     SvgFirmwareRenderer,
 )
-from acd.core.firmware_lane import FirmwareLane, extract_firmware_lane
+from acd.core.firmware.firmware_lane import FirmwareLane, extract_firmware_lane
 from acd.pipeline.repository import repository_root
 from acd.pipeline.visual_projection import crosscheck_firmware_visual_projections
 from acd.schema.design_graph import DesignGraph

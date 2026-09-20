@@ -12,7 +12,8 @@ from typing import Any
 import pytest
 
 from acd.adapters.kicad.library import FootprintLibrary
-from acd.core.design_predicates import (
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.knowledge.design_predicates import (
     PREDICATE_CATALOG,
     PREDICATE_EVALUATION_STAGE,
     _component_pad_positions,
@@ -27,7 +28,6 @@ from acd.core.design_predicates import (
     evaluate_usb_cc,
     validate_predicate_stage_coverage,
 )
-from acd.core.electrical import extract_electrical_lane
 from acd.schema import DesignGraph
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -408,6 +408,6 @@ def test_mcu_predicates_are_unknown_when_the_declared_mcu_is_missing() -> None:
 
 
 def test_predicate_source_has_no_literal_refdes_lookup() -> None:
-    source = (ROOT / "src/acd/core/design_predicates.py").read_text(encoding="utf-8")
+    source = (ROOT / "src/acd/core/knowledge/design_predicates.py").read_text(encoding="utf-8")
     assert '_component_by_refdes(lane, "' not in source
     assert "GD1" not in source

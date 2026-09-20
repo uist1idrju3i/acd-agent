@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import scripts.pre_order_gate as pre_order_gate
 
-from acd.core.order_total import (
+from acd.core.manufacturing.order_total import (
     OrderSubtotal,
     OrderTotalResult,
     QuoteCanonicalHash,

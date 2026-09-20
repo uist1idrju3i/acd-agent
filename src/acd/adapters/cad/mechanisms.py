@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-from acd.core.mechanical import MechanicalLane, MechanismFeatureView
+from acd.core.mechanical.mechanical import MechanicalLane, MechanismFeatureView
 
 
 def _bd() -> Any:

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.rationale import (
+from acd.core.knowledge.rationale import (
     check_rationale_coverage,
     subject_hash_for,
     summarize_rationale_coverage,
@@ -368,6 +368,6 @@ def test_summarize_rationale_coverage_is_used_by_fixture_builder(
 
 
 def test_firmware_inspection_entry_command_is_a_required_rationale_attribute() -> None:
-    from acd.core.rationale import REQUIRED_RATIONALE_ATTRS
+    from acd.core.knowledge.rationale import REQUIRED_RATIONALE_ATTRS
 
     assert "inspection_entry_command" in REQUIRED_RATIONALE_ATTRS["firmware.module"]

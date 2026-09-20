@@ -10,7 +10,7 @@ import build123d
 import pytest
 
 from acd.adapters.cad.motion_sweep import check_motion_sweep
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = Path(__file__).parents[3] / "fixtures/mechanism-library/graph.json"

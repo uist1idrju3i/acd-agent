@@ -29,9 +29,9 @@ from acd.adapters.kicad.fab.silkscreen import (
     _text_attribution_overflow,
     _text_model_size,
 )
-from acd.core.fab import FabProfile
-from acd.core.qr_geometry import qr_module_matrix_from_svg
-from acd.core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
+from acd.core.electrical.qr_geometry import qr_module_matrix_from_svg
+from acd.core.electrical.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
+from acd.core.manufacturing.fab import FabProfile
 
 
 def _line(x1: float, y1: float, x2: float, y2: float) -> _SilkObject:

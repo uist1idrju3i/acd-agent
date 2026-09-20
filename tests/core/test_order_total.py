@@ -9,13 +9,13 @@ from typing import cast
 
 import pytest
 
-from acd.core.order_total import (
+from acd.core.manufacturing.order_total import (
     OrderTotalError,
     aggregate_order_total,
     order_total_result_from_document,
     order_total_result_to_document,
 )
-from acd.core.quote import QuoteReadError
+from acd.core.manufacturing.quote import QuoteReadError
 from acd.schema import (
     FabProfileDocument,
     OrderScope,

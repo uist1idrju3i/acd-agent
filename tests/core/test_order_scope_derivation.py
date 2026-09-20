@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.order_scope_derivation import (
+from acd.core.manufacturing.order_scope_derivation import (
     OrderScopeDerivationError,
     build_quote_request,
     derive_order_scope,
