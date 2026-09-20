@@ -201,7 +201,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
-      "sha256": "000e56b58818d35c31968e0ba88e89700a2c3c4f59958793ccab353fe58c23fd"
+      "sha256": "68a711ce4ba93a94c665244fde8cbcd8917e273fd753017ef63c2f5f955673b4"
     },
     {
       "acd_symbols": [
