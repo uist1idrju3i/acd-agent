@@ -59,7 +59,7 @@
 | sdk.subagent | `AgentDefinition` | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照。ADR-0039により`skills:`は宣言しない | agent資材検査 |
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |
 | sdk.tool | `ToolDefinition`<br>`Tool`<br>`register_tool`<br>`list_registered_tools` | ACD toolのagent入口 | 採用 | `register_acd_tools()`とSDK登録を使用 | schema/実行試験 |
-| sdk.tool.builtins | `FinishTool` | SDK組み込みtool | 不採用 | ACDの明示的`ToolDefinition`集合を単一化する | pinned API確認、採用しない |
+| sdk.tool.builtins | `FinishTool` | SDK既定の会話制御tool（finish/think） | 採用 | SDKは`include_default_tools`既定で`FinishTool`と`ThinkTool`をtool_mapへ登録する。ACDはこの既定をそのまま受容し、`switch_llm`はACD model policy（`verify_model_policy.py`）と競合するため既定集合に含めない。いずれも会話制御のみでEvidence・gate結果へ作用しない | bootstrap tool_map検査（finish/thinkの登録、switch_llmの不在） |
 | sdk.tool.builtins.invoke_skill | `InvokeSkillTool` | AgentSkills形式Skillのprogressive disclosure入口 | 採用 | SDKはmodel-invocableなAgentSkills形式Skillがあると`InvokeSkillTool`を自動attachする。ACDのSkill契約（`validate_acd_skill_contract`）は`disable-model-invocation: true`を拒否するため、明示経路では常に登録される。Skill本文の取得手段に限り、Skill結果は非Evidence | Skill契約テスト（tests/openhands/distribution/test_skills.py）、bootstrap tool_map検査、vibebb standalone検証の登録tool一覧 |
 | sdk.tool.builtins.vision_inspect | `VisionInspectTool` | 明示されたvision profileによる画像観測（design loopの必須視覚レビュー段で全人間向けPNG投影を検査） | 採用 | 明示設定されたvision profileがある場合だけbuiltin inspect_image_with_visionを登録し、応答を非Evidence観測として扱う。design loopのvisual-review-manifest段が全entryの検査と記録を必須化する | vision profile境界テスト |
 | sdk.tool.internal | `ClientTool` | SDK内部tool補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
@@ -136,6 +136,7 @@
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_goal_loop.py` / `TestLLM` — goal loop回帰で固定応答LLMを使う
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_routing.py` / `TestLLM` — routing回帰で固定応答LLMを使う
 - `sdk.tool`: **直接import** `src/acd/openhands/tools/definitions.py` / `ToolDefinition` — 決定論的ACD tool定義をSDKへ登録する
+- `sdk.tool.builtins`: **テスト直接import** `tests/openhands/session/test_bootstrap.py` / `FinishTool` — SDK既定のfinish/thinkが登録され、switch_llmが登録されないことを固定する
 - `sdk.tool.builtins.invoke_skill`: **テスト直接import** `tests/openhands/session/test_bootstrap.py` / `InvokeSkillTool` — ACD Skill契約を満たすSkillがあるとSDKが自動attachすることを固定する
 - `sdk.tool.builtins.vision_inspect`: **直接import** `src/acd/openhands/session/visual_projection.py` / `VisionInspectTool` — 明示されたvision profile向けにSDK builtin toolを登録する
 - `sdk.workspace`: **直接import** `src/acd/openhands/workspace.py` / `LocalWorkspace` — hostのprovisional実行をSDK公開入口へ委譲する

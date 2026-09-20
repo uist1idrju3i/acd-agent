@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, ValidationError, model_validator
 
 from acd.schema.common import (
     AcdModel,
@@ -13,6 +13,7 @@ from acd.schema.common import (
     Revision,
     VersionedAcdModel,
 )
+from acd.schema.node_attrs import KIND_ATTRS_MODELS, AttrsModel
 
 NodeKind = Literal[
     "requirement",
@@ -58,134 +59,36 @@ class GraphNode(AcdModel):
     def _unique_depends_on(self) -> GraphNode:
         if len(set(self.depends_on)) != len(self.depends_on):
             raise ValueError("depends_on entries must be unique")
-        if self.kind == "design.functional_block" and set(self.attrs) - {
-            "block_id",
-            "parent_block_id",
-        }:
-            raise ValueError(
-                "design.functional_block attrs must contain only block_id and parent_block_id"
-            )
-        if self.kind == "design.functional_block":
-            for attr in ("block_id", "parent_block_id"):
-                value = self.attrs.get(attr)
-                if value is not None and (not isinstance(value, str) or not value):
-                    raise ValueError(
-                        f"design.functional_block {attr} must be a non-empty string"
-                    )
-        if self.kind == "electrical.placement_group":
-            required = {"primary_refdes", "coupled_refdes"}
-            allowed = {
-                "primary_refdes",
-                "coupled_refdes",
-                "max_distance_mm",
-                "move_together",
-            }
-            if set(self.attrs) - allowed or not required <= set(self.attrs):
-                raise ValueError(
-                    "electrical.placement_group attrs must declare primary_refdes "
-                    "and coupled_refdes"
-                )
-            coupled = cast(object, self.attrs.get("coupled_refdes"))
-            primary = self.attrs.get("primary_refdes")
-            if not isinstance(primary, str) or not primary:
-                raise ValueError(
-                    "electrical.placement_group primary_refdes must be a non-empty string"
-                )
-            if not isinstance(coupled, list) or not coupled:
-                raise ValueError(
-                    "electrical.placement_group coupled_refdes must be a non-empty string list"
-                )
-            coupled_values = cast(list[object], coupled)
-            if any(
-                not isinstance(item, str) or not item for item in coupled_values
-            ):
-                raise ValueError(
-                    "electrical.placement_group coupled_refdes must be a non-empty string list"
-                )
-            move_together = self.attrs.get("move_together")
-            max_distance = self.attrs.get("max_distance_mm")
-            if move_together is not None and not isinstance(move_together, bool):
-                raise ValueError(
-                    "electrical.placement_group move_together must be boolean"
-                )
-            if max_distance is not None and (
-                isinstance(max_distance, bool)
-                or not isinstance(max_distance, int | float)
-                or max_distance <= 0
-            ):
-                raise ValueError(
-                    "electrical.placement_group max_distance_mm must be positive"
-                )
-            if max_distance is None:
-                raise ValueError(
-                    "electrical.placement_group requires explicit max_distance_mm"
-                )
-        if self.kind == "electrical.net":
-            signal_class = self.attrs.get("signal_class")
-            if signal_class is not None and signal_class not in {
-                "safety_extra_low_voltage",
-                "mains",
-                "analog_sensitive",
-                "high_speed",
-                "power",
-                "digital",
-            }:
-                raise ValueError("electrical.net signal_class is invalid")
-            critical = self.attrs.get("critical")
-            if critical is not None and not isinstance(critical, bool):
-                raise ValueError("electrical.net critical must be boolean")
-            off_board = self.attrs.get("off_board")
-            if off_board is not None and not isinstance(off_board, bool):
-                raise ValueError("electrical.net off_board must be boolean")
-            intended = self.attrs.get("intended_coupling")
-            if intended is not None and (
-                not isinstance(intended, list)
-                or any(not isinstance(item, str) or not item for item in intended)
-            ):
-                raise ValueError("electrical.net intended_coupling must be a string list")
-        if self.kind == "electrical.component":
-            protection_role = self.attrs.get("protection_role")
-            if protection_role is not None and protection_role not in {
-                "fuse",
-                "efuse",
-                "polyfuse",
-                "tvs",
-                "current_limit",
-            }:
-                raise ValueError("electrical.component protection_role is invalid")
-        if self.kind == "safety.redundant_group":
-            allowed = {"members", "resources_shared_forbidden"}
-            if set(self.attrs) - allowed or not allowed <= set(self.attrs):
-                raise ValueError(
-                    "safety.redundant_group requires members and resources_shared_forbidden"
-                )
-            for attr in allowed:
-                value = self.attrs.get(attr)
-                if not isinstance(value, list) or any(
-                    not isinstance(item, str) or not item for item in value
-                ):
-                    raise ValueError(
-                        f"safety.redundant_group {attr} must be a string list"
-                    )
-            resources = cast(list[object], self.attrs["resources_shared_forbidden"])
-            if any(
-                item
-                not in {
-                    "connector",
-                    "harness",
-                    "power_bus",
-                    "ic",
-                    "via",
-                    "thermal_path",
-                    "protection_device",
-                }
-                for item in resources
-            ):
-                raise ValueError(
-                    "safety.redundant_group resources_shared_forbidden contains "
-                    "an unsupported resource"
-                )
         return self
+
+    @model_validator(mode="after")
+    def _validate_kind_attrs(self) -> GraphNode:
+        model = KIND_ATTRS_MODELS.get(self.kind)
+        if model is not None:
+            try:
+                model.model_validate(self.attrs)
+            except ValidationError as error:
+                raise ValueError(
+                    f"{self.kind} attrs are invalid: {_summarize_errors(error)}"
+                ) from error
+        return self
+
+    def typed_attrs(self, model: type[AttrsModel]) -> AttrsModel:
+        """Return ``attrs`` as a kind-specific typed view.
+
+        The view is re-validated so that callers reading a node built through a
+        non-validating path (for example ``model_construct``) still fail closed.
+        """
+        return model.model_validate(self.attrs)
+
+
+def _summarize_errors(error: ValidationError) -> str:
+    parts: list[str] = []
+    for item in error.errors(include_url=False):
+        location = ".".join(str(part) for part in item["loc"])
+        message = item["msg"]
+        parts.append(f"{location}: {message}" if location else message)
+    return "; ".join(parts)
 
 
 class DesignGraph(VersionedAcdModel):

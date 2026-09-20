@@ -679,6 +679,7 @@ agentが推測で埋めない。
 |---|---|---|
 | `common.py` | 契約共通の値型 | 1 |
 | `design_graph.py` | Design Graph正本 | 1 |
+| `node_attrs.py` | kind別の型付きattrs view（graph load時のfail-closed検証と`GraphNode.typed_attrs`） | 1 |
 | `rationale.py` | 設計根拠record（`ADR-0021`） | 1・14.5 |
 | `evidence.py` | Evidence record と`measured`／`virtual`分類 | 1・5.1・6 |
 | `tool_envelope.py` | 外部ツール実行envelope（`exit_code`意味論は15.1） | 1・2・15.1 |
