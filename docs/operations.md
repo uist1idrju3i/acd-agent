@@ -664,11 +664,14 @@ uv run python scripts/run_design_loop.py \
   --fixture fixtures/golden-design-1 \
   --out-root out \
   --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
+  --design-only \
   --jobs 4 \
   --evaluated-at 2025-01-14T00:00:00Z
 ```
 
-この主例はquote／order入力を与えず、製造提出データを含む設計・検証段までを実行する。
+この主例はquote／order入力を与えず、`--design-only`で製造提出データを含む設計・検証段
+までを実行する。order-readiness段は「未実行」として記録され、合格側へ倒れない。
+`--design-only`も発注入力も無い場合は、発注documentの捏造を防ぐためfail-closedで停止する。
 既存のorder-total documentを使う場合は`--order-total`を指定する。quoteからloop内で
 生成する場合は、次のaggregation modeを使う。二つのmodeを同時に指定することはできず、
 fab profileを含む全入力が揃わない場合もfail-closedになる。

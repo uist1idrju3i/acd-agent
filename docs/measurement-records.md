@@ -168,3 +168,76 @@ authoritative実行は`scripts/run_in_workspace.py`（`DockerWorkspace`、lock�
 451 s）で、`verify_authoritative_evidence.py`と`verify_manufacturing_submission.py
 --require-authoritative`はいずれもPASSした。この実測はL3観測であり、合格判定はcontainer内の
 決定論的ゲートとdownloadしたEvidenceの検証結果だけが担う。
+
+## lane並列（`--jobs`）とsub-agent `tool_concurrency_limit`の実測
+
+`AGENTS.md`の並列実行契約は「短縮を主張する場合は同一入力の逐次・並列比較を実測し、
+外部ツールが支配項で短縮が測れない場合もその事実を記録する」ことを求める。本節はその記録であり、
+数値はすべてL3観測（`timing-record.json`は`record_class: L3`、`pass_evidence: false`）で、
+合格判定には作用しない。
+
+### 実行条件
+
+- 入力: `fixtures/golden-design-1`、`--fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json`
+  `--design-only --evaluated-at 2025-01-14T00:00:00Z`（`docs/operations.md`の主例と同一）
+- 実行経路: `scripts/run_in_workspace.py`（`DockerWorkspace`、lock済みserver image
+  `sha256:0347fd64…`、`--memory-limit 5000m --jvm-max-heap 1500m`）
+- host: 2 CPU、約8 GiB RAM（`MemAvailable`約5.4 GiB）。containerも同じ2 CPUを共有する。
+- 比較: 逐次（`--jobs 1`）1回、並列（`--jobs 3`）2回（うち1回は`--out-root`のみ異なる）。
+  3 lane（基板・筐体・FW）はSkill CLI subprocessであり、`--jobs 3`で3 laneが同時に走る。
+
+### 時間（秒、L3）
+
+| 実行 | `--jobs` | loop `wall_clock_seconds` | `stage_duration_sum_seconds` | 基板 | 筐体 | FW | resolver | docs |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| seq | 1 | 275.9 | 423.9 | 137.0 | 11.0 | 105.6 | 8.5 | 6.9 |
+| par-a | 3 | 241.8 | 663.1 | 220.0 | 23.8 | 153.8 | 8.3 | 7.0 |
+| par-b | 3 | 231.9 | 632.0 | 208.4 | 22.6 | 146.5 | 10.2 | 6.9 |
+
+container外側のwall-clock（image起動・`uv sync`・download込み）は逐次323.7 s、並列282〜291 sである。
+
+短縮は約12〜16%にとどまる。lane内部の外部ツール（KiCad `kicad-cli`、FreeRouting JVM、
+ESP-IDF build＋QEMU）が支配項であり、2 CPU hostでは3 laneの同時実行がCPU競合を起こして
+基板laneが137 s→208〜220 s、FW laneが106 s→147〜154 sへ伸びる。lane並列の効果はコア数に
+依存し、本hostでは「並列化で大幅短縮」とは主張できない。4コア以上のhostでの再測定は未実施である。
+
+### 決定論性（worker数非依存）
+
+- 3 laneのEvidence（`evidence-electrical.json`／`evidence-mechanical.json`／
+  `evidence-firmware.json`）は逐次・並列とも`status: valid`、`target_revision: r1`、
+  同一のcontainer provenance（image digest、tool名・版）を持つ。
+- `manufacturing-submission.json`の`status`は3実行とも`pass`で、Gerber・drill・gbrjob・
+  BOM・CPLの`normalized_sha256`（23 artifact）は3実行すべてで一致した。
+- 段結果の順序は`EXECUTE_ONCE_PLAN`の宣言順で、`--jobs`はhash入力・Evidence・provenanceに
+  含まれない（`tests/pipeline/test_design_loop.py::test_design_loop_parallel_lanes_preserve_result_order_and_hashes`で固定）。
+- 一致しなかったのは、(a) `started_at`／`finished_at`／`generated_at`／KiCad DRCの`date`など
+  時刻field、(b) `envelope-cad.json`（筐体manifest）の`normalized_sha256`—この
+  manifestは`started_at`／`finished_at`を含むため「正規化」hashが時刻で変わる（正規化漏れ、
+  要修正候補として記録）、(c) routed `.kicad_pcb`のraw hashとESP-IDF成果物の`artifact_hash`
+  （並列2回同士でも異なり、worker数ではなくrouter／build tool由来のrun-to-run差。
+  Gerber正規化hashが一致するため配線結果は同一）。
+  いずれもworker数に相関しない。
+
+### sub-agent `tool_concurrency_limit`
+
+pinned SDKの`agent_definition_to_factory()`は子`Agent`へ親の`tool_concurrency_limit`を渡さないため、
+task／delegate経由のACD sub-agentは親が`3`でも既定値`1`（直列tool呼び出し）で動く。
+これを`tests/openhands/safety/test_subagent_concurrency.py`で全`acd-*.md`について固定した。
+lane並列（`--jobs`）はloop側の`ThreadPoolExecutor`であり、SDKの`tool_concurrency_limit`とは
+独立した機構である。sub-agentのtool並列化が必要になれば、AgentDefinitionの
+`metadata`ではなくfactory呼び出し側で明示指定し、資源宣言による直列化を再検証する。
+
+### 併せて修正した不具合
+
+実測の過程で、逐次実行がprojection-docs段で2件fail-closedした。いずれも並列化とは無関係の
+既存不具合で、同じ変更で修正した。
+
+1. `run_fw_pipeline.py`が`firmware-config-report.json`のdevice provenanceをcapability step
+   ごとに出力していたため、初期化と計測で同一SHT40が2件になり、interface-spec生成の
+   I2C address重複guardが停止した（guardは緩めず、1物理deviceを1件に正規化）。
+2. `generate_review_package.py`の`--projections`が`action="append"`のみで、caller
+   （`projection_docs.py`）が1つのflagの後に全lane投影集合を並べる呼び方と不一致だった
+   （`nargs="+"`へ修正）。
+
+また`docs/operations.md`の`run_design_loop.py`主例は`--design-only`を欠いており、
+そのまま実行すると`order-total document is required`で停止していたため、例を修正した。
