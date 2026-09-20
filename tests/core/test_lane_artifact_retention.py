@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.lane_artifact_retention import (
+from acd.core.runtime.lane_artifact_retention import (
     LaneArtifactRetentionError,
     load_lane_artifact_retention,
     resolve_lane_retention,

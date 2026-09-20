@@ -5,7 +5,7 @@ from typing import cast
 
 import pytest
 
-from acd.core.qr_geometry import qr_module_matrix_from_svg
+from acd.core.electrical.qr_geometry import qr_module_matrix_from_svg
 from acd.pipeline.gd1_fixture.svg_artwork import (  # pyright: ignore[reportMissingTypeStubs]
     load_svg,
     place_svg,

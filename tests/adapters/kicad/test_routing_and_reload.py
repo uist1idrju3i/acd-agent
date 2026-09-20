@@ -27,7 +27,7 @@ from acd.adapters.kicad.routing import (
     inject_routes,
     inject_stitch_vias,
 )
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     BoardNet,
     ComponentPlacement,
@@ -38,7 +38,7 @@ from acd.core.board_model import (
     RoutedVia,
     RoutedWire,
 )
-from acd.core.electrical import BoardView
+from acd.core.electrical.electrical import BoardView
 from acd.pipeline.stitch_candidate_evidence import summarize_stitch_candidate_report
 
 _BOARD = '(kicad_pcb (version 20240108) (net 0 "") (net 1 "GND")\n)\n'
@@ -83,7 +83,7 @@ def test_stitch_pitch_requires_complete_basis() -> None:
 
 
 def test_stitch_vias_exclude_declared_keepout() -> None:
-    from acd.core.board_model import KeepoutRect
+    from acd.core.electrical.board_model import KeepoutRect
 
     model = BoardModel(
         20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), (
@@ -102,7 +102,7 @@ def test_stitch_vias_exclude_declared_keepout() -> None:
 
 
 def test_stitch_candidate_report_records_exclusion_reasons() -> None:
-    from acd.core.board_model import KeepoutRect
+    from acd.core.electrical.board_model import KeepoutRect
 
     model = BoardModel(
         20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), (
@@ -150,7 +150,7 @@ def test_stitch_candidate_report_records_exclusion_reasons() -> None:
 
 
 def test_stitch_via_fallback_activates_after_primary_candidates_are_excluded() -> None:
-    from acd.core.board_model import KeepoutRect
+    from acd.core.electrical.board_model import KeepoutRect
 
     keepouts = tuple(
         KeepoutRect(f"primary-{index}", x - 0.2, y - 0.2, x + 0.2, y + 0.2)
@@ -194,7 +194,7 @@ def test_stitch_via_fallback_activates_after_primary_candidates_are_excluded() -
 
 
 def test_stitch_via_fallback_still_fails_closed_when_empty() -> None:
-    from acd.core.board_model import KeepoutRect
+    from acd.core.electrical.board_model import KeepoutRect
 
     model = BoardModel(
         10.0, 10.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (),
@@ -278,7 +278,7 @@ def test_uncovered_ground_regions_error_preserves_layer_and_bbox() -> None:
 
 def test_gerber_uncovered_ground_region_is_structured(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone, KeepoutRect
+    from acd.core.electrical.board_model import CopperZone, KeepoutRect
 
     front = tmp_path / "front.gbr"
     back = tmp_path / "back.gbr"
@@ -316,7 +316,7 @@ def test_gerber_gate_skips_keepout_requirement_without_onboard_keepout(
     tmp_path: Path,
 ) -> None:
     from acd.adapters.kicad.fab import verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone
+    from acd.core.electrical.board_model import CopperZone
 
     front = tmp_path / "front.gbr"
     back = tmp_path / "back.gbr"
@@ -355,7 +355,7 @@ def test_gerber_gate_requires_keepout_when_antenna_keepout_required(
     tmp_path: Path,
 ) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone
+    from acd.core.electrical.board_model import CopperZone
 
     front = tmp_path / "front.gbr"
     back = tmp_path / "back.gbr"
@@ -523,7 +523,7 @@ def test_missing_stitch_basis_fails_downstream() -> None:
 
 def test_filled_plane_verifier_rejects_missing_gerber(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone
+    from acd.core.electrical.board_model import CopperZone
 
     model = BoardModel(
         20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.3, (), (), (),
@@ -543,7 +543,7 @@ def test_filled_plane_verifier_rejects_missing_gerber(tmp_path: Path) -> None:
 
 def test_gerber_region_without_aperture_function_fails_closed(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone, KeepoutRect
+    from acd.core.electrical.board_model import CopperZone, KeepoutRect
 
     content = _gerber_region("Unknown")
     front = tmp_path / "front.gbr"
@@ -562,7 +562,7 @@ def test_gerber_region_without_aperture_function_fails_closed(tmp_path: Path) ->
 
 def test_gerber_nonconductor_island_region_fails_closed(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone, KeepoutRect
+    from acd.core.electrical.board_model import CopperZone, KeepoutRect
 
     content = _gerber_region("NonConductor")
     front = tmp_path / "front.gbr"
@@ -581,7 +581,7 @@ def test_gerber_nonconductor_island_region_fails_closed(tmp_path: Path) -> None:
 
 def test_antenna_keepout_copper_fails_closed(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone, KeepoutRect
+    from acd.core.electrical.board_model import CopperZone, KeepoutRect
 
     front = tmp_path / "front.gbr"
     back = tmp_path / "back.gbr"
@@ -609,7 +609,7 @@ def test_antenna_keepout_copper_fails_closed(tmp_path: Path) -> None:
 
 def test_prefill_gerbers_fail_closed(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone
+    from acd.core.electrical.board_model import CopperZone
 
     front = tmp_path / "front.gbr"
     back = tmp_path / "back.gbr"
@@ -638,7 +638,7 @@ def test_prefill_gerbers_fail_closed(tmp_path: Path) -> None:
 
 def test_small_zone_region_fails_but_pad_region_is_excluded(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
-    from acd.core.board_model import CopperZone, KeepoutRect
+    from acd.core.electrical.board_model import CopperZone, KeepoutRect
 
     front = tmp_path / "front.gbr"
     back = tmp_path / "back.gbr"

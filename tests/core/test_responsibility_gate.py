@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 from typing import cast
 
-from acd.core.rationale import check_rationale_coverage
-from acd.core.responsibility_gate import check_responsibility
+from acd.core.knowledge.rationale import check_rationale_coverage
+from acd.core.knowledge.responsibility_gate import check_responsibility
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 from acd.schema.rationale import RationaleDocument
 from acd.schema.responsibility import (

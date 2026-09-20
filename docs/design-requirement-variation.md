@@ -47,7 +47,7 @@ rationale recordを追加し、coverageの`unclassified`を出さないこと（
 
 ## ゲートが契約として固定している値
 
-以下は[`../src/acd/core/design_predicates.py`](../src/acd/core/design_predicates.py)が
+以下は[`../src/acd/core/knowledge/design_predicates.py`](../src/acd/core/knowledge/design_predicates.py)が
 各機能ブロック契約の判定として値・net名・トポロジを固定している次元である。宣言された
 機能ブロックでは要件をここへ踏み込ませると`fail`または`unknown`になり、fail-closedで
 停止する。新しいトポロジ族を追加する場合は、まず

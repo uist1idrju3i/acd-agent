@@ -15,8 +15,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from acd.core.bom_cost import bom_cost_markdown, estimate_bom_cost
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.manufacturing.bom_cost import bom_cost_markdown, estimate_bom_cost
 from acd.schema import DesignGraph, PartLifecycleRegistry, PartPriceBook
 
 

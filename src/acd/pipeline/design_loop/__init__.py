@@ -17,8 +17,8 @@ because rebinding a name on this facade does not affect the module that calls it
 
 from __future__ import annotations
 
-from acd.core.lane_recovery import LaneRecoveryDeclarationError
-from acd.core.runtime_records import TimingRecorder
+from acd.core.runtime.lane_recovery import LaneRecoveryDeclarationError
+from acd.core.runtime.runtime_records import TimingRecorder
 from acd.pipeline.lane_plan import DESIGN_LOOP_LANE_IDS, build_lane_plan
 
 from . import config, loop, recovery, stages, summary

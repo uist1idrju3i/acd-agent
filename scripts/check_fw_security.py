@@ -9,7 +9,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.fw_security_gate import check_build_config_consistency
+from acd.core.firmware.fw_security_gate import check_build_config_consistency
 from acd.schema.design_graph import DesignGraph
 from acd.schema.fw_security import FirmwareSecurityDeclaration
 

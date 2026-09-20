@@ -14,7 +14,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.pdn import analyze_pdn, pdn_markdown
+from acd.core.electrical.pdn import analyze_pdn, pdn_markdown
 from acd.schema import DesignGraph, PdnAnalysisRequest
 
 

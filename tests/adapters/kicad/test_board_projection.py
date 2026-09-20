@@ -13,10 +13,10 @@ from acd.adapters.kicad.board import (
     _silk_text,
     board_keepouts,
 )
-from acd.core.board_model import CopperZone, FootprintShape, PadShape
-from acd.core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
-from acd.core.sexpr import SExpr
-from acd.core.silkscreen import SilkGraphicPartView, SilkGraphicView, SilkTextView
+from acd.core.electrical.board_model import CopperZone, FootprintShape, PadShape
+from acd.core.electrical.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
+from acd.core.electrical.sexpr import SExpr
+from acd.core.electrical.silkscreen import SilkGraphicPartView, SilkGraphicView, SilkTextView
 
 
 def _text(layer: str) -> SilkTextView:

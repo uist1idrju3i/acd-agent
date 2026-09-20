@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.feedback import propose_input_feedback, validate_applied_feedback
+from acd.core.manufacturing.feedback import propose_input_feedback, validate_applied_feedback
 from acd.schema import (
     DesignGraph,
     FeedbackPolicy,

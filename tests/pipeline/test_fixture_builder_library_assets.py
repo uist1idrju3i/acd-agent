@@ -1,7 +1,6 @@
 """Library asset materialization tests for the fixture builder."""
 
 # pyright: reportMissingTypeStubs=false
-
 from __future__ import annotations
 
 import hashlib
@@ -10,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core import library_assets
-from acd.core.library_assets import (
+from acd.core.manufacturing import library_assets
+from acd.core.manufacturing.library_assets import (
     LibraryAsset,
     LibraryAssetError,
     graph_library_assets,

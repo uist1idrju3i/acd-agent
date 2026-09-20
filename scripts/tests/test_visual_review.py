@@ -14,12 +14,12 @@ from scripts import (
 )
 from scripts.tests.cli_runner import run_main
 
-from acd.core.vision_tool_events import event_id, response_sha256
-from acd.core.visual_projection import (
+from acd.core.electrical.visual_projection import (
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
     SVG_TITLE_NORMALIZATION_RULE_ID,
     normalized_svg_sha256,
 )
+from acd.core.runtime.vision_tool_events import event_id, response_sha256
 from acd.schema import (
     VisualProjectionInput,
     VisualProjectionRecord,

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from itertools import combinations, pairwise
 
 from acd.adapters.kicad.placement import rotate_point
-from acd.core.board_model import BoardModel, BoardNet, ComponentPlacement, RoutedDesign
+from acd.core.electrical.board_model import BoardModel, BoardNet, ComponentPlacement, RoutedDesign
 
 # FreeRouting and KiCad coordinates are decimal millimetres.  This tolerance
 # absorbs serialization round-off while remaining far below pad clearances.

@@ -9,9 +9,9 @@ from typing import Any
 import pytest
 from scripts.check_salvageability import main
 
-from acd.core import salvage_gate
-from acd.core.design_predicates import PredicateResult
-from acd.core.rework_diff import apply_rework_diff, load_rework_diff
+from acd.core.knowledge.design_predicates import PredicateResult
+from acd.core.manufacturing import salvage_gate
+from acd.core.manufacturing.rework_diff import apply_rework_diff, load_rework_diff
 from acd.schema.design_graph import DesignGraph
 from acd.schema.rework_diff import ReworkDiff
 from acd.schema.salvage import ReworkDfaDeclaration, SafetyApproval

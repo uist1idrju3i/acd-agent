@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 from acd.adapters.svg.graph_diff import generate_graph_diff_visual_projection
-from acd.core.fileio import read_json
+from acd.core.runtime.fileio import read_json
 from acd.schema.design_graph import DesignGraph
 
 

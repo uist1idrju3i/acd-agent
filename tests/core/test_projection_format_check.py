@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.projection_format_check import (
+from acd.core.electrical.projection_format_check import (
     ProjectionFormatError,
     ProjectionKind,
     check_projection,

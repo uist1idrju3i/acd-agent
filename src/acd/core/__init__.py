@@ -1,12 +1,48 @@
 """Core CAD, electrical, and manufacturing operations."""
 
-from acd.core.cad_normalize import (
-    CadNormalizationError,
-    normalize_3mf,
-    normalize_step,
-    normalize_stl,
+from acd.core.electrical.pdn import analyze_pdn, pdn_markdown
+from acd.core.electrical.spice import evaluate_spice, extract_power_netlist, run_ngspice
+from acd.core.electrical.thermal import estimate_thermal, thermal_markdown
+from acd.core.firmware.firmware import (
+    FunctionalRunError,
+    evaluate_functional_run,
+    load_and_evaluate_functional_run,
 )
-from acd.core.defect_records import (
+from acd.core.firmware.firmware_capability import (
+    FirmwareCapabilityContractError,
+    FirmwareCapabilityRegistry,
+    load_firmware_capability_registry,
+)
+from acd.core.firmware.firmware_consistency import (
+    FirmwareConsistencyReport,
+    check_firmware_graph_consistency,
+    evaluate_firmware_graph_consistency,
+)
+from acd.core.knowledge.eco_gate import MINIMUM_GATES, EcoGateError, evaluate_eco
+from acd.core.knowledge.functional_block_entry import (
+    FunctionalBlockEntryResult,
+    register_functional_block_contract,
+)
+from acd.core.knowledge.functional_blocks import (
+    FunctionalBlockContractError,
+    FunctionalBlockRegistry,
+    block_path,
+    declared_functional_blocks,
+    load_functional_block_registry,
+    required_predicate_names,
+    validate_predicate_coverage,
+)
+from acd.core.knowledge.graph_diff import GraphDiffError, build_graph_diff, unknown_graph_diff
+from acd.core.knowledge.rationale import (
+    RATIONALE_EXEMPT_ATTRS,
+    REQUIRED_RATIONALE_ATTRS,
+    RationaleRefreshError,
+    check_rationale_coverage,
+    refresh_rationale_document,
+    subject_hash_for,
+    summarize_rationale_coverage,
+)
+from acd.core.manufacturing.defect_records import (
     DefectCheckResult,
     DefectFinding,
     DefectRecordError,
@@ -15,8 +51,7 @@ from acd.core.defect_records import (
     compute_horizontal_scope,
     load_defect_document,
 )
-from acd.core.eco_gate import MINIMUM_GATES, EcoGateError, evaluate_eco
-from acd.core.fab import (
+from acd.core.manufacturing.fab import (
     FabOrderIntentView,
     FabProfile,
     FabProfileRegistry,
@@ -28,61 +63,19 @@ from acd.core.fab import (
     resolve_fab_profile_path,
     validate_allowances_against_profile,
 )
-from acd.core.feedback import (
+from acd.core.manufacturing.feedback import (
     FeedbackError,
     propose_input_feedback,
     validate_applied_feedback,
 )
-from acd.core.fem import (
-    FemAnalysisError,
-    evaluate_fem,
-    generate_ccx_input,
-    run_ccx,
-)
-from acd.core.firmware import (
-    FunctionalRunError,
-    evaluate_functional_run,
-    load_and_evaluate_functional_run,
-)
-from acd.core.firmware_capability import (
-    FirmwareCapabilityContractError,
-    FirmwareCapabilityRegistry,
-    load_firmware_capability_registry,
-)
-from acd.core.firmware_consistency import (
-    FirmwareConsistencyReport,
-    check_firmware_graph_consistency,
-    evaluate_firmware_graph_consistency,
-)
-from acd.core.functional_block_entry import (
-    FunctionalBlockEntryResult,
-    register_functional_block_contract,
-)
-from acd.core.functional_blocks import (
-    FunctionalBlockContractError,
-    FunctionalBlockRegistry,
-    block_path,
-    declared_functional_blocks,
-    load_functional_block_registry,
-    required_predicate_names,
-    validate_predicate_coverage,
-)
-from acd.core.gate_evidence_run import external_gate_run
-from acd.core.graph_diff import GraphDiffError, build_graph_diff, unknown_graph_diff
-from acd.core.mechanical import REQUIRED_MECHANICAL_ATTRS
-from acd.core.mechanical_preflight import (
-    MechanicalPreflightReport,
-    RequirementFinding,
-    check_mechanical_preflight,
-)
-from acd.core.order_execution import build_dry_run_order_payload
-from acd.core.order_submission import (
+from acd.core.manufacturing.order_execution import build_dry_run_order_payload
+from acd.core.manufacturing.order_submission import (
     DeclaredProviderUnavailable,
     OrderSubmissionProvider,
     build_order_submission_record,
     resolve_order_provider,
 )
-from acd.core.order_total import (
+from acd.core.manufacturing.order_total import (
     OrderSubtotal,
     OrderTotalError,
     OrderTotalResult,
@@ -92,8 +85,7 @@ from acd.core.order_total import (
     order_total_result_from_document,
     order_total_result_to_document,
 )
-from acd.core.pdn import analyze_pdn, pdn_markdown
-from acd.core.quote import (
+from acd.core.manufacturing.quote import (
     FixtureQuoteProvider,
     QuoteFeeSet,
     QuoteProvider,
@@ -102,23 +94,14 @@ from acd.core.quote import (
     quote_provider_from_config,
     read_quote,
 )
-from acd.core.rationale import (
-    RATIONALE_EXEMPT_ATTRS,
-    REQUIRED_RATIONALE_ATTRS,
-    RationaleRefreshError,
-    check_rationale_coverage,
-    refresh_rationale_document,
-    subject_hash_for,
-    summarize_rationale_coverage,
-)
-from acd.core.receipt import (
+from acd.core.manufacturing.receipt import (
     ReceiptReconciliationError,
     ReconciliationReport,
     build_receipt_evidence,
     reconcile_files,
     reconcile_receipt,
 )
-from acd.core.rework_diff import (
+from acd.core.manufacturing.rework_diff import (
     DerivedGraph,
     LoadedReworkDiff,
     ReworkDiffError,
@@ -127,19 +110,36 @@ from acd.core.rework_diff import (
     safety_related_node_ids,
     write_derived_graph,
 )
-from acd.core.side_effect_journal import (
+from acd.core.manufacturing.workaround_ledger import (
+    WorkaroundLedgerError,
+    evaluate_workaround_retirement,
+)
+from acd.core.mechanical.cad_normalize import (
+    CadNormalizationError,
+    normalize_3mf,
+    normalize_step,
+    normalize_stl,
+)
+from acd.core.mechanical.fem import (
+    FemAnalysisError,
+    evaluate_fem,
+    generate_ccx_input,
+    run_ccx,
+)
+from acd.core.mechanical.mechanical import REQUIRED_MECHANICAL_ATTRS
+from acd.core.mechanical.mechanical_preflight import (
+    MechanicalPreflightReport,
+    RequirementFinding,
+    check_mechanical_preflight,
+)
+from acd.core.runtime.gate_evidence_run import external_gate_run
+from acd.core.runtime.side_effect_journal import (
     JournalOrderReconstruction,
     SideEffectJournalError,
     append_post_order,
     append_pre_order,
     read_journal,
     reconstruct_order,
-)
-from acd.core.spice import evaluate_spice, extract_power_netlist, run_ngspice
-from acd.core.thermal import estimate_thermal, thermal_markdown
-from acd.core.workaround_ledger import (
-    WorkaroundLedgerError,
-    evaluate_workaround_retirement,
 )
 
 __all__ = [
@@ -259,7 +259,7 @@ __all__ = [
 
 def __getattr__(name: str) -> object:
     if name in {"ManufacturingSubmissionError", "evaluate_manufacturing_submission"}:
-        from acd.core.manufacturing_submission import (
+        from acd.core.manufacturing.manufacturing_submission import (
             ManufacturingSubmissionError,
             evaluate_manufacturing_submission,
         )

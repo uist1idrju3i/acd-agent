@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import cast
 
 from acd.adapters.kicad.cli import RuleCheckResult
-from acd.core.process import sha256_paths
+from acd.core.runtime.process import sha256_paths
 
 
 class GateError(RuntimeError):

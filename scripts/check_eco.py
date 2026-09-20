@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from acd.core.eco_gate import EcoGateError, evaluate_eco
+from acd.core.knowledge.eco_gate import EcoGateError, evaluate_eco
 from acd.schema.defect_record import DefectDocument
 from acd.schema.design_graph import DesignGraph
 from acd.schema.eco import EcoDocument, EcoRecord

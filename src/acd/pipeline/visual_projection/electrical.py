@@ -12,9 +12,9 @@ from acd.adapters.kicad.gates import GateError
 from acd.adapters.kicad.layers import copper_layers_for_layer_count
 from acd.adapters.kicad.visual_projection import KicadVisualRenderer
 from acd.adapters.raster import CairoSvgRasterizer
-from acd.core.board_model import BoardModel
-from acd.core.electrical import ElectricalLane
-from acd.core.visual_projection import (
+from acd.core.electrical.board_model import BoardModel
+from acd.core.electrical.electrical import ElectricalLane
+from acd.core.electrical.visual_projection import (
     LayerViewAnnotations,
     nested_view_attributes,
     nested_view_geometry,

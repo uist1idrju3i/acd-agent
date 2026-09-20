@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from acd.core.workaround_ledger import evaluate_workaround_retirement
+from acd.core.manufacturing.workaround_ledger import evaluate_workaround_retirement
 from acd.schema.defect_record import DefectDocument
 from acd.schema.design_graph import DesignGraph
 from acd.schema.eco import EcoCheckResult, EcoDocument, EcoRecord

@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from acd.core.receipt import (
+from acd.core.manufacturing.receipt import (
     ReceiptReconciliationError,
     build_receipt_evidence,
     reconcile_files,

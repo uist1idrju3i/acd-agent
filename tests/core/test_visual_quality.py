@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from acd.core.visual_projection import normalized_svg_sha256
-from acd.core.visual_quality import analyze_svg_readability
+from acd.core.electrical.visual_projection import normalized_svg_sha256
+from acd.core.electrical.visual_quality import analyze_svg_readability
 from acd.schema.visual_quality import ReadabilityPolicy
 
 

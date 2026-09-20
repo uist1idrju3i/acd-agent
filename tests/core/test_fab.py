@@ -8,8 +8,8 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from acd.core.electrical import GraphExtractionError, extract_electrical_lane
-from acd.core.fab import (
+from acd.core.electrical.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.manufacturing.fab import (
     extract_fab_intent,
     load_fab_profile,
     load_fab_profile_by_id,

@@ -31,9 +31,9 @@ from acd.adapters.cad.mechanical import (
     build_component_body_shape,
 )
 from acd.adapters.cad.project import CadProjection
-from acd.core.cad_normalize import normalize_step
-from acd.core.mechanical import MechanicalLane
-from acd.core.process import ExternalToolError, sha256_bytes
+from acd.core.mechanical.cad_normalize import normalize_step
+from acd.core.mechanical.mechanical import MechanicalLane
+from acd.core.runtime.process import ExternalToolError, sha256_bytes
 
 
 class Assembly3DProjectionError(ExternalToolError):

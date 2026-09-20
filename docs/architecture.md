@@ -81,6 +81,12 @@ critic反復の回帰に使うが、metricsやcritic出力を合否Evidenceへ�
 src/acd/
 ├── schema/           # DesignGraph、Evidence、ToolEnvelope等の契約
 ├── core/             # 電気・機械・fab意図の抽出と共通モデル
+│   ├── electrical/   # board model、net、配線、silkscreen、電気解析
+│   ├── mechanical/   # CAD正規化、筐体、FEM、構造安全
+│   ├── firmware/     # FW宣言、capability、coverage、security gate
+│   ├── manufacturing/# BOM、部品、fab profile、発注、見積、受入、rework
+│   ├── knowledge/    # 要求、idea、述語、rationale、探索
+│   └── runtime/      # process、parallel、lane CLI/log、記録、file I/O
 ├── pipeline/         # GD1 board/enclosure pipeline
 ├── openhands/
 │   ├── session/      # Conversation、goal loop、gate critic

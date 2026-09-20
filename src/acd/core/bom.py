@@ -1,86 +1,20 @@
-"""Deterministic graph-derived BOM projection.
+"""Compatibility re-export.
 
-Rows are grouped by manufacturing identity and ordered by the smallest refdes
-in each group; refdes lists and distinct values inside a group are sorted
-naturally.
+The implementation lives in ``acd.core.manufacturing.bom``.
 """
 
-from __future__ import annotations
+from acd.core.manufacturing.bom import (
+    BomRow,
+    bom_csv,
+    build_bom,
+    group_bom_rows_by_mpn,
+    refdes_key,
+)
 
-import csv
-import io
-from dataclasses import dataclass
-
-from acd.core.electrical import ComponentView, ElectricalLane
-
-_HEADER = ("refdes", "qty", "value", "mpn", "lcsc", "footprint", "jlcpcb_class")
-
-
-@dataclass(frozen=True)
-class BomRow:
-    refdes: tuple[str, ...]
-    value: str
-    mpn: str
-    lcsc: str
-    footprint: str
-    jlcpcb_class: str
-
-
-def refdes_key(refdes: str) -> tuple[str, int, str]:
-    prefix = refdes.rstrip("0123456789")
-    digits = refdes[len(prefix) :]
-    return prefix, int(digits) if digits.isdigit() else 0, refdes
-
-
-def build_bom(lane: ElectricalLane) -> tuple[BomRow, ...]:
-    groups: dict[tuple[str, str, str, str], list[ComponentView]] = {}
-    for comp in lane.components:
-        key = (
-            comp.mpn,
-            comp.lcsc,
-            comp.library.footprint,
-            comp.jlcpcb_class,
-        )
-        groups.setdefault(key, []).append(comp)
-    rows = [
-        BomRow(
-            refdes=tuple(sorted((c.refdes for c in comps), key=refdes_key)),
-            value="; ".join(sorted({c.value for c in comps})),
-            mpn=key[0],
-            lcsc=key[1],
-            footprint=key[2],
-            jlcpcb_class=key[3],
-        )
-        for key, comps in groups.items()
-    ]
-    rows.sort(key=lambda r: refdes_key(r.refdes[0]))
-    return tuple(rows)
-
-
-def group_bom_rows_by_mpn(
-    rows: tuple[BomRow, ...],
-) -> dict[str, tuple[BomRow, ...]]:
-    """Group BOM rows by MPN while retaining deterministic row ordering."""
-    grouped: dict[str, list[BomRow]] = {}
-    for row in rows:
-        grouped.setdefault(row.mpn, []).append(row)
-    return {mpn: tuple(grouped[mpn]) for mpn in sorted(grouped)}
-
-
-def bom_csv(lane: ElectricalLane) -> str:
-    buffer = io.StringIO()
-    writer = csv.writer(buffer, lineterminator="\n")
-    writer.writerow(_HEADER)
-    for row in build_bom(lane):
-        writer.writerow(
-            (
-                " ".join(row.refdes),
-                str(len(row.refdes)),
-                row.value,
-                row.mpn,
-                row.lcsc,
-                row.footprint,
-                row.jlcpcb_class,
-            )
-        )
-    return buffer.getvalue()
+__all__ = [
+    "BomRow",
+    "bom_csv",
+    "build_bom",
+    "group_bom_rows_by_mpn",
+    "refdes_key",
+]

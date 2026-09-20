@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.requirement_compiler import (
+from acd.core.knowledge.requirement_compiler import (
     RequirementCompilationError,
     compile_requirement_change,
 )

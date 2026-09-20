@@ -28,15 +28,15 @@ from acd.adapters.cad.mechanical import (
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.adapters.kicad.step_export import export_board_step
-from acd.core.electrical import extract_electrical_lane
-from acd.core.fileio import read_json
-from acd.core.lane_cli import add_lane_io_arguments
-from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
-from acd.core.mechanical_preflight import check_mechanical_preflight
-from acd.core.naming import evidence_id, subject_node_id
-from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
-from acd.core.projection_format_check import ProjectionKind, check_projection
-from acd.core.runtime_records import TimingRecorder, write_timing_record
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.electrical.projection_format_check import ProjectionKind, check_projection
+from acd.core.knowledge.naming import evidence_id, subject_node_id
+from acd.core.mechanical.mechanical import MechanicalLane, extract_mechanical_lane
+from acd.core.mechanical.mechanical_preflight import check_mechanical_preflight
+from acd.core.runtime.fileio import read_json
+from acd.core.runtime.lane_cli import add_lane_io_arguments
+from acd.core.runtime.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
+from acd.core.runtime.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections

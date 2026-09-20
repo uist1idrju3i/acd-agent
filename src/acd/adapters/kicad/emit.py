@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from acd.core.sexpr import Quoted, SExpr, Sym
+from acd.core.electrical.sexpr import Quoted, SExpr, Sym
 
 _UUID_NS = uuid.UUID("9f2c1a34-5b7e-4c0d-9a68-2f4f7e6d5c4b")
 

@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.electrical import extract_electrical_lane
-from acd.core.part_lifecycle import evaluate_part_lifecycle
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.manufacturing.part_lifecycle import evaluate_part_lifecycle
 from acd.schema import DesignGraph, PartLifecycleRegistry
 
 ROOT = Path(__file__).parents[2]

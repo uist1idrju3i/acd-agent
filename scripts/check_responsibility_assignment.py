@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.responsibility_gate import (
+from acd.core.knowledge.responsibility_gate import (
     ResponsibilityGateError,
     check_responsibility,
     load_responsibility_declaration,

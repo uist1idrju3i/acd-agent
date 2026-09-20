@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.knowledge_index import (
+from acd.core.knowledge.knowledge_index import (
     KnowledgeIndexError,
     KnowledgeSourceLocation,
     build_knowledge_index,

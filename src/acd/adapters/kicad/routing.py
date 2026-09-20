@@ -12,7 +12,7 @@ from collections.abc import Sequence
 
 from acd.adapters.kicad.emit import det_uuid, fmt
 from acd.adapters.kicad.placement import rotate_point
-from acd.core.board_model import BoardModel, RoutedDesign, RoutedWire
+from acd.core.electrical.board_model import BoardModel, RoutedDesign, RoutedWire
 
 _LAYERS = frozenset({"F.Cu", "B.Cu"})
 _BOARD_EDGE_INSET_BASIS = (

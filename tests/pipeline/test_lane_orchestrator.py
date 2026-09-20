@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from scripts import run_design_lanes
 
-from acd.core.command_runner import CommandResult, CommandSpec
-from acd.core.runtime_records import TimingRecorder
+from acd.core.runtime.command_runner import CommandResult, CommandSpec
+from acd.core.runtime.runtime_records import TimingRecorder
 from acd.pipeline.lane_plan import build_lane_plan  # pyright: ignore[reportMissingTypeStubs]
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1"

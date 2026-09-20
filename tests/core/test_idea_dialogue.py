@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.idea_dialogue import (
+from acd.core.knowledge.idea_dialogue import (
     IdeaDialogueError,
     apply_turn,
     load_dialogue_history,

@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any, Literal
 
 from acd.adapters.cad.mechanical import board_plane_z
-from acd.core.cad_normalize import normalize_step
-from acd.core.mechanical import ComponentBodyView, MechanicalLane
+from acd.core.mechanical.cad_normalize import normalize_step
+from acd.core.mechanical.mechanical import ComponentBodyView, MechanicalLane
 
 Component3DStatus = Literal["pass", "fail", "unknown"]
 

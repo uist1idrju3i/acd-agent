@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
-from acd.core.idea_dialogue import load_idea_record
-from acd.core.idea_estimate import estimate_idea, load_estimate_catalog
+from acd.core.knowledge.idea_dialogue import load_idea_record
+from acd.core.knowledge.idea_estimate import estimate_idea, load_estimate_catalog
 from acd.schema.idea import IdeaField, IdeaSource
 from acd.schema.idea_estimate import (
     IdeaEstimateCatalog,

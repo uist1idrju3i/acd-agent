@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.fileio import write_json
+from acd.core.runtime.fileio import write_json
 from acd.schema.common import canonical_json_sha256
 
 _SUMMARY_KEYS = (

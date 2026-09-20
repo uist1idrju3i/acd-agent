@@ -6,8 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from acd.core.functional_block_entry import register_functional_block_contract
-from acd.core.functional_blocks import FunctionalBlockContractError
+from acd.core.knowledge.functional_block_entry import register_functional_block_contract
+from acd.core.knowledge.functional_blocks import FunctionalBlockContractError
 
 
 def _parser() -> argparse.ArgumentParser:

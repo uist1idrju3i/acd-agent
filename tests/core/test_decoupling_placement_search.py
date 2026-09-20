@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core import decoupling_placement as placement
-from acd.core.electrical import ComponentView, ElectricalLane, extract_electrical_lane
+from acd.core.electrical import decoupling_placement as placement
+from acd.core.electrical.electrical import ComponentView, ElectricalLane, extract_electrical_lane
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE_DIR = Path("fixtures/golden-design-1")

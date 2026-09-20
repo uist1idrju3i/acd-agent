@@ -11,8 +11,8 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.order_total import aggregate_order_total, order_total_result_to_document
-from acd.core.timestamps import parse_evaluated_at
+from acd.core.manufacturing.order_total import aggregate_order_total, order_total_result_to_document
+from acd.core.runtime.timestamps import parse_evaluated_at
 from acd.schema import FabProfileDocument, OrderScope, QuoteRecord
 
 

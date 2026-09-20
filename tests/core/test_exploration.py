@@ -9,17 +9,17 @@ from typing import Any
 
 import pytest
 
-import acd.core.exploration as exploration
-from acd.core.design_predicates import PREDICATE_CATALOG, PredicateResult
-from acd.core.electrical import ElectricalLane
-from acd.core.exploration import (
+import acd.core.knowledge.exploration as exploration
+from acd.core.electrical.electrical import ElectricalLane
+from acd.core.knowledge.design_predicates import PREDICATE_CATALOG, PredicateResult
+from acd.core.knowledge.exploration import (
     ExplorationCandidate,
     ExplorationError,
     enumerate_gpio_assignment_candidates,
     explore_board_candidates,
 )
-from acd.core.rationale import RationaleDocument, check_rationale_coverage
-from acd.core.runtime_records import RuntimeObservationError
+from acd.core.knowledge.rationale import RationaleDocument, check_rationale_coverage
+from acd.core.runtime.runtime_records import RuntimeObservationError
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
 

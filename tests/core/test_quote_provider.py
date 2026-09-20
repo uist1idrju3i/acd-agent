@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.quote import QuoteReadError, quote_provider_from_config
+from acd.core.manufacturing.quote import QuoteReadError, quote_provider_from_config
 
 
 def test_unknown_quote_provider_fails_closed() -> None:

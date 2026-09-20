@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from acd.core.naming import artifact_prefix, output_prefix
+from acd.core.knowledge.naming import artifact_prefix, output_prefix
 
 
 @dataclass(frozen=True)

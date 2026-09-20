@@ -9,13 +9,13 @@ from xml.etree import ElementTree
 
 from acd.adapters.cad.mechanical import MechanicalGateReport
 from acd.adapters.cad.project import CadProjection, cad_tool_version
-from acd.core.cad_normalize import normalize_3mf, normalize_step
-from acd.core.mechanical import MechanicalLane
-from acd.core.naming import artifact_prefix
-from acd.core.process import sha256_bytes
-from acd.core.visual_projection import (
+from acd.core.electrical.visual_projection import (
     cad_view_geometry,
 )
+from acd.core.knowledge.naming import artifact_prefix
+from acd.core.mechanical.cad_normalize import normalize_3mf, normalize_step
+from acd.core.mechanical.mechanical import MechanicalLane
+from acd.core.runtime.process import sha256_bytes
 from acd.pipeline.visual_projection._common import (
     crosscheck_item,
     decimal_value,

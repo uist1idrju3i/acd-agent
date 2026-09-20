@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.rationale import (
+from acd.core.knowledge.rationale import (
     BULK_RECORD_MIN,
     check_rationale_coverage,
     subject_hash_for,

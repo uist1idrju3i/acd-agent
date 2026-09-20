@@ -7,8 +7,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from acd.adapters.svg import generate_harness_visual_projection
-from acd.core.electrical import extract_electrical_lane
-from acd.core.visual_quality import analyze_svg_readability
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.electrical.visual_quality import analyze_svg_readability
 from acd.schema.visual_quality import ReadabilityPolicy
 from tests.adapters.svg.test_firmware_svg import _generate as generate_firmware
 from tests.adapters.svg.test_graph_diff_svg import _render as generate_graph_diff

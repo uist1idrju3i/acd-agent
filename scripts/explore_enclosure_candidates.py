@@ -7,7 +7,7 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.enclosure_exploration import (
+from acd.core.mechanical.enclosure_exploration import (
     DEFAULT_JOBS,
     DEFAULT_MAX_CANDIDATES,
     DEFAULT_SAMPLING_POINTS,

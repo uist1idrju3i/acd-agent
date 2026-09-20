@@ -20,8 +20,8 @@ import sys
 from pathlib import Path
 from typing import cast
 
-from acd.core.fileio import file_sha256, read_json
-from acd.core.projection_format_check import ProjectionFormatError, check_projection
+from acd.core.electrical.projection_format_check import ProjectionFormatError, check_projection
+from acd.core.runtime.fileio import file_sha256, read_json
 from acd.schema.theme_song import (
     ThemeSongArtifact,
     ThemeSongArtifactInput,

@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.candidate_commit import CandidateCommitError, commit_candidate_graph
+from acd.core.knowledge.candidate_commit import CandidateCommitError, commit_candidate_graph
 from acd.schema import RationaleDocument
 from acd.schema.design_graph import DesignGraph
 

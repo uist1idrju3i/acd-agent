@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.lane_log import (
+from acd.core.runtime.lane_log import (
     LaneLogError,
     append_lane_log_footer,
     parse_lane_log,

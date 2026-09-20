@@ -7,7 +7,7 @@ from pathlib import Path
 
 from scripts.fetch_lcsc_footprint_orientation import build_record
 
-from acd.core.evidence_declarations import (
+from acd.core.runtime.evidence_declarations import (
     check_cpl_rotation_record,
     cpl_rotation_record_path,
 )

@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from xml.etree import ElementTree
 
-from acd.core.visual_quality import analyze_svg_readability
+from acd.core.electrical.visual_quality import analyze_svg_readability
 from acd.schema.visual_quality import ReadabilityPolicy
 
 DEFAULT_POLICY = Path("profiles/visual-readability-default.json")

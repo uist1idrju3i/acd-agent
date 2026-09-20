@@ -10,7 +10,7 @@ import pytest
 from openhands.sdk.llm import ImageContent, Message, TextContent
 from openhands.sdk.llm.utils.image_inline import maybe_inline_image_urls
 
-from acd.core.process import sha256_bytes
+from acd.core.runtime.process import sha256_bytes
 from acd.openhands.session import visual_projection as visual_projection_module
 from acd.openhands.session.visual_projection import (
     VisualProjectionHandoffError,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from acd.core.receipt import (
+from acd.core.manufacturing.receipt import (
     build_receipt_evidence,
     reconcile_files,
     reconcile_receipt,

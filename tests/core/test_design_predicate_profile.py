@@ -7,14 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from acd.core import design_predicates
-from acd.core.design_predicate_profile import (
+from acd.core.knowledge import design_predicates
+from acd.core.knowledge.design_predicate_profile import (
     DEFAULT_DESIGN_PREDICATE_PROFILE_RELPATH,
     DesignPredicateProfileError,
     default_design_predicate_profile,
     load_design_predicate_profile,
 )
-from acd.core.fileio import read_json
+from acd.core.runtime.fileio import read_json
 from acd.pipeline.repository import repository_root
 
 

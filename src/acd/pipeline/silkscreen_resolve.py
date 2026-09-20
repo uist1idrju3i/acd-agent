@@ -19,17 +19,17 @@ from acd.adapters.kicad.fab import (
     parse_routed_board,
 )
 from acd.adapters.kicad.project import write_project
-from acd.core.electrical import BoardView, extract_electrical_lane
-from acd.core.fab import (
+from acd.core.electrical.electrical import BoardView, extract_electrical_lane
+from acd.core.electrical.silkscreen import SilkscreenLane, extract_silkscreen_lane
+from acd.core.knowledge.naming import output_prefix
+from acd.core.knowledge.rationale import subject_hash_for
+from acd.core.manufacturing.fab import (
     extract_fab_intent,
     load_fab_profile,
     load_fab_profile_registry,
     resolve_fab_profile_path,
 )
-from acd.core.fileio import file_sha256, read_json, write_json
-from acd.core.naming import output_prefix
-from acd.core.rationale import subject_hash_for
-from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
+from acd.core.runtime.fileio import file_sha256, read_json, write_json
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.rationale import (

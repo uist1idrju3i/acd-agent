@@ -7,8 +7,12 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.rework_diff import ReworkDiffError, load_rework_diff, write_derived_graph
-from acd.core.salvage_gate import SalvageGateError, evaluate_salvage
+from acd.core.manufacturing.rework_diff import (
+    ReworkDiffError,
+    load_rework_diff,
+    write_derived_graph,
+)
+from acd.core.manufacturing.salvage_gate import SalvageGateError, evaluate_salvage
 from acd.pipeline.gate_evidence import write_gate_evidence
 from acd.schema.design_graph import DesignGraph
 from acd.schema.rework_diff import ReworkDiff

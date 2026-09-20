@@ -35,7 +35,7 @@ def test_export_keeps_only_the_publishable_minimum(tmp_path: Path) -> None:
 def test_leaky_record_is_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr("acd.core.execution_export._REDACTIONS", ())
+    monkeypatch.setattr("acd.core.runtime.execution_export._REDACTIONS", ())
     record = _write(tmp_path / "run.json", {"status": "https://runner.internal:3000"})
     out = tmp_path / "records.json"
 

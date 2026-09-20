@@ -41,7 +41,7 @@ KiCadライブラリを要するNEG-002およびライブラリhash不一致の�
 
 1. **アンテナ干渉**: `fixture/graph.json`に`mechanical.board_edge_overhang`ノード
    （edge="top", overhang_mm=5.4）が定義されているが、`extract_mechanical_lane()`
-   （`src/acd/core/mechanical.py`）がこのノードを抽出しない。`_build_shapes()`
+   （`src/acd/core/mechanical/mechanical.py`）がこのノードを抽出しない。`_build_shapes()`
    （`src/acd/adapters/cad/project.py`）は単純箱型シェルを生成し、アンテナ突出部を
    考慮しない。`run_mechanical_gates()`（`src/acd/adapters/cad/mechanical.py`）の
    干渉検査はcomponent_bodyのみ対象で、overhangを3D固体としてモデル化しないため、
@@ -174,7 +174,7 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `ReceiptRecord`がfab／assembler、業者名、記録者、出所URI、受領物、検査レポート参照、送付manifest参照、送付・受領・記録時刻を保持する |
-| 実装 | `acd.core.receipt`と`scripts/ingest_receipt.py`で受領recordを製造データpackageのmanifestと決定論的に突合し、対応結果を型付きreportへ記録する |
+| 実装 | `acd.core.manufacturing.receipt`と`scripts/ingest_receipt.py`で受領recordを製造データpackageのmanifestと決定論的に突合し、対応結果を型付きreportへ記録する |
 | 正常系 | 送付manifestと受領recordのhash・対象revision・成果物一覧が一致し、`measured`分類のhost実機Evidenceとして残る |
 | negative/fail-closed | manifest hash不一致、revision不一致、`status: "fail"`、manifest構造不備、受領物の欠落・余剰・hash不一致、検査レポート欠落、日時逆転を停止条件にする。manifestの`unknowns`自体はsortedキーをreportへ残し、受領物の突合は継続する |
 | 再現性 | 受領recordの取り込みをCLIで再実行でき、同一入力から同一report・Evidenceバイト列とcanonical hashになる |
@@ -184,7 +184,7 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `FunctionalRunRecord`がESP-IDF版、toolchain版、project commit、`.elf`／`.bin`成果物、`app_flash_offset`、build／flash／LED／serialの生ログ、測定機器、シリアルtag、期待条件、時刻を宣言する |
-| 実装 | `acd.core.firmware`と`scripts/ingest_functional_run.py`が宣言hashを実ファイルへ照合した後、build、flash、LED capture、serial logを独立parserで読み直す |
+| 実装 | `acd.core.firmware.firmware`と`scripts/ingest_functional_run.py`が宣言hashを実ファイルへ照合した後、build、flash、LED capture、serial logを独立parserで読み直す |
 | 正常系 | 固定版の宣言値と成果物hashが一致し、ESP32-C3書き込み検証、LED 1 Hz、温湿度値域・周期を満たす4件の`measured` host実機Evidenceを個別に保存する |
 | negative/fail-closed | 成果物・ログhash不一致、成果物欠落、必須ログ行の欠落・形式不正・parse不能は`unknown`、ESP-IDF版不一致、書き込みverify数不足・対象chip不一致、値域外、周波数・duty・周期外れは`fail`として停止する。flashは書き込み行と`Hash of data verified.`行の件数一致、app offset・サイズ一致、`Hard resetting`完了を検査する |
 | 再現性 | recordと保存済み生ログから同一report・4件のEvidenceバイト列とcanonical hashを再生成し、各negative fixtureを含める |
@@ -667,7 +667,7 @@ U-1〜U-5の残作業は解消済みである。U-4は、既存のorigin探索�
 `termination_reason`をreportへ記録する。fail-closedの停止は従来どおり即時に打ち切る。
 S-3は`scripts/verify_acd_tool_registration.py --command`で、commandが宣言する`acd_*`と
 会話が露出するtoolの差分を検出し、不足toolごとに決定論的CLI入口またはCLI入口が無い理由を
-返す。S-4は`src/acd/core/library_assets.py`をcatalogと生成fixtureの共通契約とし、相対宣言の
+返す。S-4は`src/acd/core/manufacturing/library_assets.py`をcatalogと生成fixtureの共通契約とし、相対宣言の
 資材を生成fixtureへ同梱してhashを両側で検査し、`scripts/verify_library_assets.py`をfast段へ
 追加する。S-5は`scripts/report_progress.py`がrun出力のtiming recordと探索reportをL3 digestと
 して会話へ返し、読めないrecordを`unknown`として非零終了する。いずれの表示・診断も
@@ -679,7 +679,7 @@ S-4の初回実装では、Espressif資材を`libraries/`（canonical store）�
 commit済みGD1 fixtureに対する探索とcontainerのゲート実行が
 `pinned library file missing: fixtures/golden-design-1/libraries/...`でfail-closed停止し、
 `scripts/verify_library_assets.py --check`だけが同じ宣言を`store_verified`として通す非対称が
-生じていた。解決は`acd.core.library_assets.resolve_fixture_library_path()`に統一し、
+生じていた。解決は`acd.core.manufacturing.library_assets.resolve_fixture_library_path()`に統一し、
 fixture同梱copyを優先してcanonical storeへfallbackする。生成fixtureは従来どおり資材を同梱し、
 storeの外を指す相対宣言はfail-closedのままである。
 
@@ -801,7 +801,7 @@ graph由来の値、識別子、単位、revision、hash、投影metadataは翻�
 
 ### 20.2 graph差分投影の実装記録
 
-`acd.schema.graph_diff`の契約と`acd.core.graph_diff`の決定論的builderを追加し、
+`acd.schema.graph_diff`の契約と`acd.core.knowledge.graph_diff`の決定論的builderを追加し、
 ノードの追加・削除・`kind`／`attrs`単位の変更、および`depends_on`から導出した辺の
 追加・削除をrevision間で比較する。`graph-diff-projection` stageは前revisionが宣言
 された場合だけ`acd-svg`のSVG投影を生成し、前revisionがない場合はL3のskip記録を
@@ -1014,7 +1014,7 @@ L1判定へ持ち込まないための是正フェーズである。
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `src/acd/core/runtime_records.py`の`TimingRecorder`、`src/acd/pipeline/design_loop.py`の候補`pipeline_runner`、`src/acd/core/exploration.py`の候補評価と`_refill_pending`、`plugins/acd/skills/acd-placement-search`の候補生成、`scripts/report_progress.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のT節 |
+| 入力と出所 | `src/acd/core/runtime/runtime_records.py`の`TimingRecorder`、`src/acd/pipeline/design_loop.py`の候補`pipeline_runner`、`src/acd/core/knowledge/exploration.py`の候補評価と`_refill_pending`、`plugins/acd/skills/acd-placement-search`の候補生成、`scripts/report_progress.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のT節 |
 | 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、pinned SDK v1.44.1のplugin形式に直接のToolDefinition登録面はないが`.mcp.json` stdio serverをambient登録面として使い、tool名driftをfast段で検出する（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
 | 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し（`winner_written=true`）、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。候補生成は上限まで候補を返し、`consumed_budget`と`remaining_budget`が実行と一致する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
@@ -1041,7 +1041,7 @@ preflightを実行しないため、不足は実行の途中でしか判明し�
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `src/acd/core/silkscreen.py`の`GraphExtractionError`、`src/acd/core/lane_preflight.py`の`LANE_REQUIREMENTS`と`run_lane_preflight`、`src/acd/pipeline/fixture_builder.py`の`silk_texts`／`silk_graphics`投影、`scripts/run_design_loop.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、`src/acd/core/runtime_records.py`の`TimingRecorder`、`scripts/verify_acd_tool_registration.py`、`plugins/acd/commands/vibebb-loop.md`、`plugins/acd/hooks`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節、[`examples/golden-design-1-vps-20260901/report/improvement-notes.md`](../examples/golden-design-1-vps-20260901/report/improvement-notes.md)（同メモのD-1〜D-4はV-7〜V-10と読み替える） |
+| 入力と出所 | `src/acd/core/electrical/silkscreen.py`の`GraphExtractionError`、`src/acd/core/runtime/lane_preflight.py`の`LANE_REQUIREMENTS`と`run_lane_preflight`、`src/acd/pipeline/fixture_builder.py`の`silk_texts`／`silk_graphics`投影、`scripts/run_design_loop.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、`src/acd/core/runtime/runtime_records.py`の`TimingRecorder`、`scripts/verify_acd_tool_registration.py`、`plugins/acd/commands/vibebb-loop.md`、`plugins/acd/hooks`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節、[`examples/golden-design-1-vps-20260901/report/improvement-notes.md`](../examples/golden-design-1-vps-20260901/report/improvement-notes.md)（同メモのD-1〜D-4はV-7〜V-10と読み替える） |
 | 実装 | fixture生成とloop入口で実行予定laneの`run_lane_preflight`を評価し、不足するnode kind・node数・属性名を列挙して`next_step_action`へ「specへ追加すべき宣言」を具体名で返す（V-6）。silkscreen laneでは`mechanical.silk_text`の`layer`／`role`／`text`／`stroke_width_mm`／`height_mm`／`placement_basis`／`placement_search_order`／`placement_reference`を名指しする。宣言の自動補完は行わない。containerからhostへEDA資材を取り出す操作をhookで拒否するか、host実行時にcontainer由来資材の混在を検出してprovisional扱いを記録する（V-1）。commandの報告契約へauthoritative Evidence検証の実行と結果提示を必須項目として書き、`report_progress.py`のdigestへEvidence未検証を明示する行を持たせる（V-3）。`_execute_and_download()`が非ゼロ終了時も宣言済みdownloadを試み、判定はcontainerのexit codeで維持する（V-5）。timing recordへstage duration合計と区別できる`wall_clock_seconds`を持たせる（V-7）。`verify_acd_tool_registration.py --command`の結果を機械可読JSONとしてworkspaceへ保存する（V-9） |
 | 正常系 | silkscreen宣言を備えた新規specが、fixture生成からsilkscreen barrierを越えて基板laneへ到達する。宣言が欠けたspecは実行前に`declarations_incomplete`で停止し、不足宣言名と追記先を返す。fail-closedで終わったcontainer実行からも成果物を回収でき、runnerのexit codeは非ゼロのままである。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | 不足宣言の列挙、進行表示、tool登録記録はいずれもL3観測であり合格側権限を持たない。preflightの`declarations_complete`はlane通過を意味しない。downloadの成功をcommand成功として扱わず、部分downloadを合格へ倒さない。container由来資材が混在したhost実行のEvidenceをauthoritativeへ昇格しない。宣言の自動補完、既定値の暗黙適用、閾値・ゲート条件の緩和は行わない |
@@ -1208,7 +1208,7 @@ hostではskip、CIの`container-gates` jobでは
 
 `explore_firmware_candidates`は従来`explore_board_candidates`へ委譲しており、
 基板側の配置・回転次元の候補がFW復帰へ混入しうる構造だった。
-`src/acd/core/firmware_exploration.py`を新設し、FW lane専用の候補生成器へ分離した。
+`src/acd/core/firmware/firmware_exploration.py`を新設し、FW lane専用の候補生成器へ分離した。
 
 - 探索ループとreport組立は`exploration._run_candidate_search`へ抽出して共用化し、
   `explore_board_candidates`のreportは同一入力でbyte一致を維持する
@@ -1245,7 +1245,7 @@ regenerableとして区別した。
 
 - `acd.schema.lane_artifact_retention`で契約をPydantic検証する
   （extra禁止・相対glob限定・`..`拒否・lane_id一意）。
-- `acd.core.lane_artifact_retention.resolve_lane_retention`がlane出力dirへ
+- `acd.core.runtime.lane_artifact_retention.resolve_lane_retention`がlane出力dirへ
   決定論的にglobを適用し、matchした相対パス・size・sha256と
   `missing_required`、regenerable件数・総bytesを`LaneRetentionReport`
   （`record_class: "L3"`、`pass_evidence: false`、authority文言付き）として返す。
@@ -1288,7 +1288,7 @@ bootstrap record、なければ`git rev-parse HEAD`、解決不能は`unknown`�
 footerは`finally`で`exit_code`、解決済み`image_digest`（startup・transport失敗と
 host provisionalでは`unknown`）、`execution_context`、`failure_kind`（例外の
 `failure_kind`または`classify_execution_failure`結果）、`finished_at`を追記する。
-`src/acd/core/lane_log.py`の`write_lane_log_header`・`append_lane_log_footer`・
+`src/acd/core/runtime/lane_log.py`の`write_lane_log_header`・`append_lane_log_footer`・
 `parse_lane_log`を提供し、`--log`未指定時の挙動は従来どおり。
 
 ### 15.16 収集入口へのlane log取り込みの実装記録
@@ -1330,7 +1330,7 @@ recordは`record_class: L3`、`pass_evidence: false`であり合否権限を持�
 
 ### 14.14 O-12残項 `OrderScope`の決定論的導出の実装記録
 
-`OrderScope`を`src/acd/core/order_scope_derivation.py`の`derive_order_scope()`で
+`OrderScope`を`src/acd/core/manufacturing/order_scope_derivation.py`の`derive_order_scope()`で
 設計fixtureから決定論的に導出する。graphの`fab.order_intent`ノードから
 fab profile IDを取得してregistry存在を検査し、`rationale.json`のrevisionを
 target revisionとし、`mechanical.enclosure`ノードの有無からmechanical treatmentと
@@ -1379,7 +1379,7 @@ fail-closedに停止する。`run_projection_docs`は`enclosure_out`を新規入
 
 `ADR-0049`がアイデアrecordと責務割当のcontract境界を定義する。21.1・21.3は
 `src/acd/schema/idea.py`（`IdeaRecord`・`IdeaDialogueHistory`・`IdeaProgress`）と
-`src/acd/core/idea_dialogue.py`（`apply_turn`／`progress_summary`）、
+`src/acd/core/knowledge/idea_dialogue.py`（`apply_turn`／`progress_summary`）、
 `scripts/idea_progress.py`を追加した（PR #448）。21.2・21.4・21.5は
 `acd-ideate` Skill（question bank付き）、`src/acd/schema/idea_estimate.py`・
 `idea_promotion.py`・`idea_question_bank.py`、`estimate_idea`（stop／risk／within／
@@ -1399,7 +1399,7 @@ gate evidenceのみを生成し、authoritative Evidenceは生成しない。
 同一fixture・同一profile）の水平展開宣言を追加した。unknown、未探索、重複ID、
 水平基準の欠落はPydantic contractでfail-closedに停止する。
 
-`src/acd/core/defect_records.py`の`compute_horizontal_scope`は、identifiedな根本原因
+`src/acd/core/manufacturing/defect_records.py`の`compute_horizontal_scope`は、identifiedな根本原因
 候補のnodeをアンカーとしてgraphを機械的に検索し、node ID順の結果を返す。
 `same_rule`は`rule_ids`／`applied_rules`属性だけを検索し、属性が無いgraphでは
 「探索済み・該当なし」とする。`check_defect_records`はgraph ID・revision、未知node、
@@ -1420,7 +1420,7 @@ revision不一致は停止側へ分類される。
 base revision、関連する不具合record、空でない操作列、safety boundary影響宣言を
 型付きで保持し、replace属性の許可集合と追加node kindをcontractで制限する。
 
-`src/acd/core/rework_diff.py`の`apply_rework_diff`は、入力graphを変更せず宣言順に
+`src/acd/core/manufacturing/rework_diff.py`の`apply_rework_diff`は、入力graphを変更せず宣言順に
 操作を適用し、pin切断、node追加、component除去、部品属性変更、機械寸法変更を
 fail-closedに検査する。未知参照、重複追加、dangling dependency、既存値と同じreplace、
 未宣言のsafety boundary接触、base graphとのgraph ID／revision不一致は停止する。
@@ -1441,7 +1441,7 @@ testを追加した。派生graphは設計入力やfixtureを上書きせず、�
 FW変更があれば派生graphを導出でき、完全に空の差分、重複ID、縮退機能との不整合は
 fail-closedに停止する。
 
-`src/acd/schema/salvage.py`と`src/acd/core/salvage_gate.py`は、派生graph上の
+`src/acd/schema/salvage.py`と`src/acd/core/manufacturing/salvage_gate.py`は、派生graph上の
 電気lane抽出、設計述語、機械preflight、revision一致を要求するERC／DRC Evidence、
 DFA、safety approvalを決定論的に評価する。欠落・unknown・revision不一致・実施不能な
 DFAは救済不可とし、FW機能の縮退・無効化を伴う場合は`constrained_salvage`として
@@ -1712,7 +1712,7 @@ LED branchへ接続した。I2Cはopen-drain switchとPULSE sourceでlowからre
 波形が閾値を横切らない場合は`degenerate_measurement`としてunknownにし、無刺激のbranch
 currentや平坦なwaveformをpassへ変換しない。
 
-ngspiceはGPLコードをimportせず、`acd.core.process.run_tool`のsubprocess境界だけで実行する。
+ngspiceはGPLコードをimportせず、`acd.core.runtime.process.run_tool`のsubprocess境界だけで実行する。
 `ngspice -v`のversion pin照合、malformed output、tool missing、version mismatch、
 non-convergenceはunknownへ集約し、値域超過はfailとする。集約順はfail > unknown > passで、
 resultの`authority`は`estimate`固定である。provenanceにはngspice version、netlist SHA-256、
@@ -1769,7 +1769,7 @@ tj_max 125 °Cに対してpassした。
 
 `FemRequest`／`FemResult`、固定節点番号のgenerated shell-box入力、落下の等価静的
 減速度、static stress／thermalの入力経路、`.dat`の変位・応力・von Mises parserを
-追加した。CalculiXはGPL境界を守り、`acd.core.process.run_tool` subprocessだけで
+追加した。CalculiXはGPL境界を守り、`acd.core.runtime.process.run_tool` subprocessだけで
 実行する。ツール不在、version mismatch、malformed output、非収束、必要結果欠落は
 unknown、制限超過はfailとする。今回のhostには`ccx`が無いためreal runは未実行で、
 parser fixtureはsyntheticとして明記した。

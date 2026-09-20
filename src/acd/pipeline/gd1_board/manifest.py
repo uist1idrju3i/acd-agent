@@ -8,8 +8,8 @@ from pathlib import Path
 
 from acd.adapters.kicad.fab import zip_content_hash
 from acd.adapters.kicad.reload import normalized_hash
-from acd.core.fileio import file_sha256
-from acd.core.projection_format_check import ProjectionKind, check_projections
+from acd.core.electrical.projection_format_check import ProjectionKind, check_projections
+from acd.core.runtime.fileio import file_sha256
 from acd.schema.common import canonical_json_sha256
 
 

@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from acd.adapters.cad.component_3d import import_component_step
-from acd.core.electrical import extract_electrical_lane
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
 
 

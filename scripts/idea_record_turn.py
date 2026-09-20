@@ -8,7 +8,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.idea_dialogue import (
+from acd.core.knowledge.idea_dialogue import (
     apply_turn,
     load_dialogue_history,
     load_idea_record,

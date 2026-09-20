@@ -20,14 +20,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from acd.core.cpl_orientation import cpl_orientation_attrs
-from acd.core.fileio import file_sha256, read_json, write_json
-from acd.core.library_assets import (
+from acd.core.electrical.cpl_orientation import cpl_orientation_attrs
+from acd.core.knowledge.rationale import subject_hash_for
+from acd.core.manufacturing.library_assets import (
     resolve_library_asset,
     verify_fixture_library_assets,
 )
-from acd.core.part_selection import load_parts_catalog
-from acd.core.rationale import subject_hash_for
+from acd.core.manufacturing.part_selection import load_parts_catalog
+from acd.core.runtime.fileio import file_sha256, read_json, write_json
 from acd.schema.design_fixture import FixtureCplOrientationEvidence
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 from acd.schema.rationale import RationaleDocument
@@ -140,9 +140,9 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
         from acd.adapters.kicad.board import generate_board
         from acd.adapters.kicad.library import FootprintLibrary
         from acd.adapters.kicad.placement import Placement
-        from acd.core.electrical import extract_electrical_lane
-        from acd.core.fab import load_fab_profile
-        from acd.core.silkscreen import extract_silkscreen_lane
+        from acd.core.electrical.electrical import extract_electrical_lane
+        from acd.core.electrical.silkscreen import extract_silkscreen_lane
+        from acd.core.manufacturing.fab import load_fab_profile
 
         electrical = extract_electrical_lane(graph)
         profile = load_fab_profile(fab_profile)

@@ -294,7 +294,7 @@ relaxation profileの宣言に従い、実測Evidenceのない緩和はfail-clos
 `width_basis`とfab profileの最小値）から導出する。経路点は格子snap、pad端点への固定、
 領域内判定、同一層のclearance検査という決定論的legalizationを通し、衝突する区間は
 決定論的な迂回探索で修復する。修復不能はfail-closedである。得られた
-`artifact_kind="vision_route_candidates"`はACD側で`acd.core.route_candidates`が
+`artifact_kind="vision_route_candidates"`はACD側で`acd.core.electrical.route_candidates`が
 provenanceとrevision一致を検査してからtool中立の`RoutedDesign`へ変換し、判定は従来どおり
 基板投影後のDRCとGerber独立再読込だけが行う。円弧と非45度配線は既定で拒否する。
 
@@ -323,10 +323,10 @@ GD1の既定`PREDICATE_CATALOG`、既存Evidence、既定認証判定を変更�
 
 設計述語（`usb_cc`、`i2c_pullup`、`strapping_pin`、`power_decoupling`、
 `impedance_geometry`など）の期待値と閾値は`profiles/design-predicates-default.json`に
-版付きで置く。`acd.core.design_predicate_profile`が読み込みと検証を行い、失敗は
+版付きで置く。`acd.core.knowledge.design_predicate_profile`が読み込みと検証を行い、失敗は
 fail-closedにする。`design-predicates.json` Evidenceのobservationには
 `profile.profile_id`／`profile.profile_hash`／`profile.schema_version`を記録し、
-どの期待値で観測したかを追跡できるようにする。`acd.core.design_predicates`の
+どの期待値で観測したかを追跡できるようにする。`acd.core.knowledge.design_predicates`の
 `CC_EXPECTED_KOHM`などのモジュール定数はprofileから導出した互換surfaceであり、
 値の変更はprofileのみで行う。profile自体はL2/L3の観測条件であり、合格権限を持たない。
 
@@ -425,7 +425,7 @@ I2C pull-upには決定論的なopen-drain switchとPULSE刺激を追加し、lo
 10--90% edgeを`.tran`波形から測定する。transientの刻みは1 ns以下とし、release後の
 RC応答を十分に含む解析時間を要求する。
 
-ngspiceはGPL境界を越えてimportせず、`acd.core.process.run_tool`のsubprocess
+ngspiceはGPL境界を越えてimportせず、`acd.core.runtime.process.run_tool`のsubprocess
 経由だけで実行する。最初に`ngspice -v`を実行してrequestのversion pinと照合し、
 tool missing、version mismatch、malformed output、non-convergence、利用不能な
 解析結果はunknownへ停止側集約する。値域超過はfail、集約順はfail > unknown >
@@ -473,7 +473,7 @@ opt-in経路であり、PDN requestを指定しない既存GD1 default outputは
 `FemRequest`を明示した場合だけ、固定節点番号のgenerated shell-box `.inp`を生成し、
 drop、static stress、thermalのCalculiX経路を利用できる。落下は
 `v=sqrt(2gh)`と`a=v²/(2*crush_distance)`による等価静的減速度であり、過渡衝撃の
-完全モデルではない。CalculiX（GPL）はACDへimportせず、`acd.core.process.run_tool`
+完全モデルではない。CalculiX（GPL）はACDへimportせず、`acd.core.runtime.process.run_tool`
 経由のsubprocessだけで起動する。`ccx -v`のversion pin不一致、ツール不在、非収束、
 malformed `.dat`、parse失敗、必要結果欠落はunknown、制限超過はfailである。
 `.dat`のvon Misesは6応力成分から決定論的に計算する。

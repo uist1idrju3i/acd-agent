@@ -16,7 +16,7 @@ from acd.adapters.cad.mechanical import (
     run_mechanical_gates,
 )
 from acd.adapters.cad.project import project_enclosure
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = Path(__file__).resolve().parents[3] / "fixtures" / "golden-design-1" / "graph.json"

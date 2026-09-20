@@ -13,7 +13,7 @@ from acd.adapters.kicad.gates import (
     assert_rule_check_input_matches,
     assert_rule_check_passed,
 )
-from acd.core.process import ToolRun, sha256_paths
+from acd.core.runtime.process import ToolRun, sha256_paths
 from acd.schema import ToolEnvelope
 
 

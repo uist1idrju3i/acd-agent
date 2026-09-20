@@ -12,7 +12,7 @@ from openhands.sdk.critic import CriticBase, CriticResult, IterativeRefinementCo
 from openhands.sdk.event import LLMConvertibleEvent
 from pydantic import BaseModel, Field
 
-from acd.core.fileio import read_json
+from acd.core.runtime.fileio import read_json
 from acd.openhands.session.context import is_context_artifact
 from acd.schema import Evidence
 from acd.schema.design_graph import DesignGraph

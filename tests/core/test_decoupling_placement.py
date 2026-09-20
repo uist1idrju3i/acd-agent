@@ -16,13 +16,13 @@ from pathlib import Path
 import pytest
 
 from acd.adapters.kicad.library import FootprintLibrary
-from acd.core.decoupling_placement import (
+from acd.core.electrical.decoupling_placement import (
     PLACEMENT_SOURCE,
     apply_decoupling_placements,
     solve_decoupling_placements,
 )
-from acd.core.design_predicates import evaluate_power_decoupling
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.knowledge.design_predicates import evaluate_power_decoupling
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE_DIR = Path("fixtures/decoupling-placement-minimal")

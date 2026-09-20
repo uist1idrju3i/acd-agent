@@ -12,8 +12,8 @@ from openhands.sdk.tool import (
     Observation,
 )
 
-from acd.core.fileio import read_json
-from acd.core.naming import artifact_prefix
+from acd.core.knowledge.naming import artifact_prefix
+from acd.core.runtime.fileio import read_json
 from acd.schema.design_graph import DesignGraph
 
 if TYPE_CHECKING:

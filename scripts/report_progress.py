@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from acd.core.progress_digest import collect_progress_digest, render_progress_digest
+from acd.core.runtime.progress_digest import collect_progress_digest, render_progress_digest
 
 
 def _parser() -> argparse.ArgumentParser:

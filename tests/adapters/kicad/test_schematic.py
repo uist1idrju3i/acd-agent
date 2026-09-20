@@ -24,7 +24,7 @@ from acd.adapters.kicad.schematic import (
     _symbol_geometry,
     generate_schematic,
 )
-from acd.core.electrical import ComponentView, LibraryPin, extract_electrical_lane
+from acd.core.electrical.electrical import ComponentView, LibraryPin, extract_electrical_lane
 from acd.schema import DesignGraph
 
 ROOT = Path(__file__).parents[3]

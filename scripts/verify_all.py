@@ -8,7 +8,7 @@ import os
 import sys
 from collections.abc import Sequence
 
-from acd.core.command_runner import CommandSpec, run_stage
+from acd.core.runtime.command_runner import CommandSpec, run_stage
 
 SYNC_COMMAND = CommandSpec(("uv", "sync"), barrier=True)
 FAST_COMMANDS: tuple[CommandSpec, ...] = (

@@ -19,7 +19,7 @@ from acd.adapters.svg.layout import (
     SvgVisualProjectionError,
     generate_layout_visual_projections,
 )
-from acd.core.board_model import (
+from acd.core.electrical.board_model import (
     BoardModel,
     ComponentPlacement,
     EdgeOverhangDeclaration,
@@ -28,8 +28,8 @@ from acd.core.board_model import (
     MountHole,
     PlacementAnnotations,
 )
-from acd.core.electrical import BoardView
-from acd.core.visual_projection import measure_svg_resolution
+from acd.core.electrical.electrical import BoardView
+from acd.core.electrical.visual_projection import measure_svg_resolution
 from acd.schema.visual_projection import VisualProjectionSet
 
 

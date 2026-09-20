@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from acd.core.electrical import extract_electrical_lane
-from acd.core.structural_safety import (
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.mechanical.structural_safety import (
     evaluate_protection_selectivity,
     evaluate_signal_class_segregation,
     evaluate_single_point_of_failure,

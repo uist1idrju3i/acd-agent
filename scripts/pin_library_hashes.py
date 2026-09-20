@@ -23,13 +23,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.library_assets import (
+from acd.core.manufacturing.library_assets import (
     LIBRARY_ASSET_ATTRS,
     LibraryAssetError,
     resolve_library_asset,
     sha256_of_asset,
 )
-from acd.core.part_selection import PartSelectionError, select_part
+from acd.core.manufacturing.part_selection import PartSelectionError, select_part
 from acd.schema.parts_catalog import ComponentPartRequest
 
 

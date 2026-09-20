@@ -9,8 +9,8 @@ from typing import Protocol, cast
 
 import cairosvg  # pyright: ignore[reportMissingTypeStubs]
 
-from acd.core.process import sha256_bytes
-from acd.core.visual_projection import SvgNormalizationError, svg_source_hash
+from acd.core.electrical.visual_projection import SvgNormalizationError, svg_source_hash
+from acd.core.runtime.process import sha256_bytes
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,

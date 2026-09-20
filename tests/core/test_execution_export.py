@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from acd.core.execution_export import (
+from acd.core.runtime.execution_export import (
     REDACTED,
     ExecutionExportError,
     export_execution_record,
@@ -62,7 +62,7 @@ def test_secrets_are_redacted_by_default(value: str) -> None:
 
 
 def test_incomplete_redaction_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("acd.core.execution_export._REDACTIONS", ())
+    monkeypatch.setattr("acd.core.runtime.execution_export._REDACTIONS", ())
 
     with pytest.raises(ExecutionExportError, match="redaction is incomplete"):
         export_execution_record({"status": "served from https://runner.internal:3000"})

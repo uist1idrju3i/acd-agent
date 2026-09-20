@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.bom_compliance import summarize_bom_compliance
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.manufacturing.bom_compliance import summarize_bom_compliance
 from acd.schema import ComplianceDeclarationRegistry, DesignGraph
 
 ROOT = Path(__file__).parents[2]

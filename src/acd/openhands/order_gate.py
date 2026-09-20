@@ -7,7 +7,7 @@ from pathlib import Path
 
 from openhands.sdk.git.exceptions import GitError
 
-from acd.core.order_total import OrderTotalResult
+from acd.core.manufacturing.order_total import OrderTotalResult
 from acd.openhands.evidence.git import design_input_changes, is_design_input
 from acd.openhands.evidence.revision import resolve
 from acd.schema import (

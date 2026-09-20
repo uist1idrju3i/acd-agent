@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from acd.core.router_diagnostics import (
+from acd.core.electrical.router_diagnostics import (
     OPEN_NET_LIMIT,
     read_router_diagnostics,
     router_diagnostics_hint,

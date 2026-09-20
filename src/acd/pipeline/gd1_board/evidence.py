@@ -10,13 +10,13 @@ from typing import cast
 
 from acd.adapters.kicad.cli import RuleCheckResult
 from acd.adapters.kicad.gates import GateError
-from acd.core.design_predicates import (
+from acd.core.electrical.electrical import ElectricalLane
+from acd.core.knowledge.design_predicates import (
     OPT_IN_PREDICATES,
     PREDICATE_CATALOG,
     PredicateResult,
 )
-from acd.core.electrical import ElectricalLane
-from acd.core.naming import evidence_id
+from acd.core.knowledge.naming import evidence_id
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
 

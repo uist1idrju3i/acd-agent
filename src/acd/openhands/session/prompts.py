@@ -13,7 +13,7 @@ from openhands.sdk.subagent import AgentDefinition
 from pydantic import ValidationError
 from yaml import YAMLError
 
-from acd.core.fileio import write_json
+from acd.core.runtime.fileio import write_json
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.prompt_manifest import (
     PromptDriftReport,

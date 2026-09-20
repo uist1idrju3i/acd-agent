@@ -9,7 +9,7 @@ from pathlib import Path
 from openhands.sdk.llm import ImageContent, LLMProfileStore, Message, TextContent
 from openhands.sdk.tool.builtins.vision_inspect import VisionInspectTool
 
-from acd.core.process import sha256_bytes
+from acd.core.runtime.process import sha256_bytes
 from acd.openhands.session.observation_store import (
     ObservationLogRecord,
     write_observation_payload,

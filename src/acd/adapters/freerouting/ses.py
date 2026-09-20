@@ -7,8 +7,8 @@ converted back to millimetres in the KiCad board frame (Y-down).
 
 from __future__ import annotations
 
-from acd.core.board_model import RoutedDesign, RoutedVia, RoutedWire
-from acd.core.sexpr import SExpr, find_all, find_one, parse_one
+from acd.core.electrical.board_model import RoutedDesign, RoutedVia, RoutedWire
+from acd.core.electrical.sexpr import SExpr, find_all, find_one, parse_one
 
 
 class SesImportError(ValueError):

@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.lane_preflight import (
+from acd.core.runtime.lane_preflight import (
     missing_declaration_action,
     missing_declarations,
     run_lane_preflight,

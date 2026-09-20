@@ -22,7 +22,7 @@ from acd.adapters.svg.common import (
     svg_text,
     text_advance,
 )
-from acd.core.graph_diff import GraphDiffError, build_graph_diff
+from acd.core.knowledge.graph_diff import GraphDiffError, build_graph_diff
 from acd.schema.design_graph import DesignGraph
 from acd.schema.graph_diff import GraphDiff
 from acd.schema.visual_projection import (

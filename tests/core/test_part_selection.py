@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.part_selection import PartSelectionError, select_part
+from acd.core.manufacturing.part_selection import PartSelectionError, select_part
 from acd.schema import ComponentPartRequest, PartsCatalogDocument
 
 CATALOG = Path("contracts/parts-catalog.json")

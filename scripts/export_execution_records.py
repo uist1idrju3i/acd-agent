@@ -9,8 +9,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
-from acd.core.execution_export import ExecutionExportError, export_execution_record
-from acd.core.lane_log import LaneLogError, parse_lane_log
+from acd.core.runtime.execution_export import ExecutionExportError, export_execution_record
+from acd.core.runtime.lane_log import LaneLogError, parse_lane_log
 
 
 def _parser() -> argparse.ArgumentParser:

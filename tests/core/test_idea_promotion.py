@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.idea_dialogue import load_idea_record
-from acd.core.idea_promotion import (
+from acd.core.knowledge.idea_dialogue import load_idea_record
+from acd.core.knowledge.idea_promotion import (
     IdeaPromotionError,
     load_promotion_rationale,
     promote_idea,

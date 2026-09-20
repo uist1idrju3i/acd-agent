@@ -1,16 +1,12 @@
-"""Timestamp parsing helpers used by deterministic gates."""
+"""Compatibility re-export.
 
-from __future__ import annotations
+The implementation lives in ``acd.core.runtime.timestamps``.
+"""
 
-from datetime import datetime
+from acd.core.runtime.timestamps import (
+    parse_evaluated_at,
+)
 
-
-def parse_evaluated_at(value: str) -> datetime:
-    """Parse an ISO-8601 timestamp and require an explicit timezone."""
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ValueError("evaluated-at must be an ISO-8601 timestamp") from exc
-    if parsed.tzinfo is None:
-        raise ValueError("evaluated-at must include a timezone")
-    return parsed
+__all__ = [
+    "parse_evaluated_at",
+]

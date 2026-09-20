@@ -13,9 +13,9 @@ from pydantic import ValidationError
 from acd.adapters.kicad.cli import KicadCli
 from acd.adapters.kicad.gates import GateError
 from acd.adapters.kicad.visual_projection import KicadVisualRenderer
-from acd.core.board_model import BoardModel, CopperZone
-from acd.core.electrical import BoardView, ElectricalLane
-from acd.core.process import ExternalToolError
+from acd.core.electrical.board_model import BoardModel, CopperZone
+from acd.core.electrical.electrical import BoardView, ElectricalLane
+from acd.core.runtime.process import ExternalToolError
 from acd.pipeline.visual_projection import generate_electrical_visual_projections
 from acd.schema.visual_projection import (
     ElectricalVisualProjectionGates,

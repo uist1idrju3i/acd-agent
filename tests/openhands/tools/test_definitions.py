@@ -338,7 +338,7 @@ def test_enclosure_exploration_tool_preserves_l2_observation(
         )()
 
     monkeypatch.setattr(
-        "acd.core.enclosure_exploration.explore_enclosure_candidates",
+        "acd.core.mechanical.enclosure_exploration.explore_enclosure_candidates",
         fake_explore,
     )
     tool = AcdExploreEnclosureCandidates.create()[0]

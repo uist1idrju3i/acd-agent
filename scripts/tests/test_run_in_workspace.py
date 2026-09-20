@@ -11,8 +11,8 @@ from typing import Any
 import pytest
 import scripts.run_in_workspace as runner_script
 
-from acd.core.lane_log import parse_lane_log
-from acd.core.source_tree import SourceProvenance
+from acd.core.runtime.lane_log import parse_lane_log
+from acd.core.runtime.source_tree import SourceProvenance
 from acd.openhands import workspace as workspace_module
 from acd.openhands.workspace import (
     ImageReference,

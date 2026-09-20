@@ -7,7 +7,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from acd.adapters.kicad.placement import placed_rect
-from acd.core.board_model import BoardModel, RoutedDesign
+from acd.core.electrical.board_model import BoardModel, RoutedDesign
 
 
 class FabOutputError(ValueError):

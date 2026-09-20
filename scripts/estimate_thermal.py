@@ -14,7 +14,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.thermal import ThermalAnalysisError, estimate_thermal, thermal_markdown
+from acd.core.electrical.thermal import ThermalAnalysisError, estimate_thermal, thermal_markdown
 from acd.schema import DesignGraph, ThermalRequest, UseEnvironment
 
 

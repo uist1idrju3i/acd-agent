@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.manufacturing_submission import evaluate_manufacturing_submission
+from acd.core.manufacturing.manufacturing_submission import evaluate_manufacturing_submission
 from acd.schema.manufacturing_submission import ManufacturingSubmissionVerdict
 from tests.core.manufacturing_tree import (
     BOARD_NAME,

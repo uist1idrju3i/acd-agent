@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.electrical import GraphExtractionError
-from acd.core.mechanical import extract_mechanical_lane
-from acd.core.mechanism_rules import check_mechanism_features
-from acd.core.rationale import check_rationale_coverage
+from acd.core.electrical.electrical import GraphExtractionError
+from acd.core.knowledge.rationale import check_rationale_coverage
+from acd.core.mechanical.mechanical import extract_mechanical_lane
+from acd.core.mechanical.mechanism_rules import check_mechanism_features
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 from acd.schema.rationale import RationaleDocument
 

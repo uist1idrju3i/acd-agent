@@ -10,7 +10,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from acd.core.wca import WcaInputError, evaluate_wca
+from acd.core.electrical.wca import WcaInputError, evaluate_wca
 from acd.schema import (
     DesignGraph,
     SpiceResult,

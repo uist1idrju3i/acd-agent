@@ -7,7 +7,7 @@ import json
 import shutil
 from pathlib import Path
 
-from acd.core.evidence_declarations import (
+from acd.core.runtime.evidence_declarations import (
     check_cpl_rotation_record,
     check_fab_profile_declaration,
     collect_evidence_declaration_findings,

@@ -11,7 +11,7 @@ from typing import Any, cast
 
 import pytest
 
-from acd.core.silkscreen import extract_silkscreen_lane
+from acd.core.electrical.silkscreen import extract_silkscreen_lane
 from acd.pipeline import silkscreen_resolve
 from acd.pipeline.silkscreen_resolve import _assert_no_unresolved_texts
 

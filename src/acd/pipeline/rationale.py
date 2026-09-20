@@ -5,11 +5,11 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from acd.core.fileio import read_json
-from acd.core.rationale import (
+from acd.core.knowledge.rationale import (
     check_rationale_coverage,
     summarize_rationale_coverage,
 )
+from acd.core.runtime.fileio import read_json
 from acd.schema import (
     DesignGraph,
     RationaleCoverageReport,

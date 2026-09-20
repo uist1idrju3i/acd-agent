@@ -18,10 +18,10 @@ from acd.adapters.cad.mechanical import (
     build_board_edge_overhang_shape,
 )
 from acd.adapters.cad.mechanisms import apply_mechanism_features
-from acd.core.cad_normalize import normalize_3mf, normalize_step, normalize_stl
-from acd.core.mechanical import MechanicalLane
-from acd.core.naming import artifact_prefix
-from acd.core.process import ToolRun, run_in_process
+from acd.core.knowledge.naming import artifact_prefix
+from acd.core.mechanical.cad_normalize import normalize_3mf, normalize_step, normalize_stl
+from acd.core.mechanical.mechanical import MechanicalLane
+from acd.core.runtime.process import ToolRun, run_in_process
 from acd.schema.design_graph import DesignGraph
 
 

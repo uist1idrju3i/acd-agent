@@ -6,9 +6,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from acd.core.electrical import extract_electrical_lane
-from acd.core.emc_esd import evaluate_emc_esd
-from acd.core.reliability_test import evaluate_reliability_test_plan
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.electrical.emc_esd import evaluate_emc_esd
+from acd.core.manufacturing.reliability_test import evaluate_reliability_test_plan
 from acd.schema import DesignGraph, ReliabilityTestPlan, UseEnvironment
 
 ROOT = Path(__file__).parents[2]

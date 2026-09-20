@@ -11,8 +11,8 @@ from typing import Any, cast
 
 import pytest
 
-from acd.core import process as process_module
-from acd.core.process import (
+from acd.core.runtime import process as process_module
+from acd.core.runtime.process import (
     ExternalToolError,
     ToolTimeoutError,
     execution_env,
@@ -291,7 +291,7 @@ def test_execution_env_records_container_state(
     expected: str,
 ) -> None:
     monkeypatch.setenv("ACD_CONTAINER_IMAGE_DIGEST", digest)
-    monkeypatch.setattr("acd.core.process._in_container", lambda: in_container)
+    monkeypatch.setattr("acd.core.runtime.process._in_container", lambda: in_container)
     assert expected in execution_env()
 
 
@@ -299,7 +299,7 @@ def test_unknown_container_envelope_is_not_pass_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("ACD_CONTAINER_IMAGE_DIGEST", "")
-    monkeypatch.setattr("acd.core.process._in_container", lambda: True)
+    monkeypatch.setattr("acd.core.runtime.process._in_container", lambda: True)
     assert "container=unknown" in execution_env()
     assert execution_provenance() == ("container", "unknown")
     envelope = ToolEnvelope(
@@ -404,7 +404,7 @@ def test_source_provenance_is_unset_on_host_without_env(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _clear_source_env(monkeypatch)
-    monkeypatch.setattr("acd.core.process._in_container", lambda: False)
+    monkeypatch.setattr("acd.core.runtime.process._in_container", lambda: False)
     assert source_provenance() == (None, None, None)
     assert source_provenance_fields() == {
         "source_revision": None,
@@ -417,14 +417,14 @@ def test_source_provenance_is_unknown_in_container_without_env(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _clear_source_env(monkeypatch)
-    monkeypatch.setattr("acd.core.process._in_container", lambda: True)
+    monkeypatch.setattr("acd.core.runtime.process._in_container", lambda: True)
     assert source_provenance() == ("unknown", "unknown", None)
 
 
 def test_source_provenance_accepts_valid_env(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("acd.core.process._in_container", lambda: True)
+    monkeypatch.setattr("acd.core.runtime.process._in_container", lambda: True)
     monkeypatch.setenv("ACD_SOURCE_GIT_SHA", "b" * 40)
     monkeypatch.setenv("ACD_SOURCE_TREE_STATE", "clean")
     monkeypatch.delenv("ACD_SOURCE_DIRTY_DIGEST", raising=False)
@@ -447,7 +447,7 @@ def test_source_provenance_env_rules(
     state: str,
     digest: str | None,
 ) -> None:
-    monkeypatch.setattr("acd.core.process._in_container", lambda: True)
+    monkeypatch.setattr("acd.core.runtime.process._in_container", lambda: True)
     monkeypatch.setenv("ACD_SOURCE_GIT_SHA", sha)
     monkeypatch.setenv("ACD_SOURCE_TREE_STATE", state)
     if digest is None:

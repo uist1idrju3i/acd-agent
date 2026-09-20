@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from scripts import aggregate_order_total
 
-from acd.core.order_total import order_total_result_from_document
+from acd.core.manufacturing.order_total import order_total_result_from_document
 from acd.schema import OrderTotalDocument
 
 ROOT = Path(__file__).resolve().parents[2]

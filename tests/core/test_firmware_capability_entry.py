@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.firmware_capability import (
+from acd.core.firmware.firmware_capability import (
     FirmwareCapabilityContractError,
     load_firmware_capability_registry,
 )
-from acd.core.firmware_capability_entry import register_firmware_capability
+from acd.core.firmware.firmware_capability_entry import register_firmware_capability
 
 REGISTRY_SOURCE = (
     Path(__file__).parents[2] / "contracts" / "firmware-capability-registry.json"

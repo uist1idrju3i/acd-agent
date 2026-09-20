@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from scripts.derive_rework_graph import main
 
-from acd.core.rework_diff import (
+from acd.core.manufacturing.rework_diff import (
     ReworkDiffError,
     apply_rework_diff,
     write_derived_graph,

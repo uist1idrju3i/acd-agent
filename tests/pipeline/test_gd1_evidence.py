@@ -10,8 +10,8 @@ from typing import Literal
 import pytest
 
 from acd.adapters.kicad.gates import GateError
-from acd.core.design_predicates import PREDICATE_CATALOG, PredicateResult
-from acd.core.functional_blocks import load_functional_block_registry
+from acd.core.knowledge.design_predicates import PREDICATE_CATALOG, PredicateResult
+from acd.core.knowledge.functional_blocks import load_functional_block_registry
 from acd.pipeline.gd1_board import build_electrical_evidence
 from acd.schema.evidence import Evidence
 from acd.schema.tool_envelope import ToolEnvelope

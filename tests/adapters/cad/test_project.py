@@ -16,8 +16,8 @@ from acd.adapters.cad.mechanical import (
     measure_enclosure_mesh_artifacts,
 )
 from acd.adapters.cad.project import project_enclosure
-from acd.core.mechanical import extract_mechanical_lane
-from acd.core.parallel import PipelineStageRunner
+from acd.core.mechanical.mechanical import extract_mechanical_lane
+from acd.core.runtime.parallel import PipelineStageRunner
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = (

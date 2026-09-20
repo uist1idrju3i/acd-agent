@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from acd.core.runtime_records import (
+from acd.core.runtime.runtime_records import (
     TimingRecorder,
 )
 from acd.pipeline import lane_plan

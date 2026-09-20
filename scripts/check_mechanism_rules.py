@@ -8,8 +8,8 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.mechanical import extract_mechanical_lane
-from acd.core.mechanism_rules import check_mechanism_features
+from acd.core.mechanical.mechanical import extract_mechanical_lane
+from acd.core.mechanical.mechanism_rules import check_mechanism_features
 from acd.schema.design_graph import DesignGraph
 
 

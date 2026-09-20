@@ -20,10 +20,10 @@ from acd.adapters.kicad.fab import (
 from acd.adapters.kicad.gates import assert_converged
 from acd.adapters.kicad.project import ProjectFiles
 from acd.adapters.kicad.routing import inject_routes, inject_stitch_vias
-from acd.core.board_model import RoutedDesign
-from acd.core.electrical import ElectricalLane
-from acd.core.process import ToolTimeoutError
-from acd.core.runtime_records import StageArtifactCache
+from acd.core.electrical.board_model import RoutedDesign
+from acd.core.electrical.electrical import ElectricalLane
+from acd.core.runtime.process import ToolTimeoutError
+from acd.core.runtime.runtime_records import StageArtifactCache
 from acd.pipeline.gate_evidence import write_gate_evidence, write_gate_evidence_or_unavailable
 from acd.pipeline.routing_connectivity import measure_routing_connectivity
 from acd.pipeline.stitch_candidate_evidence import write_stitch_candidate_report

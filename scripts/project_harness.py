@@ -17,7 +17,7 @@ from io import StringIO
 from pathlib import Path
 
 from acd.adapters.svg.harness import generate_harness_visual_projection
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical.electrical import extract_electrical_lane
 from acd.schema import DesignGraph, HarnessContract
 
 

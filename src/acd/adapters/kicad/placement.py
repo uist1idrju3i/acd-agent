@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from acd.core.board_model import FootprintShape
+from acd.core.electrical.board_model import FootprintShape
 
 MARGIN_MM = 0.0
 

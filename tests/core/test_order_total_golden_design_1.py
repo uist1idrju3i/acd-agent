@@ -9,7 +9,7 @@ from typing import cast
 
 import pytest
 
-from acd.core.order_total import OrderTotalError, aggregate_order_total
+from acd.core.manufacturing.order_total import OrderTotalError, aggregate_order_total
 from acd.schema import FabProfileDocument, OrderScope, QuoteRecord
 
 ROOT = Path(__file__).parents[2]

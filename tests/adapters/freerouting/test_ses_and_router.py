@@ -13,7 +13,7 @@ from acd.adapters.freerouting.router import (
     router_pass_progression,
 )
 from acd.adapters.freerouting.ses import SesImportError, parse_ses
-from acd.core.process import sha256_bytes
+from acd.core.runtime.process import sha256_bytes
 
 _SES = """
 (session "gd1.ses"

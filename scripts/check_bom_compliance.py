@@ -15,11 +15,11 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from acd.core.bom_compliance import (
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.manufacturing.bom_compliance import (
     compliance_summary_markdown,
     summarize_bom_compliance,
 )
-from acd.core.electrical import extract_electrical_lane
 from acd.schema import ComplianceDeclarationRegistry, DesignGraph
 
 

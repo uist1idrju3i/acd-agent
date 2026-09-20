@@ -14,8 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.electrical import extract_electrical_lane
-from acd.core.harness import evaluate_harness
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.electrical.harness import evaluate_harness
 from acd.schema import DesignGraph, HarnessContract
 
 

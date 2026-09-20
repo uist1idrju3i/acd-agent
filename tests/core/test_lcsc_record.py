@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from acd.core.lcsc_record import (
+from acd.core.manufacturing.lcsc_record import (
     LcscRecordIdentity,
     check_declared_lcsc,
     check_declared_mpn,

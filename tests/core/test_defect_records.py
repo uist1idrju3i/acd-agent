@@ -6,7 +6,7 @@ from typing import Any
 
 from scripts.check_defect_record import main
 
-from acd.core.defect_records import (
+from acd.core.manufacturing.defect_records import (
     check_defect_records,
     compute_horizontal_scope,
     load_defect_document,

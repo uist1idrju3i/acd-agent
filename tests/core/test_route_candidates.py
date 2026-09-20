@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from acd.core.electrical import ElectricalLane, extract_electrical_lane
-from acd.core.route_candidates import (
+from acd.core.electrical.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.electrical.route_candidates import (
     RouteCandidateError,
     load_route_candidates,
     parse_route_candidates,

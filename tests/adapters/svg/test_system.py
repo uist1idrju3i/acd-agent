@@ -17,8 +17,8 @@ from acd.adapters.svg.system import (
     SvgVisualProjectionError,
     generate_system_visual_projections,
 )
-from acd.core.electrical import ElectricalLane, extract_electrical_lane
-from acd.core.visual_projection import measure_svg_resolution
+from acd.core.electrical.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.electrical.visual_projection import measure_svg_resolution
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 
 ROOT = Path(__file__).parents[3]

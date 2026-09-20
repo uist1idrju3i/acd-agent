@@ -14,8 +14,8 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.electrical import extract_electrical_lane
-from acd.core.emc_esd import evaluate_emc_esd
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.electrical.emc_esd import evaluate_emc_esd
 from acd.schema import DesignGraph, UseEnvironment
 
 

@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd.core.rework_diff import (
+from acd.core.manufacturing.rework_diff import (
     ReworkDiffError,
     apply_rework_diff,
     load_rework_diff,

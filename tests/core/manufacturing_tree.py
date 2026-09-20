@@ -9,8 +9,8 @@ from pathlib import Path
 from acd.adapters.cad.project import project_enclosure
 from acd.adapters.kicad.fab.archive import deterministic_zip, zip_content_hash
 from acd.adapters.kicad.reload import normalized_hash
-from acd.core.fab import resolve_fab_profile_path
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.manufacturing.fab import resolve_fab_profile_path
+from acd.core.mechanical.mechanical import extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope

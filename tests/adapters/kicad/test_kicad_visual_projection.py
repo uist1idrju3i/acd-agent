@@ -10,12 +10,12 @@ import pytest
 
 from acd.adapters.kicad.cli import KicadCli
 from acd.adapters.kicad.visual_projection import KicadVisualRenderer, wrap_kicad_layer_svg
-from acd.core.process import ExternalToolError
-from acd.core.visual_projection import (
+from acd.core.electrical.visual_projection import (
     LayerViewAnnotations,
     measure_svg_resolution,
     nested_view_geometry,
 )
+from acd.core.runtime.process import ExternalToolError
 
 _FAKE_KICAD = """\
 #!/usr/bin/env python3

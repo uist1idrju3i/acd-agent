@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.functional_block_entry import register_functional_block_contract
-from acd.core.functional_blocks import load_functional_block_registry
-from acd.core.topology_synthesis import TopologySynthesisError, synthesize_topology
+from acd.core.electrical.topology_synthesis import TopologySynthesisError, synthesize_topology
+from acd.core.knowledge.functional_block_entry import register_functional_block_contract
+from acd.core.knowledge.functional_blocks import load_functional_block_registry
 from acd.schema.common import canonical_json_sha256
 from acd.schema.topology_template import TopologyTemplatesDocument
 

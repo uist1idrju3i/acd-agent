@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.troubleshooting import (
+from acd.core.knowledge.troubleshooting import (
     derive_troubleshooting_knowledge,
     load_pin_macros,
     parse_pin_macros,

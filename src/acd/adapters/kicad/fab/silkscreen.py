@@ -35,22 +35,22 @@ from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStub
 
 from acd.adapters.kicad.library import SymbolLibrary
 from acd.adapters.kicad.placement import rotate_point
-from acd.core.board_model import BoardModel, RoutedDesign, RoutedVia
-from acd.core.bom import refdes_key
-from acd.core.electrical import ComponentView, ElectricalLane
-from acd.core.fab import (
+from acd.core.electrical.board_model import BoardModel, RoutedDesign, RoutedVia
+from acd.core.manufacturing.bom import refdes_key
+from acd.core.electrical.electrical import ComponentView, ElectricalLane
+from acd.core.manufacturing.fab import (
     FabOrderIntentView,
     FabProfile,
     ProcessAllowanceView,
     validate_allowances_against_profile,
 )
-from acd.core.routing_width import NetWidthRequirement
-from acd.core.qr_geometry import (
+from acd.core.electrical.routing_width import NetWidthRequirement
+from acd.core.electrical.qr_geometry import (
     QR_DATA_MODULES,
     QR_QUIET_ZONE_MODULES,
     qr_module_matrix_from_svg,
 )
-from acd.core.silkscreen import (
+from acd.core.electrical.silkscreen import (
     SilkGraphicPartView,
     SilkGraphicView,
     SilkTextView,

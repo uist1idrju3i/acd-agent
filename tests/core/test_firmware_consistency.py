@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.firmware_consistency import check_firmware_graph_consistency
+from acd.core.firmware.firmware_consistency import check_firmware_graph_consistency
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1" / "graph.json"

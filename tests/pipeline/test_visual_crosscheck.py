@@ -18,17 +18,17 @@ from acd.adapters.cad.mechanical import MechanicalGateReport, run_mechanical_gat
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.adapters.kicad.visual_projection import wrap_kicad_layer_svg
-from acd.core.board_model import BoardModel, CopperZone
-from acd.core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
-from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
-from acd.core.process import sha256_bytes
-from acd.core.visual_projection import (
+from acd.core.electrical.board_model import BoardModel, CopperZone
+from acd.core.electrical.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
+from acd.core.electrical.visual_projection import (
     KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
     LayerViewAnnotations,
     measure_svg_resolution,
     normalized_svg_sha256,
     svg_source_hash,
 )
+from acd.core.mechanical.mechanical import MechanicalLane, extract_mechanical_lane
+from acd.core.runtime.process import sha256_bytes
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.visual_projection import (
     crosscheck_electrical_visual_projections,

@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from acd.core.firmware import FunctionalRunError, load_and_evaluate_functional_run
+from acd.core.firmware.firmware import FunctionalRunError, load_and_evaluate_functional_run
 from acd.schema import FunctionalCheckReport, FunctionalRunReport
 
 

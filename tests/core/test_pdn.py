@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from acd.core.pdn import analyze_pdn, pdn_markdown
+from acd.core.electrical.pdn import analyze_pdn, pdn_markdown
 from acd.schema import DesignGraph, PdnAnalysisRequest
 
 ROOT = Path(__file__).parents[2]

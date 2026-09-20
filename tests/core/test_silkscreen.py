@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.electrical import GraphExtractionError
-from acd.core.silkscreen import extract_silkscreen_lane
+from acd.core.electrical.electrical import GraphExtractionError
+from acd.core.electrical.silkscreen import extract_silkscreen_lane
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1" / "graph.json"

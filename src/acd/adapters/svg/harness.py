@@ -23,7 +23,7 @@ from acd.adapters.svg.common import (
     svg_text,
     text_advance,
 )
-from acd.core.electrical import ElectricalLane
+from acd.core.electrical.electrical import ElectricalLane
 from acd.schema.harness import HarnessContract
 from acd.schema.visual_projection import (
     VisualProjectionInput,

@@ -12,12 +12,12 @@ from acd.adapters.svg import (
     generate_layout_visual_projections,
     generate_system_visual_projections,
 )
-from acd.core.board_model import BoardModel
-from acd.core.design_predicates import PredicateResult
-from acd.core.electrical import ElectricalLane
-from acd.core.firmware_lane import extract_firmware_lane
-from acd.core.mechanical import placement_annotations
-from acd.core.parallel import run_ordered_stages
+from acd.core.electrical.board_model import BoardModel
+from acd.core.electrical.electrical import ElectricalLane
+from acd.core.firmware.firmware_lane import extract_firmware_lane
+from acd.core.knowledge.design_predicates import PredicateResult
+from acd.core.mechanical.mechanical import placement_annotations
+from acd.core.runtime.parallel import run_ordered_stages
 from acd.pipeline.repository import repository_root
 from acd.pipeline.theme_song import generate_theme_song_projection
 from acd.pipeline.visual_projection import (

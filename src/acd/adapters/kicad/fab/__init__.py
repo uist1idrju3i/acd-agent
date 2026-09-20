@@ -31,8 +31,8 @@ from .common import (  # noqa: F401
     ViaMeasurement,
     describe_uncovered_ground_regions,
 )
-from acd.core.fab import FabProfile
-from acd.core.silkscreen import SilkscreenLane
+from acd.core.manufacturing.fab import FabProfile
+from acd.core.electrical.silkscreen import SilkscreenLane
 from .cpl_orientation import (  # noqa: F401
     derive_lcsc_rotation_offset,
     load_lcsc_pin_centers,

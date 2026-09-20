@@ -6,13 +6,13 @@ import math
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.fileio import sha256_hex
-from acd.core.qr_geometry import (
+from acd.core.electrical.qr_geometry import (
     QR_DATA_MODULES,
     QR_QUIET_ZONE_MODULES,
     qr_module_matrix_from_svg,
 )
-from acd.core.silkscreen import SilkGraphicView
+from acd.core.electrical.silkscreen import SilkGraphicView
+from acd.core.runtime.fileio import sha256_hex
 
 from .common import FabOutputError
 from .geometry import _point_in_polygon

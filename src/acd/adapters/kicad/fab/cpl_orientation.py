@@ -33,21 +33,21 @@ from gerbonara.graphic_objects import (  # pyright: ignore[reportMissingTypeStub
 )
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
-from acd.core.fileio import read_json
+from acd.core.runtime.fileio import read_json
 from acd.adapters.kicad.library import SymbolLibrary
 from acd.adapters.kicad.placement import rotate_point
-from acd.core.board_model import BoardModel, RoutedDesign, RoutedVia
-from acd.core.bom import refdes_key
-from acd.core.electrical import ComponentView, ElectricalLane
-from acd.core.library_assets import resolve_fixture_library_path
-from acd.core.fab import (
+from acd.core.electrical.board_model import BoardModel, RoutedDesign, RoutedVia
+from acd.core.manufacturing.bom import refdes_key
+from acd.core.electrical.electrical import ComponentView, ElectricalLane
+from acd.core.manufacturing.library_assets import resolve_fixture_library_path
+from acd.core.manufacturing.fab import (
     FabOrderIntentView,
     FabProfile,
     ProcessAllowanceView,
     validate_allowances_against_profile,
 )
-from acd.core.routing_width import NetWidthRequirement
-from acd.core.silkscreen import SilkscreenLane
+from acd.core.electrical.routing_width import NetWidthRequirement
+from acd.core.electrical.silkscreen import SilkscreenLane
 
 
 from .common import *  # noqa: F401,F403

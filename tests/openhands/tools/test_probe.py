@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.cad_normalize import (
+from acd.core.mechanical.cad_normalize import (
     CadNormalizationError,
     normalize_3mf,
     normalize_step,

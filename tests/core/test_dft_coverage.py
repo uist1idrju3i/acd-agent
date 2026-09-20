@@ -6,9 +6,9 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.design_predicates import PREDICATE_CATALOG
-from acd.core.dft_coverage import evaluate_dft_coverage
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical.dft_coverage import evaluate_dft_coverage
+from acd.core.electrical.electrical import extract_electrical_lane
+from acd.core.knowledge.design_predicates import PREDICATE_CATALOG
 from acd.schema import DesignGraph, DftPolicy
 
 ROOT = Path(__file__).parents[2]

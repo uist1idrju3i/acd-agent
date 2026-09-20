@@ -60,13 +60,13 @@
 1. **配線提案は`artifact_kind="vision_route_proposal"`、`pass_evidence=false`固定とする。**
    受け取るのはnet名、銅層（`F.Cu`／`B.Cu`）、経路点の数値だけである。線幅、netclass、
    clearanceはビジョン応答から読まず、graphの`width_basis`とfab profileの最小値から
-   決定論的に導出する（`acd.core.routing_width`）。
+   決定論的に導出する（`acd.core.electrical.routing_width`）。
 2. **legalizationは決定論的な幾何整合化とする。** 経路点をrelaxation profileの格子へsnapし、
    両端を実pad位置へ固定し、基板領域から線幅の半分を内側へ寄せ、区間ごとに45度倍数へ
    分解する。他netのpadや既に整合化済みの同一層配線とclearanceが取れない区間は、同じ格子上の
    決定論的な迂回探索（8方向、A*、node上限あり）で修復し、修復量を代理指標として記録する。
 3. **判定は従来のゲートだけが行う。** 候補報告は`artifact_kind="vision_route_candidates"`、
-   `pass_evidence=false`であり、ACD側の`acd.core.route_candidates`がprovenance、revision一致、
+   `pass_evidence=false`であり、ACD側の`acd.core.electrical.route_candidates`がprovenance、revision一致、
    既知net、銅層、宣言最小幅、有限座標を検査してからtool中立の`RoutedDesign`へ変換する。
    合否は基板投影後のDRCとGerber独立再読込が判定する。候補と代理指標を`hashes.json`や
    fab claimsへ書かない。

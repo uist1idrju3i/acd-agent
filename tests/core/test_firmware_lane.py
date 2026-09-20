@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.electrical import GraphExtractionError
-from acd.core.firmware_lane import extract_firmware_lane
+from acd.core.electrical.electrical import GraphExtractionError
+from acd.core.firmware.firmware_lane import extract_firmware_lane
 from acd.schema.design_graph import DesignGraph
 
 FIXTURE = (

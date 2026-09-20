@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from acd.core.progress_digest import collect_progress_digest, render_progress_digest
+from acd.core.runtime.progress_digest import collect_progress_digest, render_progress_digest
 from acd.schema.common import canonical_json_sha256
 
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.requirement_compiler import (
+from acd.core.knowledge.requirement_compiler import (
     RequirementCompilationError,
     compile_requirement_change,
 )

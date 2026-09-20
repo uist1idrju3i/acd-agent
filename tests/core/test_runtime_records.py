@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.runtime_records import (
+from acd.core.runtime.runtime_records import (
     RuntimeObservationError,
     StageArtifactCache,
     TimingRecorder,
@@ -16,7 +16,7 @@ def test_timing_record_is_l3_with_stable_shape(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     clock = iter([0.5, 1.0, 1.25, 2.0, 2.5, 3.0])
-    monkeypatch.setattr("acd.core.runtime_records.time.perf_counter", lambda: next(clock))
+    monkeypatch.setattr("acd.core.runtime.runtime_records.time.perf_counter", lambda: next(clock))
     recorder = TimingRecorder()
     recorder.start("first")
     recorder.finish("first")
@@ -93,7 +93,7 @@ def test_timing_record_separates_wall_clock_from_stage_duration_sum(
 ) -> None:
     # created, a.start, b.start, a.finish, b.finish, wall clock at write
     clock = iter([0.0, 1.0, 1.0, 3.0, 3.0, 3.5])
-    monkeypatch.setattr("acd.core.runtime_records.time.perf_counter", lambda: next(clock))
+    monkeypatch.setattr("acd.core.runtime.runtime_records.time.perf_counter", lambda: next(clock))
     recorder = TimingRecorder()
     recorder.start("a")
     recorder.start("b")

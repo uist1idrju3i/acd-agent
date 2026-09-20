@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.design_freedom import load_design_freedom_declaration
-from acd.core.lane_recovery import (
+from acd.core.knowledge.design_freedom import load_design_freedom_declaration
+from acd.core.runtime.lane_recovery import (
     LaneRecoveryDeclarationError,
     load_lane_recovery_declarations,
     resolve_lane_recovery,

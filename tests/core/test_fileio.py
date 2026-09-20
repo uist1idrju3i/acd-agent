@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.fileio import (
+from acd.core.runtime.fileio import (
     dump_json,
     file_sha256,
     read_json,

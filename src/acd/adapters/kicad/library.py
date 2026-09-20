@@ -11,9 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from acd.core.board_model import FootprintShape, PadShape
-from acd.core.fileio import file_sha256
-from acd.core.sexpr import SExpr, SExprError, find_all, find_one, parse_one
+from acd.core.electrical.board_model import FootprintShape, PadShape
+from acd.core.electrical.sexpr import SExpr, SExprError, find_all, find_one, parse_one
+from acd.core.runtime.fileio import file_sha256
 
 
 class LibraryPinError(ValueError):

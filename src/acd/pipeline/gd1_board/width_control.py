@@ -12,8 +12,8 @@ from typing import cast
 
 from acd.adapters.kicad.cli import KicadCli
 from acd.adapters.kicad.gates import assert_rule_check_input_matches
-from acd.core.board_model import NetClass
-from acd.core.fileio import read_json
+from acd.core.electrical.board_model import NetClass
+from acd.core.runtime.fileio import read_json
 
 from .evidence import summarize_width_violations
 
