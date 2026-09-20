@@ -240,6 +240,18 @@ def test_json_output_is_deterministic(tmp_path: Path) -> None:
     ).read_bytes()
 
 
+def test_projections_accept_several_paths_after_one_flag(tmp_path: Path) -> None:
+    files = _inputs(tmp_path)
+    second = tmp_path / "second-projection-set.json"
+    second.write_bytes(files["projection"].read_bytes())
+    argv = _argv(files, tmp_path / "out")
+    argv.insert(argv.index("--projections") + 2, str(second))
+
+    assert generate_review_package.main(argv) == 0
+    package = json.loads((tmp_path / "out/review-package.json").read_text(encoding="utf-8"))
+    assert len(package["projections"]) == 2
+
+
 def test_previous_revision_declaration_is_required(tmp_path: Path) -> None:
     files = _inputs(tmp_path)
     args = _argv(files, tmp_path / "out")

@@ -201,7 +201,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
-      "sha256": "000e56b58818d35c31968e0ba88e89700a2c3c4f59958793ccab353fe58c23fd"
+      "sha256": "68a711ce4ba93a94c665244fde8cbcd8917e273fd753017ef63c2f5f955673b4"
     },
     {
       "acd_symbols": [
@@ -361,7 +361,7 @@
         "acd.schema.graph_diff.GraphDiff"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py",
-      "sha256": "0bc64df244155d46a89ea9f2d38351e8033e9418692f572a9f3e175ff61dd73d"
+      "sha256": "317230f68a0d46e60a3fc7f9d38095bb151afe8ad3643701932812146d664d6c"
     },
     {
       "acd_symbols": [
