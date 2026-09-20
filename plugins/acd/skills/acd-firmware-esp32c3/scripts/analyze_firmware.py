@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@3ff208492908cc07a997a26b6fa469078fdaa26a",
+# ]
+# ///
 """Aggregate opt-in firmware analyses without changing the firmware pipeline."""
 
 from __future__ import annotations
@@ -13,25 +18,18 @@ from typing import cast
 from pydantic import ValidationError
 
 from acd.schema import CoverageFloor, DesignGraph, FirmwareAnalysisResult
-
-_SKILL_SCRIPTS = (
-    Path(__file__).resolve().parents[1]
-    / "plugins/acd/skills/acd-firmware-esp32c3/scripts"
-)
-sys.path.insert(0, str(_SKILL_SCRIPTS))
-
-from fw_coverage import evaluate_coverage, parse_gcovr_json  # noqa: E402
-from fw_qemu import (  # noqa: E402
+from fw_coverage import evaluate_coverage, parse_gcovr_json
+from fw_qemu import (
     VirtualRunCheckError,
     assert_sensor_log_matches_scenario,
 )
-from fw_stack_usage import (  # noqa: E402
+from fw_stack_usage import (
     StackFunction,
     evaluate_stack_usage,
     parse_size_json,
     parse_su,
 )
-from fw_static_analysis import run_clang_tidy  # noqa: E402
+from fw_static_analysis import run_clang_tidy
 
 
 def _read(path: Path) -> object:
@@ -69,7 +67,7 @@ def main() -> int:
         input_hashes = {"graph": _sha256(args.fixture / "graph.json")}
         static_result = None
         if args.static:
-            checks = _SKILL_SCRIPTS.parent / "rules/clang_tidy_checks.json"
+            checks = Path(__file__).resolve().parents[1] / "rules/clang_tidy_checks.json"
             static_result = run_clang_tidy(args.build_dir, checks, target_revision=graph.revision)
             statuses.append(str(static_result["status"]))
             tool_versions["clang-tidy"] = str(static_result["tool_version"])
@@ -133,9 +131,7 @@ def main() -> int:
                 item = cast(dict[str, object], raw_item)
                 t_c = item.get("t_c")
                 rh_pct = item.get("rh_pct")
-                if not isinstance(t_c, (int, float)) or not isinstance(
-                    rh_pct, (int, float)
-                ):
+                if not isinstance(t_c, (int, float)) or not isinstance(rh_pct, (int, float)):
                     raise ValueError("simulation scenario is malformed")
                 samples.append({"t_c": float(t_c), "rh_pct": float(rh_pct)})
             try:

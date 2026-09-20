@@ -503,7 +503,7 @@ failとする。既定生成物のbytesはgoldenで固定し、optionなしのFW
 fail-closedとなる。stub由来の結果は`authority="observation"`であり、実機測定や
 authoritative Evidenceではない。
 
-集約CLI `scripts/analyze_firmware.py`のaggregateは`fail > unknown > pass`で、
+集約CLI `plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_firmware.py`のaggregateは`fail > unknown > pass`で、
 aggregate authorityは`estimate`、nested peripheral resultは`observation`として境界を
 保持する。synthetic／recorded fixtureはparser回帰専用であり、解析結果をEvidenceへ
 昇格させない。

@@ -35,8 +35,8 @@ Reference implementations in `scripts/`, reusable as-is or as a starting point:
 | `fw_static_analysis.py` | Runs the opt-in clang-tidy estimate over generated compile commands. |
 | `fw_stack_usage.py` | Parses opt-in GCC stack-usage and firmware-size reports. |
 | `fw_coverage.py` | Parses host-side gcovr JSON and evaluates an observation-only coverage floor. |
-| `../../../../scripts/analyze_firmware.py` | Aggregates opt-in static, stack, and virtual-peripheral observations. |
-| `../../../../scripts/analyze_fw_coverage.py` | Evaluates a gcovr report against a declared floor; coverage never becomes Evidence. |
+| `analyze_firmware.py` | Aggregates opt-in static, stack, and virtual-peripheral observations. |
+| `analyze_fw_coverage.py` | Evaluates a gcovr report against a declared floor; coverage never becomes Evidence. |
 
 ## Usage
 
@@ -53,6 +53,10 @@ uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_security.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_coverage.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_inspection.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_static_analysis.py
+
+# Observation-only aggregation (L3; never Evidence):
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_firmware.py
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_fw_coverage.py
 
 # Opt-in analysis flags (the default pipeline remains byte-identical):
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \

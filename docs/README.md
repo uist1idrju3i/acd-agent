@@ -7,6 +7,7 @@
 |---|---|
 | [`../README.md`](../README.md) | 製品概要 |
 | [`../AGENTS.md`](../AGENTS.md) | 作業契約 |
+| [`../scripts/README.md`](../scripts/README.md) | `scripts/` CLI入口の分類索引 |
 | [`glossary.md`](glossary.md) | 用語定義 |
 | [`architecture.md`](architecture.md) | 責務境界 |
 | [`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json) | SDK能力カタログの契約 |
@@ -14,6 +15,8 @@
 | [`gates.md`](gates.md) | 投影と決定論的ゲート |
 | [`eco-workflow.md`](eco-workflow.md) | ECOワークフローとrevisionライフサイクル |
 | [`operations.md`](operations.md) | 運用・インストール |
+| [`dependency-updates.md`](dependency-updates.md) | 依存更新の確認手順と版・破壊的変更の記録 |
+| [`measurement-records.md`](measurement-records.md) | 代替router・非GD1 fixtureの実測記録 |
 | [`golden-design-1.md`](golden-design-1.md) | GD1到達状況 |
 | [`design-requirement-variation.md`](design-requirement-variation.md) | 要件変更の境界と設計動作の確認 |
 | [`design-fixture-spec.md`](design-fixture-spec.md) | DesignFixtureSpec（spec.json）の宣言場所と許容値 |
