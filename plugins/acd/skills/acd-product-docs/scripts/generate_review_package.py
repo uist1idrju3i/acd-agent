@@ -479,7 +479,14 @@ def _markdown(
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--graph", type=Path, required=True)
-    parser.add_argument("--projections", type=Path, action="append", required=True)
+    parser.add_argument(
+        "--projections",
+        type=Path,
+        required=True,
+        nargs="+",
+        action="extend",
+        help="visual projection set files whose images are embedded",
+    )
     parser.add_argument("--design-predicates", type=Path, required=True)
     parser.add_argument("--dfm-report", type=Path, required=True)
     parser.add_argument(
