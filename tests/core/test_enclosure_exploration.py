@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-import acd.core.mechanical.enclosure_exploration as enclosure_exploration
 from acd.adapters.cad.mechanical import MechanicalGateError
 from acd.core.knowledge.design_freedom import (
     DesignFreedomDeclaration,
     load_design_freedom_declaration,
 )
+from acd.core.mechanical import enclosure_exploration
 from acd.core.mechanical.enclosure_exploration import (
     EnclosureExplorationError,
     enumerate_enclosure_candidates,

@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-import acd.core.manufacturing.salvage_gate as salvage_gate
 import workaround
 from acd.core.design_predicates import PredicateResult
+from acd.core.manufacturing import salvage_gate
 from check_workaround import main as check_workaround_main
 
 ROOT = Path(__file__).resolve().parents[5]

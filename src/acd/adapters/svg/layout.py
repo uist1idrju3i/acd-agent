@@ -96,9 +96,7 @@ class _OverhangGeometry:
 def _footprint_bbox(placement: ComponentPlacement) -> tuple[float, float, float, float]:
     bbox = placement.footprint.courtyard_bbox_mm or placement.footprint.body_bbox_mm
     if bbox is None:
-        raise SvgVisualProjectionError(
-            f"{placement.refdes}: footprint dimensions are undeclared"
-        )
+        raise SvgVisualProjectionError(f"{placement.refdes}: footprint dimensions are undeclared")
     if len(bbox) != 4 or not all(math.isfinite(value) for value in bbox):
         raise SvgVisualProjectionError(f"{placement.refdes}: footprint dimensions are invalid")
     x1, y1, x2, y2 = bbox
@@ -112,8 +110,7 @@ def _rotated_corners(
 ) -> tuple[tuple[float, float], ...]:
     x1, y1, x2, y2 = _footprint_bbox(placement)
     if not all(
-        math.isfinite(value)
-        for value in (placement.x_mm, placement.y_mm, placement.rotation_deg)
+        math.isfinite(value) for value in (placement.x_mm, placement.y_mm, placement.rotation_deg)
     ):
         raise SvgVisualProjectionError(f"{placement.refdes}: placement is non-finite")
     angle = math.radians(placement.rotation_deg)
@@ -141,9 +138,7 @@ def _validate_placement(placement: ComponentPlacement, board: BoardModel) -> Non
         or placement.x_mm > board.width_mm
         or placement.y_mm > board.height_mm
     ):
-        raise SvgVisualProjectionError(
-            f"{placement.refdes}: placement lies outside board outline"
-        )
+        raise SvgVisualProjectionError(f"{placement.refdes}: placement lies outside board outline")
 
 
 def _placement_svg(
@@ -168,8 +163,7 @@ def _placement_svg(
     )
     if missing_declaration_placements:
         raise SvgVisualProjectionError(
-            "overhang declaration has no placement for "
-            + ", ".join(missing_declaration_placements)
+            "overhang declaration has no placement for " + ", ".join(missing_declaration_placements)
         )
     font_size = diagram_font_size()
     small = font_size * SMALL_FONT_SCALE
@@ -189,9 +183,7 @@ def _placement_svg(
             not all(math.isfinite(value) for value in (hole.x_mm, hole.y_mm, hole.diameter_mm))
             or hole.diameter_mm <= 0
         ):
-            raise SvgVisualProjectionError(
-                f"mount hole {hole.index} has invalid geometry"
-            )
+            raise SvgVisualProjectionError(f"mount hole {hole.index} has invalid geometry")
         if not (0.0 <= hole.x_mm <= board.width_mm and 0.0 <= hole.y_mm <= board.height_mm):
             raise SvgVisualProjectionError(
                 f"mount hole {hole.index} centre lies outside board outline"
@@ -210,16 +202,12 @@ def _placement_svg(
         footprint_width = fx2 - fx1
         footprint_height = fy2 - fy1
         label_width = text_advance(placement.refdes, font_size, bold=True) / scale
-        inside = (
-            label_width <= footprint_width * 0.9
-            and mm_font <= footprint_height * 0.8
-        )
+        inside = label_width <= footprint_width * 0.9 and mm_font <= footprint_height * 0.8
         geometry.append(
             {
                 "placement": placement,
                 "points": " ".join(
-                    f"{format_svg_number(x)},{format_svg_number(y)}"
-                    for x, y in corners
+                    f"{format_svg_number(x)},{format_svg_number(y)}" for x, y in corners
                 ),
                 "identifier": slugify_identifier(placement.refdes),
                 "cx": (fx1 + fx2) / 2,
@@ -310,33 +298,19 @@ def _placement_svg(
     # courtyard boxes (e.g. antenna keep-outs) never clip the legend or title.
     min_x = min(
         0.0,
-        min(
-            min(
-                x for x, _ in _rotated_corners(item["placement"])
-            )
-            for item in geometry
-        ),
+        *(min(x for x, _ in _rotated_corners(item["placement"])) for item in geometry),
     )
     min_y = min(
         0.0,
-        min(
-            min(y for _, y in _rotated_corners(item["placement"]))
-            for item in geometry
-        ),
+        *(min(y for _, y in _rotated_corners(item["placement"])) for item in geometry),
     )
     max_x = max(
         board.width_mm,
-        max(
-            max(x for x, _ in _rotated_corners(item["placement"]))
-            for item in geometry
-        ),
+        *(max(x for x, _ in _rotated_corners(item["placement"])) for item in geometry),
     )
     max_y = max(
         board.height_mm,
-        max(
-            max(y for _, y in _rotated_corners(item["placement"]))
-            for item in geometry
-        ),
+        *(max(y for _, y in _rotated_corners(item["placement"])) for item in geometry),
     )
     for hole in annotations.mount_holes:
         _label, label_width = hole_labels[hole.index]
@@ -368,20 +342,14 @@ def _placement_svg(
     )
     line_pitch = mm_font * 1.6
     left_width = (
-        max(
-            text_advance(item["placement"].refdes, font_size, bold=True)
-            for item in outside_left
-        )
+        max(text_advance(item["placement"].refdes, font_size, bold=True) for item in outside_left)
         / scale
         + mm_font * 1.5
         if outside_left
         else 0.0
     )
     right_width = (
-        max(
-            text_advance(item["placement"].refdes, font_size, bold=True)
-            for item in outside_right
-        )
+        max(text_advance(item["placement"].refdes, font_size, bold=True) for item in outside_right)
         / scale
         + mm_font * 1.5
         if outside_right
@@ -391,9 +359,7 @@ def _placement_svg(
     left_anchor_x = min_x - mm_font * 0.6
     right_anchor_x = max_x + mm_font * 0.6
     dim_x = right_anchor_x + right_width + mm_font * 0.6
-    label_columns: tuple[
-        tuple[list[_PlacementGeometry], float, Literal["start", "end"]], ...
-    ] = (
+    label_columns: tuple[tuple[list[_PlacementGeometry], float, Literal["start", "end"]], ...] = (
         (outside_left, left_anchor_x, "end"),
         (outside_right, right_anchor_x, "start"),
     )
@@ -403,7 +369,6 @@ def _placement_svg(
             item["outside_anchor_x"] = anchor_x
             item["outside_anchor"] = anchor
             label_bottom = max(label_bottom, item["outside_label_y"] + mm_small)
-
 
     inner: list[str] = [
         '<g id="board-outline">',
@@ -422,9 +387,7 @@ def _placement_svg(
         for keepout in sorted(board.keepouts, key=lambda item: item.name):
             identifier = f"keepout-{slugify_identifier(keepout.name)}"
             if identifier in keepout_ids:
-                raise SvgVisualProjectionError(
-                    f"duplicate keepout identifier: {keepout.name}"
-                )
+                raise SvgVisualProjectionError(f"duplicate keepout identifier: {keepout.name}")
             keepout_ids.add(identifier)
             width = keepout.x2_mm - keepout.x1_mm
             height = keepout.y2_mm - keepout.y1_mm
@@ -622,8 +585,8 @@ def _placement_svg(
             "</g>",
         ]
     )
-    board_right = dim_x + mm_small + text_advance(
-        f"{format_svg_number(board.height_mm)} mm", mm_small
+    board_right = (
+        dim_x + mm_small + text_advance(f"{format_svg_number(board.height_mm)} mm", mm_small)
     )
     board_bottom = dim_y + mm_font
     front_count = sum(1 for item in board.placements if item.side == "front")
@@ -659,7 +622,7 @@ def _placement_svg(
     board_y = header_height(font_size) + font_size * 3.5 - view_min_y * scale
     body.append(
         f'<g transform="translate({format_svg_number(board_x)} '
-        f'{format_svg_number(board_y)}) '
+        f"{format_svg_number(board_y)}) "
         f'scale({format_svg_number(scale)})">'
     )
     body += inner
@@ -705,15 +668,11 @@ def _stackup_svg(board: BoardView) -> bytes:
         or not math.isfinite(board.outer_copper_thickness_um)
         or board.outer_copper_thickness_um <= 0
     ):
-        raise SvgVisualProjectionError(
-            "stackup outer_copper_thickness_um is undeclared or invalid"
-        )
+        raise SvgVisualProjectionError("stackup outer_copper_thickness_um is undeclared or invalid")
     if not board.copper_thickness_source:
         raise SvgVisualProjectionError("stackup copper_thickness_source is undeclared")
     copper_mm = board.outer_copper_thickness_um / 1000.0
-    dielectric_mm = (thickness_mm - len(layer_names) * copper_mm) / (
-        len(layer_names) - 1
-    )
+    dielectric_mm = (thickness_mm - len(layer_names) * copper_mm) / (len(layer_names) - 1)
     if dielectric_mm <= 0:
         raise SvgVisualProjectionError("stackup declarations have no positive dielectric")
     font_size = diagram_font_size()
@@ -724,9 +683,7 @@ def _stackup_svg(board: BoardView) -> bytes:
         f"({board.outer_copper_thickness_um / 34.79:.2f} oz)"
     )
     dielectric_label = f"{format_svg_number(dielectric_mm)} mm"
-    label_width = max(
-        text_advance(name, font_size, bold=True) for name in layer_names
-    )
+    label_width = max(text_advance(name, font_size, bold=True) for name in layer_names)
     label_width = max(
         label_width,
         text_advance(copper_label, small),
@@ -887,9 +844,7 @@ class SvgLayoutRenderer:
         elif projection_type == "stackup_view":
             content = _stackup_svg(board_view)
         else:
-            raise SvgVisualProjectionError(
-                f"unsupported layout projection type: {projection_type}"
-            )
+            raise SvgVisualProjectionError(f"unsupported layout projection type: {projection_type}")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             output_path.write_bytes(content)

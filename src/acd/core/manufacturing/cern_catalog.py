@@ -102,8 +102,10 @@ def resolve_cern_part(root: Path, part_number: str) -> ResolvedCernPart:
             for table in tables:
                 quoted_table = _quote_identifier(table)
                 try:
+                    # Identifiers come from sqlite_master and are double-quoted;
+                    # the only user value is bound as a parameter.
                     matches = connection.execute(
-                        f"SELECT {_quote_identifier('LibSymbol')}, "
+                        f"SELECT {_quote_identifier('LibSymbol')}, "  # noqa: S608
                         f"{_quote_identifier('LibFootprint')} "
                         f"FROM {quoted_table} "
                         f"WHERE {_quote_identifier('Part Number')} = ?",

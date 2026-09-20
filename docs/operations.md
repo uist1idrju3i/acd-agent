@@ -2136,6 +2136,35 @@ source種別をprovenanceの`excluded_source_kinds`へ明記する。FAQは`out/
 検証段階とコマンド列は`uv run python scripts/verify_all.py --list`で確認できる
 `verify_all.py`を正とする。検証段階はdocs、fast、standard、fullの4段階である。
 
+### lint規則の段階導入とcomplexity ratchet
+
+`pyproject.toml`の`[tool.ruff.lint] select`には、違反ゼロを維持できる規則だけを載せる。
+pylint系（`PLW`、`PLR0402`、`PLR1714`、`PLR5501`）とbandit系（`S102`、`S106`、`S108`、
+`S110`、`S301`、`S307`、`S324`、`S602`、`S604`、`S605`、`S608`）はこの条件で採用済みである。
+`S603`／`S607`はSkill・CLI境界でのsubprocess実行そのものを指摘するため、`S105`は
+KiCad s-expression tokenizerの`token`変数と`SECRET_MASK`定数を誤検出するため、`PLW2901`は
+`item = _as_object(item, ...)`によるloop変数のnarrowingが局所的な慣用句であるため、理由を
+`pyproject.toml`のコメントに残して不採用とする。
+
+複雑度系（`C901`、`PLR0911`、`PLR0912`、`PLR0913`、`PLR0915`、`PLR2004`）は既存違反が
+数百件あるため`select`へ載せず、`scripts/verify_ruff_ratchet.py`が
+`contracts/ruff-ratchet-baseline.json`と照合するratchetで管理する。対象は`src`、`scripts`、
+`plugins`（`**/tests`除外）である。
+
+```bash
+uv run python scripts/verify_ruff_ratchet.py --check   # fast段階で実行
+uv run python scripts/verify_ruff_ratchet.py --write   # 分割・整理で件数が変わったら更新
+```
+
+`--check`は(path, rule)ごとの件数が増えた場合だけでなく、減ったのにbaselineを更新して
+いない場合もfailする。baselineは常に現状と一致し、件数は減る方向へしか動かない。
+baselineはL3の観測記録であり合格権限を持たない。
+
+pytestは`filterwarnings = ["error::DeprecationWarning", ...]`で`DeprecationWarning`を
+エラーとして扱う。唯一の例外はpinned SDK v1.47.0が内部で`LLM.modify_params`
+（deprecated field）を走査する際の警告であり、messageを限定して`ignore`している。
+SDK更新時にこの警告が消えたらignore行を削除する。
+
 ### 実行例の取り込み
 
 実行例を取り込む場合は、成果物を所定のパスへ配置した後、対象Markdownを`git add`して

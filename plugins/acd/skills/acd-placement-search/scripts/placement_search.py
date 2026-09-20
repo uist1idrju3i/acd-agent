@@ -158,7 +158,7 @@ def compute_placements(
         seed = pinned.get(comp.refdes)
         if seed is not None:
             x, y, rot = seed.x_mm, seed.y_mm, seed.rotation_deg
-        elif kind == "rf_module" or kind == "usb_connector":
+        elif kind in {"rf_module", "usb_connector"}:
             x, y, rot = center_x, _edge_anchor_y(board, footprint, kind=kind), 0.0
         elif kind == "mounting_hole":
             x, y = hole_positions[holes.index(comp)]

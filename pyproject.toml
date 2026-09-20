@@ -57,13 +57,32 @@ include = ["*.py", "*.pyi", "**/pyproject.toml"]
 extend-exclude = ["vendor", "examples/*/agent-artifacts"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+select = [
+    "E", "F", "W", "I", "UP", "B", "SIM", "RUF",
+    # Stage 1 of the pylint/bandit rollout: rules that are cheap to keep at zero.
+    "PLW", "PLR0402", "PLR1714", "PLR5501",
+    "S102", "S106", "S108", "S110", "S301", "S307", "S324", "S602", "S604", "S605", "S608",
+]
+# Complexity rules (C901, PLR0911/0912/0913/0915, PLR2004) are ratcheted by
+# scripts/verify_ruff_ratchet.py against contracts/ruff-ratchet-baseline.json
+# instead of being selected here; see docs/operations.md.
+# S603/S607: subprocess with argument lists and PATH lookup is the documented
+# Skill/CLI boundary, so those rules only produce noise here.
+# S105: KiCad s-expression tokenizers and the SECRET_MASK placeholder trip the
+# hardcoded-password heuristic; real secrets are covered by SecretRegistry tests.
+# PLW2901: narrowing a loop variable in place (`item = _as_object(item, ...)`) is the
+# local idiom for validating untyped JSON/graph entries.
+ignore = ["S105", "PLW2901"]
 # Japanese generated-document templates use full-width punctuation on purpose.
 allowed-confusables = ["（", "）", "／", "×", "・"]
 
 [tool.ruff.lint.per-file-ignores]
 # The embedded HTML/CSS/JS viewer template uses long lines and arrows on purpose.
 "src/acd/adapters/cad/assembly_viewer.py" = ["E501", "RUF001"]
+# Tests deserialize their own pickles and use literal /tmp paths as opaque fixtures.
+"tests/**" = ["S108", "S301"]
+"plugins/acd/**/tests/**" = ["S108", "S301"]
+"scripts/tests/**" = ["S108", "S301"]
 
 [tool.pyright]
 pythonVersion = "3.12"
@@ -132,6 +151,11 @@ executionEnvironments = [
 [tool.pytest.ini_options]
 testpaths = ["tests", "scripts"]
 addopts = "-q -n auto --dist loadgroup"
+filterwarnings = [
+    "error::DeprecationWarning",
+    # Pinned SDK v1.47.0 still walks the deprecated LLM.modify_params field internally.
+    "ignore:Deprecated since v1.42.0 and scheduled for removal in v1.47.0:DeprecationWarning",
+]
 markers = [
     "pinned_footprint_library: requires the pinned KiCad footprint library; runs in the container-gates job with ACD_REQUIRE_PINNED_LIBRARY=1",
 ]

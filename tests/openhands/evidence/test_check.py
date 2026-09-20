@@ -93,6 +93,7 @@ def test_cli_accepts_multiple_evidence_paths(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         env=os.environ.copy(),
+        check=False,
     )
     assert completed.returncode == 0
 
@@ -116,5 +117,6 @@ def test_cli_rejects_valid_only_with_revision_or_required_id(tmp_path: Path) -> 
         capture_output=True,
         text=True,
         env=os.environ.copy(),
+        check=False,
     )
     assert completed.returncode == 2

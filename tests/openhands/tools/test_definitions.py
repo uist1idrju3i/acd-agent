@@ -12,7 +12,7 @@ import pytest
 from openhands.sdk.agent.parallel_executor import ResourceLockManager
 from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
-import acd.openhands.tools.pipeline_tools as pipeline_tools
+from acd.openhands.tools import pipeline_tools
 from acd.openhands.tools.definitions import (
     AcdAggregateOrderTotal,
     AcdAggregateOrderTotalAction,

@@ -68,8 +68,8 @@ class ComponentView:
     cpl_rotation_unverified_pad_source: str | None = None
     esd_protection: bool = False
     test_point: bool = False
-    cpl_rotation_pin_functions: dict[str, str] = field(default_factory=lambda: dict[str, str]())
-    cpl_rotation_pin_aliases: dict[str, str] = field(default_factory=lambda: dict[str, str]())
+    cpl_rotation_pin_functions: dict[str, str] = field(default_factory=dict[str, str])
+    cpl_rotation_pin_aliases: dict[str, str] = field(default_factory=dict[str, str])
 
 
 @dataclass(frozen=True)

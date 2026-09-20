@@ -251,9 +251,9 @@ def _parse_dat(text: str) -> tuple[float | None, float | None, float | None]:
         if " NT " in f" {upper} " or upper.lstrip().startswith("NT"):
             values = numbers[1:] if numbers and numbers[0].is_integer() else numbers
             if values:
-                max_temp = max(max_temp or values[0], max(values))
+                max_temp = max(max_temp or values[0], *values)
         elif section == "t" and numbers:
-            max_temp = max(max_temp or numbers[-1], max(numbers))
+            max_temp = max(max_temp or numbers[-1], *numbers)
     return (
         max_deflection if displacement_seen else None,
         max_stress if stress_seen else None,

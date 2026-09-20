@@ -214,6 +214,7 @@ def test_cli_writes_progress_json_and_exits_zero(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     progress = json.loads(out.read_text(encoding="utf-8"))
@@ -235,6 +236,7 @@ def test_cli_fails_on_missing_input(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         encoding="utf-8",
+        check=False,
     )
     assert result.returncode == 1
     assert "FAIL" in result.stderr

@@ -332,6 +332,7 @@ def _valid_evidence(root: Path) -> bool:
             capture_output=True,
             timeout=120,
             env=os.environ.copy(),
+            check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
         return False

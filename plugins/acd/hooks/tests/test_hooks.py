@@ -39,6 +39,7 @@ def run(
             "OPENHANDS_PROJECT_DIR": str(root),
             **(extra_env or {}),
         },
+        check=False,
     )
     output: Any = json.loads(completed.stdout) if completed.stdout else {}
     if not isinstance(output, dict):
@@ -64,6 +65,7 @@ def run_payload(
             "OPENHANDS_PROJECT_DIR": str(root),
             **(extra_env or {}),
         },
+        check=False,
     )
 
 
