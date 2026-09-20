@@ -45,6 +45,7 @@ from fw_checks import (
     assert_pin_assignments_consistent,
 )
 from fw_graph import (
+    FirmwareCapabilityStep,
     extract_firmware_lane,
     extract_firmware_settings,
     resolve_firmware_capability_plan,
@@ -106,6 +107,21 @@ def resolve_mcu_refdes(graph: DesignGraph) -> str:
     if not isinstance(refdes, str) or not refdes:
         raise ValueError("firmware MCU component has no refdes")
     return refdes
+
+
+def unique_report_devices(
+    steps: tuple[FirmwareCapabilityStep, ...],
+) -> list[dict[str, str | int]]:
+    """Collapse the devices shared by several steps into one record each."""
+    unique = {
+        (step.device.driver_id, step.device.mpn, step.device.i2c_address)
+        for step in steps
+        if step.device is not None
+    }
+    return [
+        {"mpn": mpn, "driver_id": driver_id, "i2c_address": i2c_address}
+        for driver_id, mpn, i2c_address in sorted(unique)
+    ]
 
 
 def run_pipeline(
@@ -204,15 +220,7 @@ def run_pipeline(
                 }
                 for step in plan.steps
             ],
-            "devices": [
-                {
-                    "mpn": step.device.mpn,
-                    "driver_id": step.device.driver_id,
-                    "i2c_address": step.device.i2c_address,
-                }
-                for step in plan.steps
-                if step.device is not None
-            ],
+            "devices": unique_report_devices(plan.steps),
         },
     }
     if inspection_sequence is not None:
