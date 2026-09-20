@@ -68,8 +68,15 @@ def acd_symbols(source: str, filename: str) -> tuple[list[str], bool, str | None
     return sorted(symbols), imports_acd, None
 
 
+def _is_entrypoint(path: Path) -> bool:
+    """Package modules nested one level below ``scripts/`` carry no PEP 723 block."""
+    return path.parent.parent.name != "scripts"
+
+
 def _script_paths(repository: Path) -> list[Path]:
-    paths = sorted((repository / "plugins" / "acd" / "skills").glob("*/scripts/*.py"))
+    skills = repository / "plugins" / "acd" / "skills"
+    paths = sorted(skills.glob("*/scripts/*.py"))
+    paths.extend(sorted(skills.glob("*/scripts/*/*.py")))
     paths.extend(sorted((repository / "plugins" / "acd" / "mcp").glob("*.py")))
     probe = repository / "scripts" / "probe_pinned_acd_graph.py"
     if probe.is_file():
@@ -338,6 +345,8 @@ def verify_metadata(repository: Path = REPO_ROOT) -> list[str]:
         else None
     )
     for script in scripts:
+        if not _is_entrypoint(script):
+            continue
         relative_path = relative(script, repository)
         try:
             source = script.read_text(encoding="utf-8")
