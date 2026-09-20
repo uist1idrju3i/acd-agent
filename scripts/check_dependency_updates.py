@@ -1282,7 +1282,7 @@ def apply_deferrals(
             for deferral in deferrals:
                 if (
                     deferral.surface == status.surface
-                    and (deferral.name == "*" or deferral.name == status.name)
+                    and (deferral.name in ("*", status.name))
                     and deferral.latest == status.latest
                     and deferral.review_by >= today
                 ):

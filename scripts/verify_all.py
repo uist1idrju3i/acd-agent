@@ -14,6 +14,7 @@ SYNC_COMMAND = CommandSpec(("uv", "sync"), barrier=True)
 FAST_COMMANDS: tuple[CommandSpec, ...] = (
     SYNC_COMMAND,
     CommandSpec(("uv", "run", "ruff", "check")),
+    CommandSpec(("uv", "run", "python", "scripts/verify_ruff_ratchet.py", "--check")),
     CommandSpec(("uv", "run", "pyright")),
     CommandSpec(("uv", "run", "python", "scripts/verify_docs.py")),
     CommandSpec(("uv", "run", "python", "scripts/verify_skill_metadata.py")),

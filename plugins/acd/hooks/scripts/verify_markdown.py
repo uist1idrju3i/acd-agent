@@ -25,6 +25,7 @@ def main() -> int:
             capture_output=True,
             timeout=120,
             env=os.environ.copy(),
+            check=False,
         )
         detail = (completed.stdout + completed.stderr).strip()[-2000:]
         result(

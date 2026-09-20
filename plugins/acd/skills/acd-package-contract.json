@@ -231,7 +231,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
-      "sha256": "f9d66189be92992ffc501c36e10c5fff76fe77ff1bc1d62d108f8aea6e3c31b7"
+      "sha256": "8eced7e2bcb2d41e80c5f2f5c96a0c6217b759a5c931ad30b35653b824990a74"
     },
     {
       "acd_symbols": [

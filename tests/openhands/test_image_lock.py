@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-import acd.openhands.image_lock as image_lock
+from acd.openhands import image_lock
 from acd.openhands.image_lock import ImageDigestLock, load_image_lock, pinned_reference
 from acd.openhands.locked_image_cli import main as locked_image_main
 

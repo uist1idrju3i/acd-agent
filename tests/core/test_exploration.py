@@ -9,8 +9,8 @@ from typing import Any
 
 import pytest
 
-import acd.core.knowledge.exploration as exploration
 from acd.core.electrical.electrical import ElectricalLane
+from acd.core.knowledge import exploration
 from acd.core.knowledge.design_predicates import PREDICATE_CATALOG, PredicateResult
 from acd.core.knowledge.exploration import (
     ExplorationCandidate,

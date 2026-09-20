@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 from openhands.sdk.git.exceptions import GitError
 
-import acd.openhands.order_gate as order_gate
 from acd.core.manufacturing.order_total import OrderTotalResult
+from acd.openhands import order_gate
 from acd.openhands.order_gate import PreOrderGateError, evaluate_pre_order_gate
 from acd.schema import OrderPolicy, QuoteAmount
 

@@ -1,0 +1,2595 @@
+{
+  "schema_version": "1.0",
+  "record_class": "L3",
+  "pass_evidence": false,
+  "rules": [
+    "C901",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PLR2004"
+  ],
+  "scan_paths": [
+    "src",
+    "scripts",
+    "plugins"
+  ],
+  "entries": [
+    {
+      "path": "plugins/acd/hooks/scripts/check_rationale.py",
+      "rule": "PLR0911",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/check_rationale.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/common.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/order_policy.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/order_policy.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/order_policy.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/order_policy.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/order_policy.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/protect_projections.py",
+      "rule": "C901",
+      "count": 5
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/protect_projections.py",
+      "rule": "PLR0911",
+      "count": 5
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/protect_projections.py",
+      "rule": "PLR0912",
+      "count": 5
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/protect_projections.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/protect_projections.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/protect_projections.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/record_file_change_event.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/record_file_change_event.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/stop_policy.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/stop_policy.py",
+      "rule": "PLR0911",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/stop_policy.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/stop_policy.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-design-knowledge/scripts/knowledge_inputs.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-dfa-review/scripts/dfa_review.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-dfa-review/scripts/dfa_review.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-dfa-review/scripts/dfa_review.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-dfa-review/scripts/dfa_review.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-dfa-review/scripts/dfa_review.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_qemu.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_qemu.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_qemu.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_run.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/common.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/common.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/host_checks.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/host_checks.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/host_checks.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/plugin_checks.py",
+      "rule": "C901",
+      "count": 5
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/plugin_checks.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/plugin_checks.py",
+      "rule": "PLR0912",
+      "count": 3
+    },
+    {
+      "path": "plugins/acd/skills/acd-install-doctor/scripts/install_doctor_checks/plugin_checks.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-library-governance/scripts/check_library_governance.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-library-governance/scripts/check_library_governance.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-library-governance/scripts/check_library_governance.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-library-governance/scripts/check_library_governance.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/placement_score.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/vision_route_proposal.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/vision_route_proposal.py",
+      "rule": "PLR0913",
+      "count": 4
+    },
+    {
+      "path": "plugins/acd/skills/acd-placement-search/scripts/vision_route_proposal.py",
+      "rule": "PLR2004",
+      "count": 4
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_product_readme.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_shipping_inspection.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_shipping_inspection.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_shipping_inspection.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_shipping_inspection.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/generate_work_instruction.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/product_doc_inputs/analysis.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/product_doc_inputs/analysis.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/product_doc_inputs/analysis.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/product_doc_inputs/common.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-product-docs/scripts/product_doc_inputs/figures.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-qc-seven-tools/scripts/qc_analysis.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-reliability-review/scripts/derating_check.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-reliability-review/scripts/derating_check.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
+      "rule": "C901",
+      "count": 4
+    },
+    {
+      "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
+      "rule": "PLR0912",
+      "count": 4
+    },
+    {
+      "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
+      "rule": "PLR0915",
+      "count": 4
+    },
+    {
+      "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
+      "rule": "PLR2004",
+      "count": 18
+    },
+    {
+      "path": "plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-theme-song/scripts/theme_song.py",
+      "rule": "C901",
+      "count": 5
+    },
+    {
+      "path": "plugins/acd/skills/acd-theme-song/scripts/theme_song.py",
+      "rule": "PLR0912",
+      "count": 3
+    },
+    {
+      "path": "plugins/acd/skills/acd-theme-song/scripts/theme_song.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-theme-song/scripts/theme_song.py",
+      "rule": "PLR0915",
+      "count": 3
+    },
+    {
+      "path": "plugins/acd/skills/acd-theme-song/scripts/theme_song.py",
+      "rule": "PLR2004",
+      "count": 14
+    },
+    {
+      "path": "plugins/acd/skills/acd-workaround/scripts/workaround.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-workaround/scripts/workaround.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-workaround/scripts/workaround.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-workaround/scripts/workaround.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "scripts/analyze_firmware.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/analyze_firmware.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/analyze_firmware.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "scripts/check_dependency_updates.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/check_dependency_updates.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/check_dependency_updates.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "scripts/check_dependency_updates.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "scripts/check_dependency_updates.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "scripts/explore_enclosure_candidates.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "scripts/fetch_lcsc_footprint_orientation.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "scripts/fetch_lcsc_footprint_orientation.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "scripts/measure_image_tools.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/measure_image_tools.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "scripts/measure_image_tools.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/measure_image_tools.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "scripts/measure_lane_resources.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/measure_lane_resources.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "scripts/measure_lane_resources.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "scripts/pin_library_hashes.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/pin_library_hashes.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "scripts/pre_order_gate.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/run_design_lanes.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/run_design_lanes.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/run_design_lanes.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "scripts/run_in_workspace.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "scripts/run_in_workspace.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/run_in_workspace.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "scripts/update_image_digest_lock.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/update_image_digest_lock.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/update_image_digest_lock.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "scripts/update_skill_package_ref.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/update_skill_package_ref.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/update_skill_package_ref.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_authoritative_evidence.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_authoritative_evidence.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_authoritative_evidence.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_authoritative_evidence.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_authoritative_evidence.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_docs.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "scripts/verify_docs.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "scripts/verify_manufacturing_submission.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_sdk_capabilities.py",
+      "rule": "C901",
+      "count": 3
+    },
+    {
+      "path": "scripts/verify_sdk_capabilities.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_sdk_capabilities.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "scripts/verify_sdk_capabilities.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_skill_metadata.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_skill_metadata.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_skill_metadata.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_skill_package_ref.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_text_encoding.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_text_encoding.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "scripts/verify_text_encoding.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/assembly_3d.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/cad/assembly_3d.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/cad/assembly_3d.py",
+      "rule": "PLR0913",
+      "count": 3
+    },
+    {
+      "path": "src/acd/adapters/cad/assembly_3d.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/assembly_3d.py",
+      "rule": "PLR2004",
+      "count": 5
+    },
+    {
+      "path": "src/acd/adapters/cad/mechanical.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/mechanical.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/mechanical.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/mechanical.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "src/acd/adapters/cad/mechanical_dfm.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/mechanical_dfm.py",
+      "rule": "PLR2004",
+      "count": 5
+    },
+    {
+      "path": "src/acd/adapters/cad/motion_sweep.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/motion_sweep.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/cad/visual_projection.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/cad/visual_projection.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/cad/visual_projection.py",
+      "rule": "PLR0913",
+      "count": 6
+    },
+    {
+      "path": "src/acd/adapters/freerouting/dsn.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/freerouting/dsn.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/freerouting/dsn.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/freerouting/dsn.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/freerouting/router.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/freerouting/ses.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/freerouting/ses.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/freerouting/ses.py",
+      "rule": "PLR2004",
+      "count": 5
+    },
+    {
+      "path": "src/acd/adapters/kicad/board.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/board.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/board.py",
+      "rule": "PLR2004",
+      "count": 7
+    },
+    {
+      "path": "src/acd/adapters/kicad/fab/__init__.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/fab/silkscreen_objects.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/fab/silkscreen_objects.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "src/acd/adapters/kicad/fab/silkscreen_qr.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/kicad/fab/silkscreen_qr.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/fab/silkscreen_qr.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/fab/silkscreen_qr.py",
+      "rule": "PLR2004",
+      "count": 6
+    },
+    {
+      "path": "src/acd/adapters/kicad/gates.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/library.py",
+      "rule": "PLR2004",
+      "count": 7
+    },
+    {
+      "path": "src/acd/adapters/kicad/overlay.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/overlay.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/placement.py",
+      "rule": "PLR2004",
+      "count": 7
+    },
+    {
+      "path": "src/acd/adapters/kicad/project.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/reload.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/reload.py",
+      "rule": "PLR2004",
+      "count": 6
+    },
+    {
+      "path": "src/acd/adapters/kicad/routing.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/kicad/routing.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/kicad/routing.py",
+      "rule": "PLR0913",
+      "count": 3
+    },
+    {
+      "path": "src/acd/adapters/kicad/routing.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/schematic.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/kicad/schematic.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/schematic.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/kicad/schematic.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/kicad/visual_projection.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/raster/cairosvg.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/common.py",
+      "rule": "PLR0913",
+      "count": 3
+    },
+    {
+      "path": "src/acd/adapters/svg/firmware.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/firmware.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/firmware.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/svg/firmware.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/svg/firmware.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/graph_diff.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/svg/harness.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/svg/harness.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/layout.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/layout.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/layout.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/svg/layout.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/svg/layout.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "src/acd/adapters/svg/system.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/adapters/svg/system.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/adapters/svg/system.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/copper.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/decoupling_placement.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/decoupling_placement.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/decoupling_placement.py",
+      "rule": "PLR0913",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/electrical/decoupling_placement.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/dft_coverage.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/dft_coverage.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/dft_coverage.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/dft_coverage.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/electrical.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/electrical.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/electrical.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/electrical.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/emc_esd.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/emc_esd.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/emc_esd.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/harness.py",
+      "rule": "C901",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/electrical/harness.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/pdn.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/pdn.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/pdn.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/pdn.py",
+      "rule": "PLR2004",
+      "count": 16
+    },
+    {
+      "path": "src/acd/core/electrical/placement_constraints.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/projection_format_check.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/projection_format_check.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/projection_format_check.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/projection_format_check.py",
+      "rule": "PLR2004",
+      "count": 14
+    },
+    {
+      "path": "src/acd/core/electrical/qr_geometry.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/qr_geometry.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/electrical/route_candidates.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/route_candidates.py",
+      "rule": "PLR2004",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/electrical/router_diagnostics.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/routing_width.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/routing_width.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/silkscreen.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/silkscreen.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/silkscreen.py",
+      "rule": "PLR2004",
+      "count": 7
+    },
+    {
+      "path": "src/acd/core/electrical/spice.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/spice.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/spice.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/electrical/spice.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/electrical/thermal.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/visual_projection.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/visual_projection.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/visual_projection.py",
+      "rule": "PLR2004",
+      "count": 5
+    },
+    {
+      "path": "src/acd/core/electrical/visual_quality.py",
+      "rule": "C901",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/electrical/visual_quality.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/visual_quality.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/visual_quality.py",
+      "rule": "PLR2004",
+      "count": 5
+    },
+    {
+      "path": "src/acd/core/electrical/wca.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/wca.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/wca.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/wca.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/wca.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/electrical/wca.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware.py",
+      "rule": "PLR0911",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/firmware/firmware.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware_consistency.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware_coverage.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware_exploration.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware_lane.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware_lane.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/firmware_lane.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/fw_security_gate.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/firmware/fw_security_gate.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/knowledge/design_predicates.py",
+      "rule": "C901",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/knowledge/design_predicates.py",
+      "rule": "PLR0911",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/knowledge/design_predicates.py",
+      "rule": "PLR0912",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/knowledge/design_predicates.py",
+      "rule": "PLR0913",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/knowledge/design_predicates.py",
+      "rule": "PLR2004",
+      "count": 8
+    },
+    {
+      "path": "src/acd/core/knowledge/eco_gate.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/eco_gate.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/eco_gate.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/knowledge/exploration.py",
+      "rule": "C901",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/knowledge/exploration.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/exploration.py",
+      "rule": "PLR0912",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/knowledge/exploration.py",
+      "rule": "PLR0913",
+      "count": 5
+    },
+    {
+      "path": "src/acd/core/knowledge/exploration.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/knowledge/idea_dialogue.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/knowledge_qa.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/rationale.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/knowledge/rationale.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/knowledge/rationale.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/requirement_compiler.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/requirement_compiler.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/requirement_compiler.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/requirements.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/responsibility_gate.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/knowledge/responsibility_gate.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/knowledge/responsibility_gate.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/bom_compliance.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/bom_compliance.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/bom_compliance.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/bom_cost.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/bom_cost.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/bom_cost.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/cern_catalog.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/defect_records.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/defect_records.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/feedback.py",
+      "rule": "C901",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/manufacturing/feedback.py",
+      "rule": "PLR0911",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/manufacturing/feedback.py",
+      "rule": "PLR0912",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/manufacturing/feedback.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/manufacturing_submission.py",
+      "rule": "C901",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/manufacturing/manufacturing_submission.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/manufacturing_submission.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/manufacturing_submission.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/order_total.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/order_total.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/order_total.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/part_lifecycle.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/part_lifecycle.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/part_lifecycle.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/parts_catalog_entry.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/manufacturing/receipt.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/receipt.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/reliability_test.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/salvage_gate.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/salvage_gate.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/salvage_gate.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/manufacturing/workaround_ledger.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/workaround_ledger.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/workaround_ledger.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/workaround_ledger.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/manufacturing/workaround_ledger.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/cad_normalize.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/cad_normalize.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/cad_normalize.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/cad_normalize.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/enclosure_exploration.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/enclosure_exploration.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/mechanical/enclosure_exploration.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/enclosure_exploration.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/fem.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/fem.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/fem.py",
+      "rule": "PLR2004",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanical.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanical.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanical.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanical_preflight.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanical_preflight.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanical_preflight.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanism_rules.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanism_rules.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanism_rules.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/mechanism_rules.py",
+      "rule": "PLR2004",
+      "count": 3
+    },
+    {
+      "path": "src/acd/core/mechanical/structural_safety.py",
+      "rule": "C901",
+      "count": 4
+    },
+    {
+      "path": "src/acd/core/mechanical/structural_safety.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/mechanical/structural_safety.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/mechanical/structural_safety.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/command_runner.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/command_runner.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/command_runner.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/command_runner.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/command_runner.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/evidence_declarations.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/runtime/evidence_declarations.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/final_report_basis.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/final_report_basis.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/runtime/gate_diagnosis.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/gate_diagnosis.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/gate_diagnosis.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/gate_evidence_run.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/lane_log.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/lane_preflight.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/runtime/lane_preflight.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/parallel.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/runtime/process.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/process.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/process.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/runtime/side_effect_journal.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/side_effect_journal.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/core/runtime/side_effect_journal.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/core/runtime/source_tree.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/container_runtime.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/host_resources.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/host_resources.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/openhands/image_pull.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_execution.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_execution.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_execution.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_execution.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_gate.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_gate.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_gate.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/order_gate.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/bootstrap.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/bootstrap.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/bootstrap.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/bootstrap.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/gate_critic.py",
+      "rule": "PLR0911",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/gate_critic.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/goal_loop.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/session/visual_projection.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/tools/ambient.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/openhands/workspace.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/openhands/workspace.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/openhands/workspace.py",
+      "rule": "PLR0913",
+      "count": 3
+    },
+    {
+      "path": "src/acd/openhands/workspace.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/design_loop/loop.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/design_loop/loop.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/design_loop/loop.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/design_loop/loop.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/design_loop/recovery.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/design_loop/summary.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/enclosure.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/enclosure.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/enclosure.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/enclosure.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/firmware_evidence.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/firmware_evidence.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/firmware_lane.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/firmware_lane.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/firmware_lane.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/firmware_lane.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/firmware_lane.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/fixture_builder.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/fixture_builder.py",
+      "rule": "PLR0912",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/fixture_builder.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gate_evidence.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/evidence.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/evidence.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/evidence.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/evidence.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/fabrication.py",
+      "rule": "PLR0913",
+      "count": 3
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/measurement.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/pipeline.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/pipeline.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/pipeline.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/pipeline.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/routing.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/routing.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/routing.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/routing.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/visual_stages.py",
+      "rule": "PLR0913",
+      "count": 4
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/width_control.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/width_control.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board/width_control.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/components.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/graph.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/graph.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/mechanical.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/svg_artwork.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/svg_artwork.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/svg_artwork.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/svg_artwork.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/svg_artwork.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/projection_docs.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/projection_docs.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/projection_docs.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/projection_docs.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/routing_connectivity.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/silkscreen_resolve.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/silkscreen_resolve.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/stitch_candidate_evidence.py",
+      "rule": "C901",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/stitch_candidate_evidence.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/stitch_candidate_evidence.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/stitch_candidate_evidence.py",
+      "rule": "PLR2004",
+      "count": 4
+    },
+    {
+      "path": "src/acd/pipeline/theme_song.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/theme_song.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/theme_song.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/_common.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/_common.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/electrical.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/electrical.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/electrical.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/firmware.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/firmware.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/firmware.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/mechanical.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection/mechanical.py",
+      "rule": "PLR2004",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_review.py",
+      "rule": "C901",
+      "count": 3
+    },
+    {
+      "path": "src/acd/pipeline/visual_review.py",
+      "rule": "PLR0912",
+      "count": 3
+    },
+    {
+      "path": "src/acd/pipeline/visual_review.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/pipeline/visual_review.py",
+      "rule": "PLR0915",
+      "count": 2
+    },
+    {
+      "path": "src/acd/schema/defect_record.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/design_graph.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/fw_coverage.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/schema/fw_security.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/fw_security.py",
+      "rule": "PLR2004",
+      "count": 2
+    },
+    {
+      "path": "src/acd/schema/graph_diff.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/harness.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/harness.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/hil.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/hil.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/order_policy.py",
+      "rule": "PLR0913",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/order_scope.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/order_scope.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/side_effect_journal.py",
+      "rule": "PLR0913",
+      "count": 2
+    },
+    {
+      "path": "src/acd/schema/tool_envelope.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/visual_projection.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "src/acd/schema/workaround.py",
+      "rule": "C901",
+      "count": 1
+    }
+  ]
+}

@@ -173,6 +173,7 @@ def main() -> int:
             capture_output=True,
             timeout=120,
             env=os.environ.copy(),
+            check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
         completed = None
