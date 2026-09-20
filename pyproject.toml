@@ -9,9 +9,9 @@ dependencies = [
     "gerbonara>=1.6.3",
     "build123d==0.11.1",
     "cadquery-ocp==7.9.3.1.1",
-    "openhands-sdk==1.47.0",
-    "openhands-tools==1.47.0",
-    "openhands-workspace==1.47.0",
+    "openhands-sdk==1.49.2",
+    "openhands-tools==1.49.2",
+    "openhands-workspace==1.49.2",
     "cairosvg==2.9.1",
 ]
 
@@ -33,7 +33,7 @@ openhands-workspace = { path = "vendor/software-agent-sdk/openhands-workspace", 
 dev = [
     "pytest>=9.1.1",
     "pytest-xdist>=3.8.0",
-    "ruff>=0.16.7",
+    "ruff>=0.16.8",
     "pyright>=1.1.414",
 ]
 

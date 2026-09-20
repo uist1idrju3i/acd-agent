@@ -49,6 +49,14 @@ def _docker_prefix(image_ref: str) -> list[str]:
     return ["docker", "run", "--rm", "--entrypoint", "", image_ref]
 
 
+# Some tools print a valid version banner and then exit nonzero:
+# freerouting --version exits 1, and ccx -v exits 201.
+_NONZERO_BANNERS: dict[tuple[str, ...], str] = {
+    ("ccx", "-v"): r"(?:version|calculix|ccx)[^\d]*[0-9]+\.[0-9]+",
+    ("freerouting", "--version"): r"Freerouting v[0-9]+\.[0-9]+\.[0-9]+",
+}
+
+
 def _docker_run(command: list[str], argv: list[str]) -> str:
     result = subprocess.run(
         command,
@@ -59,10 +67,8 @@ def _docker_run(command: list[str], argv: list[str]) -> str:
     )
     output = result.stdout + result.stderr
     if result.returncode != 0:
-        # freerouting --version prints a valid banner and then exits nonzero.
-        if argv == ["freerouting", "--version"] and re.search(
-            r"Freerouting v[0-9]+\.[0-9]+\.[0-9]+", output
-        ):
+        banner = _NONZERO_BANNERS.get(tuple(argv))
+        if banner is not None and re.search(banner, output, re.IGNORECASE):
             return output
         raise RuntimeError(f"command failed: {' '.join(argv)}")
     return output
@@ -133,7 +139,9 @@ def _measure(key: str, output: str) -> str:
             raise ValueError(f"{key}: version output is unparsable")
         return match.group(1)
     if key == "ccx":
-        match = re.search(r"(?:CalculiX|ccx)[^\d]*([0-9]+\.[0-9]+)", output, re.IGNORECASE)
+        match = re.search(
+            r"(?:version|calculix|ccx)[^\d]*([0-9]+\.[0-9]+)", output, re.IGNORECASE
+        )
         if match is None:
             raise ValueError(f"{key}: version output is unparsable")
         return match.group(1)
