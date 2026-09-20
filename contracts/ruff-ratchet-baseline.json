@@ -147,6 +147,21 @@
       "count": 1
     },
     {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_firmware.py",
+      "rule": "C901",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_firmware.py",
+      "rule": "PLR0912",
+      "count": 1
+    },
+    {
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_firmware.py",
+      "rule": "PLR0915",
+      "count": 1
+    },
+    {
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
       "rule": "C901",
       "count": 1
@@ -522,21 +537,6 @@
       "count": 2
     },
     {
-      "path": "scripts/analyze_firmware.py",
-      "rule": "C901",
-      "count": 1
-    },
-    {
-      "path": "scripts/analyze_firmware.py",
-      "rule": "PLR0912",
-      "count": 1
-    },
-    {
-      "path": "scripts/analyze_firmware.py",
-      "rule": "PLR0915",
-      "count": 1
-    },
-    {
       "path": "scripts/check_dependency_updates.py",
       "rule": "C901",
       "count": 1
@@ -720,6 +720,11 @@
       "path": "scripts/verify_docs.py",
       "rule": "PLR0912",
       "count": 2
+    },
+    {
+      "path": "scripts/verify_import_boundaries.py",
+      "rule": "C901",
+      "count": 1
     },
     {
       "path": "scripts/verify_manufacturing_submission.py",

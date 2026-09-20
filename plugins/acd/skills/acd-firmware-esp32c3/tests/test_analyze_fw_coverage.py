@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.analyze_fw_coverage import main
+from analyze_fw_coverage import main
 
 
 def _floor(path: Path) -> None:

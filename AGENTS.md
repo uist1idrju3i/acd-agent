@@ -115,7 +115,7 @@ CPUバウンドな処理は既定でマルチコアを使う。新規実装で�
 ## 依存とsubmodule
 
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
-使用API、既定値、破壊的変更、採否を`docs/operations.md`へ記録する。
+使用API、既定値、破壊的変更、採否を`docs/dependency-updates.md`へ記録する。
 更新時はリリースノートの新機能・既定値変更を確認し、ACDに有益なものは採用を検討して採否と理由を同じ記録へ残す。
 更新を保留する場合は`scripts/dependency_update_deferrals.json`へ対象版・理由・再確認期限を記録し、期限到来または新版出現で再検討する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
@@ -123,7 +123,7 @@ submodule版を更新する場合は、同じ変更で`pyproject.toml`のPyPI pi
 SDK機能の採否は`docs/openhands-sdk-capabilities.json`を単一の正とし、
 `docs/openhands-sdk-capabilities.md`は機械生成ブロックを含む説明文書とする。
 
-依存の更新確認は[`.github/workflows/check-dependency-updates.yml`](.github/workflows/check-dependency-updates.yml)（週次 + 手動）が`scripts/check_dependency_updates.py`で行い、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象はPyPI直接依存・`uv.lock`間接依存、`vendor/software-agent-sdk`のsubmoduleと3つのSDK pin、GitHub Actionsとrelease download、Docker base imageとARG、image toolsの上流版、Python版、`libraries/README.md`のgit pin、Semeruの新major、vendored three.jsである。PEP 723のgit ref、versionを記録しないaptパッケージ、ESP-IDF toolchain binary、vendor内agent-server base imageは別管理のため確認しない。**依存を追加・削除・移動した場合、Dockerfileへ新しいバージョンARGを追加した場合、新しい外部取得元（PyPI以外、別のGitリポジトリ、apt/PPA等）を使い始めた場合は、同じ変更で`scripts/check_dependency_updates.py`の対象定義（`DOCKER_ARG_SPECS`、`TOOL_UPSTREAM_SPECS`など）とテスト、`docs/operations.md`の該当節を更新し、`uv run python scripts/check_dependency_updates.py`をローカルで実行して対象が漏れていないことを確認する。新しい外部ツールをimageへ追加し`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へも上流取得元を追加する。** 自動更新PRは作らず、更新は本節の手順に従って人手／Devinが行う。
+依存の更新確認は[`.github/workflows/check-dependency-updates.yml`](.github/workflows/check-dependency-updates.yml)（週次 + 手動）が`scripts/check_dependency_updates.py`で行い、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象はPyPI直接依存・`uv.lock`間接依存、`vendor/software-agent-sdk`のsubmoduleと3つのSDK pin、GitHub Actionsとrelease download、Docker base imageとARG、image toolsの上流版、Python版、`libraries/README.md`のgit pin、Semeruの新major、vendored three.jsである。PEP 723のgit ref、versionを記録しないaptパッケージ、ESP-IDF toolchain binary、vendor内agent-server base imageは別管理のため確認しない。**依存を追加・削除・移動した場合、Dockerfileへ新しいバージョンARGを追加した場合、新しい外部取得元（PyPI以外、別のGitリポジトリ、apt/PPA等）を使い始めた場合は、同じ変更で`scripts/check_dependency_updates.py`の対象定義（`DOCKER_ARG_SPECS`、`TOOL_UPSTREAM_SPECS`など）とテスト、`docs/dependency-updates.md`の該当節を更新し、`uv run python scripts/check_dependency_updates.py`をローカルで実行して対象が漏れていないことを確認する。新しい外部ツールをimageへ追加し`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へも上流取得元を追加する。** 自動更新PRは作らず、更新は本節の手順に従って人手／Devinが行う。
 
 ファイルを削除・移動するときは、関連文書、索引、相対リンク、参照先を同じ変更で更新し、
 旧パスへの参照を残さない。

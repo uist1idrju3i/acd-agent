@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import generate_quality_report
 
@@ -119,9 +116,7 @@ def _dfm() -> dict[str, object]:
         "target_revision": REVISION,
         "findings": [{"rule_id": "annular_ring", "message": "ok"}],
         "unknowns": {"width": {"reason": "not measured"}},
-        "checks_not_implemented": [
-            {"rule_id": "via_hole_to_hole", "reason": "not implemented"}
-        ],
+        "checks_not_implemented": [{"rule_id": "via_hole_to_hole", "reason": "not implemented"}],
     }
 
 
@@ -133,31 +128,23 @@ def _inputs(
     root = tmp_path / "in"
     root.mkdir()
     files: dict[str, Path] = {}
-    lanes = evidence or {
-        lane: _evidence(lane) for lane in ("electrical", "mechanical", "firmware")
-    }
+    lanes = evidence or {lane: _evidence(lane) for lane in ("electrical", "mechanical", "firmware")}
     for lane, doc in lanes.items():
         path = root / f"evidence-{lane}.json"
-        path.write_text(
-            json.dumps(doc, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        path.write_text(json.dumps(doc, ensure_ascii=False) + "\n", encoding="utf-8")
         files[lane] = path
     for name in ("coverage-board", "coverage-enclosure"):
         subdir = root / name
         subdir.mkdir()
         path = subdir / "rationale-coverage.json"
-        path.write_text(
-            json.dumps(_coverage(), ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        path.write_text(json.dumps(_coverage(), ensure_ascii=False) + "\n", encoding="utf-8")
         files[name] = path
     for name, doc in (
         ("predicates", _predicates()),
         ("dfm", _dfm()),
     ):
         path = root / f"{name}.json"
-        path.write_text(
-            json.dumps(doc, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        path.write_text(json.dumps(doc, ensure_ascii=False) + "\n", encoding="utf-8")
         files[name] = path
     return files
 
@@ -202,13 +189,9 @@ def test_happy_path_writes_three_documents(
         "quality-report.json",
     ):
         assert (out_dir / name).is_file()
-        provenance = json.loads(
-            (out_dir / f"{name}.provenance.json").read_text(encoding="utf-8")
-        )
+        provenance = json.loads((out_dir / f"{name}.provenance.json").read_text(encoding="utf-8"))
         assert provenance["pass_evidence"] is False
-    report = json.loads(
-        (out_dir / "quality-report.json").read_text(encoding="utf-8")
-    )
+    report = json.loads((out_dir / "quality-report.json").read_text(encoding="utf-8"))
     assert report["artifact_kind"] == "quality_report"
     assert report["record_class"] == "L3"
     assert report["pass_evidence"] is False
@@ -217,25 +200,17 @@ def test_happy_path_writes_three_documents(
         "mechanical",
         "firmware",
     ]
-    requirement_ids = {
-        node["id"] for node in GRAPH["nodes"] if node["kind"] == "requirement"
-    }
+    requirement_ids = {node["id"] for node in GRAPH["nodes"] if node["kind"] == "requirement"}
     traced = {row["requirement"] for row in report["traceability"]}
     assert traced == requirement_ids
     node_kinds = {node["id"]: node["kind"] for node in GRAPH["nodes"]}
-    with_nodes = [
-        row for row in report["traceability"] if row["design_nodes"]
-    ]
+    with_nodes = [row for row in report["traceability"] if row["design_nodes"]]
     assert with_nodes, "expected at least one traced requirement"
     for row in with_nodes:
         for entry in row["design_nodes"]:
             assert entry["kind"] == node_kinds[entry["id"]]
-    req_004 = next(
-        row for row in report["traceability"] if row["requirement"] == "req.gd1-req-004"
-    )
-    assert {entry["id"] for entry in req_004["design_nodes"]} == {
-        "fb.safety-power-boundary"
-    }
+    req_004 = next(row for row in report["traceability"] if row["requirement"] == "req.gd1-req-004")
+    assert {entry["id"] for entry in req_004["design_nodes"]} == {"fb.safety-power-boundary"}
     for row in report["traceability"]:
         for claim in row["claims"]:
             assert claim["subject_node"] in node_kinds
@@ -247,9 +222,7 @@ def test_happy_path_writes_three_documents(
     assert "`fb.safety-power-boundary`" in markdown
     assert "| lane | 対象ノード | 属性 | 値 | verified |" in markdown
     assert "req.gd1-req-004" in markdown
-    assert "via_hole_to_hole" in report["dfm"]["checks_not_implemented"][0][
-        "rule_id"
-    ]
+    assert "via_hole_to_hole" in report["dfm"]["checks_not_implemented"][0]["rule_id"]
 
 
 def test_analysis_results_render_provisional_stop_side_findings(
@@ -310,9 +283,7 @@ def test_missing_required_lane_evidence_fails(tmp_path: Path) -> None:
 def test_host_context_evidence_fails(tmp_path: Path) -> None:
     bad = _evidence(
         "electrical",
-        envelope=_envelope(
-            execution_context="host", container_image_digest=None
-        ),
+        envelope=_envelope(execution_context="host", container_image_digest=None),
     )
     files = _inputs(
         tmp_path,
@@ -338,9 +309,7 @@ def test_invalid_evidence_status_fails(tmp_path: Path) -> None:
             "firmware": _evidence("firmware"),
         },
     )
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="status"
-    ):
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="status"):
         generate_quality_report.main(_argv(files, tmp_path / "out", tmp_path))
 
 
@@ -355,9 +324,7 @@ def test_evidence_revision_mismatch_fails(tmp_path: Path) -> None:
             "firmware": _evidence("firmware"),
         },
     )
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="revision"
-    ):
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="revision"):
         generate_quality_report.main(_argv(files, tmp_path / "out", tmp_path))
 
 
@@ -368,9 +335,7 @@ def test_coverage_fail_status_fails(tmp_path: Path) -> None:
     files["coverage-board"].write_text(
         json.dumps(coverage, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="coverage"
-    ):
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="coverage"):
         generate_quality_report.main(_argv(files, tmp_path / "out", tmp_path))
 
 
@@ -381,9 +346,7 @@ def test_coverage_revision_mismatch_fails(tmp_path: Path) -> None:
     files["coverage-board"].write_text(
         json.dumps(coverage, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="revision"
-    ):
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="revision"):
         generate_quality_report.main(_argv(files, tmp_path / "out", tmp_path))
 
 
@@ -392,14 +355,10 @@ def test_rationale_revision_mismatch_fails(tmp_path: Path) -> None:
     rationale = json.loads(RATIONALE_PATH.read_text(encoding="utf-8"))
     rationale["revision"] = "r999"
     bad = tmp_path / "in" / "rationale-bad.json"
-    bad.write_text(
-        json.dumps(rationale, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    bad.write_text(json.dumps(rationale, ensure_ascii=False) + "\n", encoding="utf-8")
     argv = _argv(files, tmp_path / "out", tmp_path)
     argv[argv.index(str(RATIONALE_PATH))] = str(bad)
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="rationale"
-    ):
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="rationale"):
         generate_quality_report.main(argv)
 
 
@@ -407,12 +366,8 @@ def test_dfm_revision_mismatch_fails(tmp_path: Path) -> None:
     files = _inputs(tmp_path)
     dfm = _dfm()
     dfm["target_revision"] = "r999"
-    files["dfm"].write_text(
-        json.dumps(dfm, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="revision"
-    ):
+    files["dfm"].write_text(json.dumps(dfm, ensure_ascii=False) + "\n", encoding="utf-8")
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="revision"):
         generate_quality_report.main(_argv(files, tmp_path / "out", tmp_path))
 
 
@@ -436,16 +391,12 @@ def test_unknown_subject_node_fails(tmp_path: Path) -> None:
             "firmware": _evidence("firmware"),
         },
     )
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="subject_node"
-    ):
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="subject_node"):
         generate_quality_report.main(_argv(files, tmp_path / "out", tmp_path))
 
 
 def test_missing_dfm_file_fails(tmp_path: Path) -> None:
     files = _inputs(tmp_path)
     files["dfm"].unlink()
-    with pytest.raises(
-        generate_quality_report.DocumentGenerationError, match="DFM"
-    ):
+    with pytest.raises(generate_quality_report.DocumentGenerationError, match="DFM"):
         generate_quality_report.main(_argv(files, tmp_path / "out", tmp_path))

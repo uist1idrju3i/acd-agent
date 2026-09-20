@@ -121,6 +121,22 @@
     },
     {
       "acd_symbols": [
+        "acd.schema.CoverageFloor",
+        "acd.schema.DesignGraph",
+        "acd.schema.FirmwareAnalysisResult"
+      ],
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_firmware.py",
+      "sha256": "1b88172557c79c2859dc7e2a448cf0f2c8551c16123178c1b9f956c19d397ff3"
+    },
+    {
+      "acd_symbols": [
+        "acd.schema.CoverageFloor"
+      ],
+      "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/analyze_fw_coverage.py",
+      "sha256": "92ee07b18a76c088ea51c75ce6a45a457c8cd1f740b422b8fc170cb31f9b4914"
+    },
+    {
+      "acd_symbols": [
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py",

@@ -29,6 +29,12 @@
       "note": "Legacy artifact prefix alias golden-design-1 -> gd1 in the order guard."
     },
     {
+      "path": "scripts/README.md",
+      "purpose": "module_name",
+      "reference_lines": 4,
+      "note": "Index rows naming the GD1 fixture builder, resolver, pipeline, and reference-inventory entrypoints."
+    },
+    {
       "path": "scripts/build_gd1_fixture.py",
       "purpose": "positive_control",
       "reference_lines": 1,
@@ -119,16 +125,16 @@
       "note": "Imports the board pipeline module that keeps its historical gd1_board name."
     },
     {
-      "path": "src/acd/core/runtime/lane_cli.py",
-      "purpose": "default_fallback",
-      "reference_lines": 1,
-      "note": "Shared lane CLI fixture default for positive-control runs; callers may pass None to require --fixture."
-    },
-    {
       "path": "src/acd/core/knowledge/naming.py",
       "purpose": "compatibility_alias",
       "reference_lines": 2,
       "note": "Legacy artifact prefix alias golden-design-1 -> gd1 for committed GD1 artifacts."
+    },
+    {
+      "path": "src/acd/core/runtime/lane_cli.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "Shared lane CLI fixture default for positive-control runs; callers may pass None to require --fixture."
     },
     {
       "path": "src/acd/openhands/goal_cli.py",

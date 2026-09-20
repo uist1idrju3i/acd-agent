@@ -65,7 +65,7 @@ jobs:
             BODY_FILE=$(mktemp)
             trap 'rm -f "$BODY_FILE"' EXIT
             cat "$REPORT_MARKDOWN" > "$BODY_FILE"
-            printf '\n---\n実行ログ: %s\n\n更新はAGENTS.md「依存とsubmodule」に従い、一次情報を確認し、docs/operations.mdへ記録し、submoduleとpyprojectのpinを同期してください。\n' \
+            printf '\n---\n実行ログ: %s\n\n更新はAGENTS.md「依存とsubmodule」に従い、一次情報を確認し、docs/dependency-updates.mdへ記録し、submoduleとpyprojectのpinを同期してください。\n' \
               "$ACTIONS_RUN_URL" >> "$BODY_FILE"
             if [ -n "$ISSUE_NUMBER" ]; then
               gh issue edit "$ISSUE_NUMBER" --body-file "$BODY_FILE"

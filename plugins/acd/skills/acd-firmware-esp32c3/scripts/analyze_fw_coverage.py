@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@3ff208492908cc07a997a26b6fa469078fdaa26a",
+# ]
+# ///
 """Evaluate an optional gcovr report against a declared coverage floor."""
 
 from __future__ import annotations
@@ -11,14 +16,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from acd.schema import CoverageFloor
-
-SKILL_SCRIPTS = (
-    Path(__file__).resolve().parents[1]
-    / "plugins/acd/skills/acd-firmware-esp32c3/scripts"
-)
-sys.path.insert(0, str(SKILL_SCRIPTS))
-
-from fw_coverage import evaluate_coverage, parse_gcovr_json  # noqa: E402
+from fw_coverage import evaluate_coverage, parse_gcovr_json
 
 
 def _write(path: Path, value: object) -> None:
@@ -36,9 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
-        floor = CoverageFloor.model_validate(
-            json.loads(args.floor.read_text(encoding="utf-8"))
-        )
+        floor = CoverageFloor.model_validate(json.loads(args.floor.read_text(encoding="utf-8")))
         report = (
             None
             if not args.gcovr_json.is_file()

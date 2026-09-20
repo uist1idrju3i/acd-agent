@@ -284,7 +284,7 @@ pluginの`.mcp.json` stdio serverが`acd_*`を配布する。ゲートは
 | 実装 | 候補評価入力へ確定経路と同一のrationale更新を適用する（S-1）、候補固有の却下では残予算で次候補を評価し予算をL3へ明示する（S-2）、ambient install経路の会話へACD tool入口を登録するか宣言toolの不在をfail-closedに検出する（S-3）、catalogのlibrary資材宣言を生成fixtureへの同梱かcontainer内絶対pathへ統一し宣言と生成の両側を検査する（S-4）、L3 timing recordとexploration reportを会話へ返す進行表示（S-5） |
 | 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。新規specからのfixture生成がlibrary資材を解決して基板laneへ到達する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | rationale更新不能、graph ID／revisionの不一致、正規化hashの不変、候補予算・round上限の超過、宣言と生成が食い違うlibrary資材、宣言toolの不在はいずれもfail-closedで停止する。候補report、進行表示、GUI観測はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
-| 再現性 | 候補ごとの評価入力hash、rationale更新結果、予算消費、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
+| 再現性 | 候補ごとの評価入力hash、rationale更新結果、予算消費、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`measurement-records.md`](measurement-records.md)へ追記する |
 
 S-1とS-4は単体成立の前提であり先に扱う。S-3はpluginの`.mcp.json` stdio serverで
 ambient会話へ配布する。S-2とS-5は予算と進行の可視化である。
@@ -309,7 +309,7 @@ L1判定へ持ち込まないための是正フェーズである。
 | 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、pinned SDK v1.44.1のplugin形式に直接のToolDefinition登録面はないが`.mcp.json` stdio serverをambient登録面として使い、tool名driftをfast段で検出する（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
 | 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し（`winner_written=true`）、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。候補生成は上限まで候補を返し、`consumed_budget`と`remaining_budget`が実行と一致する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
-| 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
+| 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`measurement-records.md`](measurement-records.md)へ追記する |
 
 T-1〜T-5は実装済みで、記録は[`roadmap-completed.md`](roadmap-completed.md)にある。実機で成功した復帰runのwall-clock記録は未取得である。
 
@@ -363,7 +363,7 @@ driftとして検出する。
 | 実装 | GD1以外の設計を1件、宣言完備のfixtureとして追加し、要件検証からsilkscreen、基板、筐体、FW、製造提出判定までをdigest固定containerで通す（W-1）。既定fixture・既定出力名・既定policyがGD1へ解決される経路を洗い出し、graph_idと宣言由来へ置換する。positive control用途で残す参照は用途を明示宣言する（W-2）。設計述語の適用条件が機能ブロック宣言だけで決まり、GD1固有のnet名・refdesを前提とする分岐が残っていないことを検査する（W-3）。CIの`container-gates`へ非GD1設計のlaneを追加し、GD1と同じ判定基準でauthoritative Evidenceを検証する（W-4） |
 | 正常系 | 非GD1設計だけでVibeBBの1周（要件→設計→ゲート→製造提出判定→authoritative Evidence）が成立し、GD1固有の既定値へfallbackせずに完了する。GD1のlaneも従来どおり通過し、判定・Evidence・正規化hashは変化しない |
 | negative・fail-closed | 非GD1設計の宣言不足はfail-closedで停止し、GD1の既定値・既定fixture・既定命名へ暗黙にfallbackしない。GD1固有の前提を残す述語分岐、用途宣言のないGD1参照、非GD1 laneを持たないCI構成はいずれも未達として扱う。positive controlの通過をもって非GD1設計の合格としない |
-| 再現性 | 非GD1設計のwall-clockと資源使用を[`operations.md`](operations.md)へ記録し、CIで両設計の判定と正規化hashを固定する。GD1参照の棚卸し結果を機械可読な一覧として保存し、追加参照をdriftとして検出する |
+| 再現性 | 非GD1設計のwall-clockと資源使用を[`measurement-records.md`](measurement-records.md)へ記録し、CIで両設計の判定と正規化hashを固定する。GD1参照の棚卸し結果を機械可読な一覧として保存し、追加参照をdriftとして検出する |
 
 W-1は14.20のV-6解消を前提とし、W-3は14.2、W-4は6.4のCI移行を前提とする。W-1〜W-4を
 満たした時点で「GD1が無くても新規設計をVibeBBできる」状態に到達したと判定する。GD1 fixtureは
@@ -541,7 +541,7 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 15.18 | 資源計測ラッパのscript化（V-8） | 達成。`scripts/measure_lane_resources.py`がcheckout path、digest固定image、download対象、計測間隔を引数で受け、`run_in_workspace.py`をwrapしてhost CPU／memory／swapとdocker statsをintervalごとに記録する。計測結果はL3観測であり合否権限を持たない |
 | 15.19 | 成果物の最小収録集合の宣言（V-10） | FW laneのESP-IDF buildツリーのように再生成可能で大きい出力を区別し、lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言する。成果物の必須性判定（U-5）は変更しない。達成：`contracts/lane-artifact-retention.json`と`scripts/collect_lane_artifacts.py` |
 | 15.20 | 長時間runの予算・中断・再開契約 | 達成。wall-clock／token予算を宣言し、wall-clockはstage境界だけで超過停止する。L3 checkpointは各stage後に更新し、`--resume`はcheckpointを参照せずStageArtifactCacheだけを再利用してゲートを再実行する。運用項目に限定し、判定・閾値には作用させない |
-| 15.21 | 代替routerの単独実測 | 達成（不採用で閉じた）。GD1と`dual-beacon-tag`をOrthoRoute headless `--cpu-only`で各2回実測し、決定論的`.ORP`生成は可能だが、2層基板では信号netが1本も配線されず非収束、GD1は2回のhashが不一致、`.ORS`→基板変換経路が無くDRC照合不能だった。GPU modeはCUDA GPUの無い環境のため未測定。補遺としてKiCadRoutingTools・kicad-tools・freerouteも同手順で実測し、いずれも入力DRC規則で合格出力に至らず不採用（KiCadRoutingToolsは再検討条件付き）。記録は`operations.md`、合否へは作用させない |
+| 15.21 | 代替routerの単独実測 | 達成（不採用で閉じた）。GD1と`dual-beacon-tag`をOrthoRoute headless `--cpu-only`で各2回実測し、決定論的`.ORP`生成は可能だが、2層基板では信号netが1本も配線されず非収束、GD1は2回のhashが不一致、`.ORS`→基板変換経路が無くDRC照合不能だった。GPU modeはCUDA GPUの無い環境のため未測定。補遺としてKiCadRoutingTools・kicad-tools・freerouteも同手順で実測し、いずれも入力DRC規則で合格出力に至らず不採用（KiCadRoutingToolsは再検討条件付き）。記録は`measurement-records.md`、合否へは作用させない |
 
 15.1〜15.21は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.21は運用・計測側だけの項目であり、判定と閾値には触れていない。
 
